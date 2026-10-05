@@ -1,0 +1,240 @@
+/* ===============================
+   PÁGINA DE LOGIN
+================================ */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #3b4a8c 0%, #6b7bbd 40%, #dce3f5 100%);
+    padding: 20px;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* ===============================
+   CARD
+================================ */
+.login-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 40px 36px 32px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+/* Logo */
+.login-card__logo {
+    margin-bottom: 20px;
+}
+
+.login-card__logo img {
+    height: 100px;
+    margin: 0 auto;
+}
+
+/* Título */
+.login-card__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e1b4b;
+    margin-bottom: 6px;
+}
+
+.login-card__subtitle {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 28px;
+}
+
+/* Formulario */
+.login-form {
+    text-align: left;
+}
+
+/* Labels */
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.label-row label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+}
+
+.label-tag {
+    font-size: 11px;
+    color: #94a3b8;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+/* Inputs con icono */
+.input-icon {
+    position: relative;
+}
+
+.input-icon input {
+    width: 100%;
+    padding: 12px 42px 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.input-icon input:focus {
+    outline: none;
+    border-color: #252060;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 32, 96, 0.1);
+}
+
+.input-icon .icon,
+.input-icon .toggle-password {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: #94a3b8;
+}
+
+/* Recordarme + En línea */
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 18px 0 24px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #475569;
+    cursor: pointer;
+}
+
+.status-online {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #16a34a;
+    font-weight: 500;
+}
+
+.status-online .dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+}
+
+/* Botón */
+.btn--primary {
+    background: #1e1b4b;
+    color: white;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn--primary:hover {
+    background: #312e81;
+}
+
+.btn--full {
+    width: 100%;
+}
+
+/* Footer del form */
+.login-form__footer {
+    margin-top: 18px;
+    text-align: center;
+}
+
+.login-form__footer a {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.login-form__footer a:hover {
+    color: #BE1D2C;
+}
+
+/* Texto inferior */
+.login-card__bottom {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.login-card__bottom p {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.login-card__bottom span {
+    font-size: 12px;
+    color: #94a3b8;
+}
+/* ===============================
+   ERROR Y CUENTAS DE PRUEBA
+================================ */
+.hidden {
+    display: none;
+}
+
+.login-error {
+    margin: -8px 0 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 13px;
+}
+
+.login-form__footer span {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.login-demo {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #64748b;
+    text-align: left;
+}
+
+.login-demo summary {
+    cursor: pointer;
+    text-align: center;
+}
+
+.login-demo ul {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    line-height: 1.8;
+}

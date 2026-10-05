@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+</head>
+
+<body>
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item active">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar">EG</div>
+            <div class="user-info">
+                <strong>Eduardo Gómez</strong>
+                <span>Admin de RRHH</span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <!-- ========== CONTENIDO PRINCIPAL ========== -->
+    <main class="main-content">
+
+        <header class="header">
+            <div class="header__left">
+                <h1>Página principal</h1>
+                <span class="badge badge--success">Operativo</span>
+            </div>
+            <div class="header__right">
+                <div class="header-date" id="fecha-hoy"></div>
+                <button class="btn-notification">🔔</button>
+            </div>
+        </header>
+
+        <section class="content">
+
+            <div class="section-header">
+                <div>
+                    <h2>Métricas en Tiempo Real</h2>
+                    <p>Haz clic en cualquier indicador para filtrar y desplegar la lista detallada de colaboradores.</p>
+                </div>
+            </div>
+
+            <!-- ========== KPI CARDS (AHORA SON BOTONES) ========== -->
+            <div class="kpi-grid">
+
+                <div class="kpi-card" id="kpi-presentes" onclick="mostrarTabla('presentes')">
+                    <div class="kpi-card__header">
+                        <span>Asistieron / Total</span>
+                        <span class="kpi-icon success">✓</span>
+                    </div>
+                    <div class="kpi-card__value asistencia" id="valor-presentes">0 / 0</div>
+                </div>
+
+                <div class="kpi-card" id="kpi-retardos" onclick="mostrarTabla('retardos')">
+                    <div class="kpi-card__header">
+                        <span>Retardos</span>
+                        <span class="kpi-icon warning">⏰</span>
+                    </div>
+                    <div class="kpi-card__value retardo" id="valor-retardos">0</div>
+                </div>
+
+                <div class="kpi-card" id="kpi-faltas" onclick="mostrarTabla('faltas')">
+                    <div class="kpi-card__header">
+                        <span>Faltas</span>
+                        <span class="kpi-icon danger">✗</span>
+                    </div>
+                    <div class="kpi-card__value falta" id="valor-faltas">0</div>
+                </div>
+
+                <div class="kpi-card" id="kpi-incapacidades" onclick="mostrarTabla('incapacidades')">
+                    <div class="kpi-card__header">
+                        <span>Incapacidades</span>
+                        <span class="kpi-icon incapacidad">🏥</span>
+                    </div>
+                    <div class="kpi-card__value incapacidad" id="valor-incapacidades">0</div>
+                </div>
+
+                <div class="kpi-card" id="kpi-vacaciones" onclick="mostrarTabla('vacaciones')">
+                    <div class="kpi-card__header">
+                        <span>Vacaciones</span>
+                        <span class="kpi-icon vacaciones">📅</span>
+                    </div>
+                    <div class="kpi-card__value vacaciones" id="valor-vacaciones">0</div>
+                </div>
+
+            </div>
+
+            <!-- ========== TABLA (se llena según el KPI seleccionado) ========== -->
+            <div class="card">
+                <div class="card__header">
+                    <div>
+                        <h3 id="tabla-titulo"></h3>
+                        <span class="badge-soft" id="tabla-conteo"></span>
+                    </div>
+                    <div class="card__actions">
+                        <div class="filtro-sucursal">
+                            <label for="filtro-sucursal">Sucursal</label>
+                            <select id="filtro-sucursal" onchange="actualizarVista()">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead id="tabla-head"></thead>
+                        <tbody id="tabla-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script src="recursos/datos.js"></script>
+    <script>
+        // Los datos salen de la misma fuente que Asistencia, Incapacidades y Vacaciones (recursos/datos.js),
+        // así las cifras de hoy coinciden en todas las páginas.
+        const etiqueta = (texto, concepto) => '<span class="badge color-' + concepto + '">' + texto + '</span>';
+        const aMinutos = (hora) => { const [h, m] = hora.split(':').map(Number); return h * 60 + m; };
+        const periodo = (inicio, fin) => inicio === fin ? formatoFecha(inicio) : formatoFecha(inicio) + ' – ' + formatoFecha(fin);
+
+        const COLUMNAS_BASE = ['Empleado', 'Departamento'];
+
+        // Celda del empleado: primero su ID y después su nombre, en la misma fila
+        function celdasBase(e) {
+            return '<td>' +
+                '<div class="employee-cell">' +
+                '<span class="employee-id">' + e.id + '</span><span>' + escaparHtml(e.nombre) + '</span>' +
+                '</div>' +
+                '</td>' +
+                '<td>' + escaparHtml(e.depto) + '</td>';
+        }
+
+        // Configuración de cada vista (KPI). Cada fila es { emp, reg, incapacidad, vacacion }
+        const VISTAS = {
+            presentes: {
+                titulo: 'Empleados Presentes Hoy',
+                filtro: f => f.reg && (f.reg.estado === 'asistencia' || f.reg.estado === 'retardo'),
+                columnas: ['Hora de Entrada', 'Estado'],
+                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + (f.reg.estado === 'retardo' ? etiqueta('Retardo', 'retardo') : etiqueta('A tiempo', 'asistencia')) + '</td>'
+            },
+            retardos: {
+                titulo: 'Empleados con Retardo',
+                filtro: f => f.reg && f.reg.estado === 'retardo',
+                columnas: ['Hora de Entrada', 'Minutos de retardo', 'Estado'],
+                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + (aMinutos(f.reg.entrada) - HORARIO.entrada - TOLERANCIA_MINUTOS) + ' min</td><td>' + etiqueta('Retardo', 'retardo') + '</td>'
+            },
+            faltas: {
+                titulo: 'Empleados con Falta',
+                filtro: f => f.reg && f.reg.estado === 'falta',
+                columnas: ['Fecha', 'Estado'],
+                celdas: () => '<td>' + formatoFecha(HOY_ISO) + '</td><td>' + etiqueta('Falta', 'falta') + '</td>'
+            },
+            incapacidades: {
+                titulo: 'Incapacidades Activas',
+                filtro: f => Boolean(f.incapacidad),
+                columnas: ['Tipo', 'Folio IMSS', 'Periodo', 'Estado'],
+                celdas: f => '<td>' + escaparHtml(f.incapacidad.tipo) + '</td><td>' + escaparHtml(f.incapacidad.folio) + '</td><td>' +
+                    periodo(f.incapacidad.inicio, finIncapacidad(f.incapacidad)) + '</td><td>' + etiqueta('Incapacidad', 'incapacidad') + '</td>'
+            },
+            vacaciones: {
+                titulo: 'Trabajadores de Vacaciones Hoy',
+                filtro: f => Boolean(f.vacacion),
+                columnas: ['Días', 'Periodo', 'Estado'],
+                celdas: f => { const dias = diasHabiles(f.vacacion.inicio, f.vacacion.fin); return '<td>' + dias + (dias === 1 ? ' día' : ' días') + '</td><td>' +
+                    periodo(f.vacacion.inicio, f.vacacion.fin) + '</td><td>' + etiqueta('Vacaciones', 'vacaciones') + '</td>'; }
+            }
+        };
+
+        let vistaActual = 'presentes';
+
+        // Plantilla de hoy (contratados y sin baja) con su registro del día.
+        // Si alguien tiene incapacidad y vacaciones a la vez, cuenta como incapacidad (igual que en Empleados).
+        function filasDeHoy() {
+            const sucursal = document.getElementById('filtro-sucursal').value;
+            return EMPLEADOS
+                .filter(e => e.ingreso <= HOY_ISO && !e.baja) // solo activos: los dados de baja no cuentan en el total
+                .filter(e => sucursal === 'todas' || e.suc === sucursal)
+                .sort((a, b) => a.id.localeCompare(b.id))
+                .map(emp => {
+                    const incapacidad = incapacidadEn(emp, HOY_ISO) || null;
+                    return { emp, reg: registroDia(emp, HOY), incapacidad, vacacion: incapacidad ? null : (vacacionEn(emp, HOY_ISO) || null) };
+                });
+        }
+
+        function actualizarKPIs(lista) {
+            const contar = tipo => lista.filter(VISTAS[tipo].filtro).length;
+            document.getElementById('valor-presentes').textContent = contar('presentes') + ' / ' + lista.length;
+            ['retardos', 'faltas', 'incapacidades', 'vacaciones'].forEach(tipo => {
+                document.getElementById('valor-' + tipo).textContent = contar(tipo);
+            });
+        }
+
+        function actualizarVista() {
+            const lista = filasDeHoy();
+            const vista = VISTAS[vistaActual];
+            // Siempre se muestra toda la información de la vista elegida
+            const filas = lista.filter(vista.filtro);
+            const columnas = COLUMNAS_BASE.concat(vista.columnas);
+
+            actualizarKPIs(lista);
+
+            document.getElementById('tabla-titulo').textContent = vista.titulo;
+            document.getElementById('tabla-conteo').textContent =
+                filas.length + (filas.length === 1 ? ' colaborador' : ' colaboradores');
+
+            document.getElementById('tabla-head').innerHTML =
+                '<tr>' + columnas.map(c => '<th>' + c + '</th>').join('') + '</tr>';
+
+            document.getElementById('tabla-body').innerHTML = filas.length
+                ? filas.map(f => '<tr>' + celdasBase(f.emp) + vista.celdas(f) + '</tr>').join('')
+                : '<tr class="fila-vacia"><td colspan="' + columnas.length + '">Sin registros para esta sucursal</td></tr>';
+        }
+
+        function mostrarTabla(tipo) {
+            vistaActual = tipo;
+
+            // Quitar clase activa de todos los KPI y activar el clickeado
+            document.querySelectorAll('.kpi-card').forEach(kpi => {
+                kpi.classList.remove('kpi-card--active');
+            });
+            document.getElementById('kpi-' + tipo).classList.add('kpi-card--active');
+
+            actualizarVista();
+        }
+
+        // Al cargar la página muestra "Presentes" por defecto
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('fecha-hoy').textContent = fechaLarga(HOY);
+            // El admin de sucursal solo ve la suya: el filtro queda fijo
+            const filtro = document.getElementById('filtro-sucursal');
+            const todas = puede('verTodasSucursales');
+            filtro.innerHTML = (todas ? '<option value="todas">Ver todas</option>' : '') +
+                listaSucursales().map(s => '<option value="' + s.clave + '">' + s.clave + ' - ' + escaparHtml(s.nombre) + '</option>').join('');
+            fijarSucursalUnica(filtro);
+            mostrarTabla('presentes');
+        });
+    </script>
+
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>

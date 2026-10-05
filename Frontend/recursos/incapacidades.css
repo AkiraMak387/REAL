@@ -1,0 +1,671 @@
+/* ===============================
+   PÁGINA DE INCAPACIDADES
+================================ */
+
+.page-incapacidades .header--compact {
+    padding: 18px 28px;
+    min-height: 74px;
+}
+
+.page-incapacidades .header__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.page-incapacidades .breadcrumb-label,
+.page-incapacidades .breadcrumb-separator,
+.page-incapacidades .breadcrumb-current {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.page-incapacidades .breadcrumb-label {
+    letter-spacing: 0.03em;
+    color: #475569;
+}
+
+.page-incapacidades .breadcrumb-current {
+    color: #1e1b4b;
+}
+
+.page-incapacidades .breadcrumb-separator {
+    color: #94a3b8;
+}
+
+.page-incapacidades .header__right {
+    gap: 16px;
+}
+
+.page-incapacidades .header__right .search-box input {
+    width: 320px;
+}
+
+.page-incapacidades .incapacidad-content {
+    padding-top: 26px;
+}
+
+.page-incapacidades .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    margin-bottom: 28px;
+}
+
+.page-incapacidades .header-main-copy h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.page-incapacidades .header-main-copy p {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    max-width: 640px;
+}
+
+.page-incapacidades .kpi-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.page-incapacidades .kpi-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.page-incapacidades .grip-card {
+    background: #ffffff;
+    border: 1px solid #edf2f7;
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    min-height: 170px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+}
+
+.page-incapacidades .grip-card:hover,
+.page-incapacidades .grip-card:focus-visible,
+.page-incapacidades .grip-card.active-card {
+    transform: translateY(-2px);
+    border-color: rgba(67, 56, 202, 0.25);
+    box-shadow: 0 8px 20px rgba(67, 56, 202, 0.08);
+}
+
+.page-incapacidades .grip-card.active-card {
+    outline: 2px solid rgba(67, 56, 202, 0.12);
+    outline-offset: 2px;
+}
+
+.page-incapacidades .kpi-card__header {
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.page-incapacidades .kpi-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.page-incapacidades .kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 16px;
+    background: #f8fafc;
+}
+
+.page-incapacidades .kpi-icon.danger {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.page-incapacidades .kpi-icon.warning {
+    background: #fff7ed;
+    color: #d97706;
+}
+
+.page-incapacidades .kpi-icon.success {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.page-incapacidades .kpi-icon.incapacidad {
+    background: var(--incapacidad-bg);
+    color: var(--incapacidad-tx);
+}
+
+.page-incapacidades .kpi-icon.info {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.page-incapacidades .kpi-card__value {
+    font-size: 38px;
+    line-height: 1;
+    margin: 0 0 12px;
+    font-weight: 700;
+}
+
+.page-incapacidades .kpi-card__value.warning {
+    color: #d97706;
+}
+
+.page-incapacidades .kpi-card__value.success {
+    color: #0ca861;
+}
+
+.page-incapacidades .kpi-card__value.info {
+    color: #2b2d7c;
+}
+
+.page-incapacidades .kpi-card__value.danger {
+    color: #ef4444;
+}
+
+.page-incapacidades .kpi-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.page-incapacidades .muted {
+    color: #64748b;
+}
+
+.page-incapacidades .compact-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.page-incapacidades .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.page-incapacidades .filter-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
+}
+
+.page-incapacidades .filter-row .period-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 10px 0 0;
+}
+
+.page-incapacidades .filter-row select,
+.page-incapacidades .filter-row input[type="month"] {
+    min-width: 170px;
+    padding: 9px 12px;
+    border: 1px solid #dfe7ef;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 13.5px;
+    min-height: 42px;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.page-incapacidades .filter-row input[type="month"] {
+    min-width: 180px;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'%3E%3C/rect%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 12px) center;
+    background-size: 16px 16px;
+}
+
+.page-incapacidades .btn--outline {
+    background: #ffffff;
+    color: #334155;
+    border: 1px solid #dfe7ef;
+    border-radius: 10px;
+    min-height: 41px;
+    padding: 0 18px;
+    font-weight: 600;
+}
+
+.page-incapacidades .table-card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.page-incapacidades .table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.page-incapacidades .table td {
+    padding: 16px 18px;
+    font-size: 14px;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.page-incapacidades .employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-incapacidades .employee-cell strong {
+    display: block;
+    font-size: 14px;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+
+.page-incapacidades .employee-cell small {
+    color: #64748b;
+    font-size: 11px;
+    display: block;
+}
+
+.page-incapacidades .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-incapacidades .avatar-blue { background: #2563eb; }
+.page-incapacidades .avatar-pink { background: #d946ef; }
+.page-incapacidades .avatar-gold { background: #d97706; }
+.page-incapacidades .avatar-purple { background: #7c3aed; }
+.page-incapacidades .avatar-green { background: #10b981; }
+.page-incapacidades .avatar-red { background: #ef4444; }
+
+.page-incapacidades .day-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    padding: 6px 8px;
+    border-radius: 20px;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.page-incapacidades .status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 104px;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-incapacidades .status-pill--active {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.page-incapacidades .status-pill--done {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.page-incapacidades .action-cell {
+    text-align: left;
+}
+
+.page-incapacidades .action-cell a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #475569;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.page-incapacidades .action-cell a span {
+    color: #475569;
+    font-weight: 500;
+}
+
+.page-incapacidades .action-cell a:hover {
+    color: #1e1b4b;
+}
+
+.page-incapacidades .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border-top: 1px solid #edf2f7;
+    color: #64748b;
+    font-size: 13px;
+    background: #ffffff;
+}
+
+.page-incapacidades .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.page-incapacidades .pagination button {
+    min-width: 42px;
+    padding: 7px 10px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 10px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.page-incapacidades .pagination button.active {
+    background: #1e1b4b;
+    border-color: #1e1b4b;
+    color: white;
+}
+
+@media (max-width: 1180px) {
+    .page-incapacidades .kpi-grid--4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .page-incapacidades .page-header,
+    .page-incapacidades .filters-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-incapacidades .header__right {
+        flex-wrap: wrap;
+    }
+
+    .page-incapacidades .header__right .search-box input {
+        width: 200px;
+    }
+
+    .page-incapacidades .kpi-grid--4 {
+        grid-template-columns: 1fr;
+    }
+
+    .page-incapacidades .table-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.page-incapacidades .pagination button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.page-incapacidades .employee-cell .employee-id {
+    font-size: 14px;
+}
+
+.page-incapacidades .incapacidad-table th,
+.page-incapacidades .incapacidad-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.page-incapacidades .incapacidad-table .employee-cell strong,
+.page-incapacidades .action-cell a {
+    white-space: nowrap;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.page-incapacidades .toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 500;
+    background: #1e1b4b;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+    font-size: 14px;
+}
+
+/* ===============================
+   BUSCADOR JUNTO A LOS FILTROS
+================================ */
+.page-incapacidades .filter-row .search-box input {
+    width: 240px;
+    min-height: 42px;
+    background-color: #ffffff;
+}
+
+/* "Ver expediente" es un botón con aspecto de enlace */
+.page-incapacidades .action-cell button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #475569;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.page-incapacidades .action-cell button span {
+    font-weight: 500;
+}
+
+.page-incapacidades .action-cell button:hover {
+    color: #1e1b4b;
+}
+
+/* ===============================
+   EXPEDIENTE DE INCAPACIDADES
+================================ */
+.page-incapacidades .hidden {
+    display: none !important;
+}
+
+.page-incapacidades .expediente-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.page-incapacidades .expediente-modal__caja {
+    width: min(760px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.page-incapacidades .expediente-modal__encabezado {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.page-incapacidades .expediente-modal__encabezado > div:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+}
+
+.page-incapacidades .expediente-avatar {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.page-incapacidades .expediente-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.page-incapacidades .expediente-modal__encabezado h3 {
+    margin: 2px 0;
+    font-size: 20px;
+    color: #0f172a;
+}
+
+.page-incapacidades .expediente-modal__encabezado p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.page-incapacidades .expediente-cerrar {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+}
+
+.page-incapacidades .expediente-resumen {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.page-incapacidades .expediente-resumen div {
+    padding: 12px 14px;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.page-incapacidades .expediente-resumen strong {
+    display: block;
+    font-size: 17px;
+    color: #0f172a;
+}
+
+.page-incapacidades .expediente-resumen span {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.page-incapacidades .expediente-modal h4 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: #0f172a;
+}
+
+/* La incapacidad desde la que se abrió el expediente */
+.page-incapacidades .expediente-tabla tr.es-seleccionada td {
+    background: #eef2ff;
+}
+
+.page-incapacidades .expediente-modal__acciones {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+@media (max-width: 700px) {
+    .page-incapacidades .expediente-resumen {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Con el buscador en la misma fila, los filtros van más compactos para que quepa "Exportar Excel" */
+.page-incapacidades .filter-row {
+    gap: 10px;
+}
+
+.page-incapacidades .filter-row label {
+    gap: 6px;
+}
+
+.page-incapacidades .filter-row .search-box input {
+    width: 205px;
+}
+
+.page-incapacidades .filter-row select {
+    min-width: 120px;
+    max-width: 175px;
+}
+
+.page-incapacidades .filter-row input[type="month"] {
+    min-width: 160px;
+}
+
+.page-incapacidades .filter-row .period-label {
+    gap: 6px;
+    padding: 0;
+}
+
+.page-incapacidades .sin-certificado {
+    font-size: 12.5px;
+    color: #94a3b8;
+}

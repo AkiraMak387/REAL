@@ -1,0 +1,908 @@
+body.page-nomina {
+    background: #f8fafc;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.title-row h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.page-subtitle {
+    color: #64748b;
+    font-size: 14px;
+    max-width: 620px;
+}
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.stat-card:hover,
+.stat-card.is-active {
+    border-color: rgba(37, 32, 96, 0.35);
+    box-shadow: 0 12px 25px rgba(37, 32, 96, 0.08);
+    transform: translateY(-1px);
+}
+
+.stat-card__title {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+.stat-card__value {
+    font-size: clamp(1.2rem, 2vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.stat-card__value.positive {
+    color: #0f766e;
+}
+
+.stat-card__value.caution {
+    color: #b45309;
+}
+
+.stat-card__value.alert {
+    color: #b91c1c;
+}
+
+.stat-card__meta {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.stat-card__meta.success {
+    color: #15803d;
+}
+
+.filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+}
+
+.filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-tab.active {
+    background: #252060;
+    color: white;
+    border-color: #252060;
+}
+
+.filter-selects {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-selects select {
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #0f172a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 170px;
+    font-size: 14px;
+}
+
+.table-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.02);
+}
+
+.card__header {
+    padding: 20px 22px 14px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.card__header h2 {
+    font-size: 20px;
+    margin-bottom: 5px;
+    color: #0f172a;
+}
+
+.card__header p {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.payroll-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.payroll-table th,
+.payroll-table td {
+    padding: 16px 18px;
+    text-align: left;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: middle;
+}
+
+.payroll-table th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.employee-cell strong {
+    display: block;
+    color: #0f172a;
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.employee-cell span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.avatar--rose { background: #f43f5e; }
+.avatar--amber { background: #f59e0b; }
+.avatar--sky { background: #0ea5e9; }
+.avatar--blue { background: #2563eb; }
+.avatar--purple { background: #7c3aed; }
+.avatar--green { background: #10b981; }
+.avatar--lime { background: #84cc16; }
+.avatar--rose-dark { background: #e11d48; }
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.status--pagado {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+}
+
+.status--pendiente {
+    background: rgba(234, 179, 8, 0.14);
+    color: #a16207;
+}
+
+.status--revision {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    background: #0f172a;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 10px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
+    font-size: 14px;
+    z-index: 120;
+}
+
+@media (max-width: 980px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filters-bar,
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-selects {
+        width: 100%;
+    }
+
+    .filter-selects select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* ===============================
+   RECIBOS DE LA SEMANA
+================================ */
+.hidden {
+    display: none !important;
+}
+
+.recibos-card {
+    margin-bottom: 28px;
+    padding: 20px;
+}
+
+.recibos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.recibos-header h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: #0f172a;
+}
+
+.recibos-header p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.recibos-controles {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.recibos-controles select {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.recibos-resumen {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.recibos-resumen div {
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.recibos-resumen strong {
+    display: block;
+    font-size: 20px;
+    color: #0f172a;
+}
+
+.recibos-resumen span {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.recibos-tabla .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.recibos-vacio {
+    text-align: center;
+    color: #64748b;
+    padding: 24px;
+}
+
+.recibos-nota {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.seccion-ejemplo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 14px;
+}
+
+.seccion-ejemplo h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #64748b;
+}
+
+.btn--mini {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.tag--ok { background: #dcfce7; color: #15803d; }
+.tag--warn { background: #fef3c7; color: #b45309; }
+.tag--info { background: #e0e7ff; color: #3730a3; }
+
+/* Ventana del recibo */
+.recibo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.recibo-modal__caja {
+    width: min(720px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.recibo-modal__acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+/* El recibo (en pantalla y en el PDF) */
+.recibo {
+    color: #0f172a;
+    font-size: 13px;
+}
+
+.recibo__encabezado {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #252060;
+}
+
+.recibo__encabezado img {
+    width: 90px;
+    height: auto;
+}
+
+.recibo__encabezado h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: #252060;
+}
+
+.recibo__encabezado p {
+    margin: 2px 0;
+    color: #475569;
+}
+
+.recibo__datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin: 14px 0;
+}
+
+.recibo__datos span {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.recibo h3 {
+    margin: 16px 0 8px;
+    font-size: 14px;
+    color: #252060;
+}
+
+.recibo__tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.recibo__tabla th,
+.recibo__tabla td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+}
+
+.recibo__tabla th {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.recibo__tabla .num {
+    text-align: right;
+}
+
+.recibo__importes small {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.recibo__total td {
+    font-size: 15px;
+    font-weight: 700;
+    border-top: 2px solid #252060;
+    border-bottom: none;
+}
+
+.recibo__nota {
+    margin: 10px 0 0;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.recibo__descanso td {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.recibo__descanso small {
+    display: block;
+    font-size: 11px;
+}
+
+/* Aviso de guardado o pagado, arriba del recibo */
+.recibo-estado {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 13px;
+}
+
+.recibo-estado--pagado {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Bonos que da el Super usuario dentro del recibo */
+.bono-editor {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px dashed #c7d2fe;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.bono-editor h4 {
+    margin: 0 0 2px;
+    font-size: 14px;
+    color: #252060;
+}
+
+.bono-editor__ayuda {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.bono-editor__sugerencia {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fef9c3;
+    color: #854d0e;
+    font-size: 13px;
+}
+
+.bono-editor__lista {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.bono-editor__lista li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.bono-editor__lista li span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.bono-editor__lista .bono-editor__vacio {
+    border-style: dashed;
+    background: none;
+    color: #64748b;
+}
+
+.bono-editor__quitar {
+    border: none;
+    background: none;
+    padding: 2px 4px;
+    font-size: 12px;
+    color: #b91c1c;
+    cursor: pointer;
+}
+
+.bono-editor__quitar:hover {
+    text-decoration: underline;
+}
+
+.bono-editor__fila {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bono-editor__campo {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.bono-editor__campo--monto {
+    flex: 0 1 130px;
+}
+
+.bono-editor__campo label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.bono-editor__campo input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.bono-editor__campo input:focus {
+    outline: none;
+    border-color: #252060;
+}
+
+.bono-editor__error {
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    color: #b91c1c;
+}
+
+/* Ventanas de resumen, de "¿estás seguro?" y de avance (encima del recibo) */
+.nom-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.nom-modal__caja {
+    width: min(480px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.nom-modal__caja--ancha {
+    width: min(560px, 100%);
+}
+
+.nom-modal__caja h3 {
+    margin: 0 0 8px;
+    font-size: 19px;
+    color: #0f172a;
+}
+
+.nom-modal__texto {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: #475569;
+}
+
+.nom-modal__nota {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.nom-modal__acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.nom-detalle {
+    display: grid;
+    gap: 6px;
+}
+
+.nom-detalle div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: 14px;
+    color: #334155;
+}
+
+.nom-detalle .es-total {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #1e1b4b;
+    font-weight: 700;
+}
+
+.nom-estados {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 14px 0;
+}
+
+.progreso-pasos {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.progreso-pasos li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.progreso-pasos li::before {
+    content: '';
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    box-sizing: border-box;
+}
+
+.progreso-pasos li.en-curso {
+    color: #1e1b4b;
+    font-weight: 600;
+}
+
+.progreso-pasos li.en-curso::before {
+    border-color: #c7d2fe;
+    border-top-color: #312e81;
+    animation: girar 0.7s linear infinite;
+}
+
+.progreso-pasos li.hecho {
+    color: #166534;
+}
+
+.progreso-pasos li.hecho::before {
+    content: '✓';
+    display: grid;
+    place-items: center;
+    border-color: #16a34a;
+    background: #16a34a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+@keyframes girar {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .progreso-pasos li.en-curso::before { animation: none; }
+}
+
+#zonaImpresion {
+    display: none;
+}
+
+/* Al imprimir o guardar como PDF solo salen los recibos, uno por hoja */
+@media print {
+    body.imprimiendo-recibos > *:not(#zonaImpresion) {
+        display: none !important;
+    }
+
+    body.imprimiendo-recibos #zonaImpresion {
+        display: block;
+    }
+
+    body.imprimiendo-recibos {
+        background: #fff;
+    }
+
+    #zonaImpresion .recibo {
+        page-break-after: always;
+        break-after: page;
+    }
+
+    #zonaImpresion .recibo:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+}
+
+@media (max-width: 980px) {
+    .recibos-resumen {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .recibos-resumen,
+    .recibo__datos {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Que la tabla de recibos se desplace dentro de su tarjeta y no ensanche la página */
+.page-nomina .main-content {
+    min-width: 0;
+}
+
+.recibos-tabla th,
+.recibos-tabla td {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.recibos-tabla .employee-cell strong,
+.recibos-tabla .btn--mini,
+.recibos-tabla th {
+    white-space: nowrap;
+}

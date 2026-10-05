@@ -1,0 +1,186 @@
+/* ===============================
+   VARIABLES GLOBALES
+================================ */
+:root {
+    --color-primary: #252060;
+    /* Navy */
+    --color-primary-dark: #1c184c;
+    --color-danger: #BE1D2C;
+    /* Rojo del logo */
+    --color-success: #22C55E;
+    --color-warning: #EAB308;
+    --color-text: #0F172A;
+    --color-text-light: #64748B;
+    --color-border: #E2E8F0;
+    --color-bg: #F8FAFC;
+    --color-white: #FFFFFF;
+
+    /* ---- Un color por concepto, el mismo en todas las páginas ----
+       bg = fondo de la etiqueta · tx = texto · pt = punto, icono o barra */
+    --asistencia-bg: #dcfce7;  --asistencia-tx: #15803d;  --asistencia-pt: #22c55e;   /* verde: asistió, a tiempo, activo */
+    --retardo-bg: #fef3c7;     --retardo-tx: #b45309;     --retardo-pt: #f59e0b;      /* ámbar: retardo, salida temprana */
+    --falta-bg: #fee2e2;       --falta-tx: #b91c1c;       --falta-pt: #ef4444;        /* rojo: falta, falta administrativa */
+    --permiso-bg: #dbeafe;     --permiso-tx: #1d4ed8;     --permiso-pt: #3b82f6;      /* azul: permiso */
+    --vacaciones-bg: #ede9fe;  --vacaciones-tx: #6d28d9;  --vacaciones-pt: #8b5cf6;   /* morado: vacaciones */
+    --incapacidad-bg: #fce7f3; --incapacidad-tx: #be185d; --incapacidad-pt: #db2777;  /* rosa: incapacidad */
+    --descanso-bg: #f1f5f9;    --descanso-tx: #64748b;    --descanso-pt: #cbd5e1;     /* gris: descanso */
+    --baja-bg: #e2e8f0;        --baja-tx: #334155;                                    /* gris oscuro: baja */
+
+    --radius: 10px;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    --transition: all 0.25s ease;
+}
+
+/* ===============================
+   RESET BÁSICO
+================================ */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+/* ===============================
+   BOTONES
+================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn--primary {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.btn--primary:hover {
+    background-color: var(--color-primary-dark);
+}
+
+.btn--full {
+    width: 100%;
+}
+
+/* ===============================
+   FORMULARIOS
+================================ */
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--color-text);
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 15px;
+    transition: var(--transition);
+    background-color: var(--color-white);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 32, 96, 0.12);
+}
+
+.form-group--checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.form-group--checkbox label {
+    margin-bottom: 0;
+    font-weight: 400;
+    cursor: pointer;
+}
+/* ===============================
+   COLORES POR CONCEPTO
+   Se usan sobre cualquier etiqueta, píldora o punto para que
+   vacaciones, incapacidad, permiso, etc. se vean igual en todo el sistema.
+================================ */
+.color-asistencia { background: var(--asistencia-bg) !important; color: var(--asistencia-tx) !important; }
+.color-retardo { background: var(--retardo-bg) !important; color: var(--retardo-tx) !important; }
+.color-falta { background: var(--falta-bg) !important; color: var(--falta-tx) !important; }
+.color-permiso { background: var(--permiso-bg) !important; color: var(--permiso-tx) !important; }
+.color-vacaciones { background: var(--vacaciones-bg) !important; color: var(--vacaciones-tx) !important; }
+.color-incapacidad { background: var(--incapacidad-bg) !important; color: var(--incapacidad-tx) !important; }
+.color-descanso { background: var(--descanso-bg) !important; color: var(--descanso-tx) !important; }
+.color-baja { background: var(--baja-bg) !important; color: var(--baja-tx) !important; }
+
+/* Cifras e iconos de las tarjetas */
+.kpi-card__value.asistencia { color: var(--asistencia-tx); }
+.kpi-card__value.retardo { color: var(--retardo-tx); }
+.kpi-card__value.falta { color: var(--falta-tx); }
+.kpi-card__value.permiso { color: var(--permiso-tx); }
+.kpi-card__value.vacaciones { color: var(--vacaciones-tx); }
+.kpi-card__value.incapacidad { color: var(--incapacidad-tx); }
+
+/* Sucursal del admin: texto fijo en lugar de lista desplegable */
+.sucursal-fija {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #252060;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sucursal-fija::before {
+    content: '📍';
+    font-size: 13px;
+}

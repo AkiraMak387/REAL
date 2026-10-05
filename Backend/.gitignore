@@ -1,0 +1,7 @@
+# Llave de cifrado: NUNCA subirla
+clave_datos.key
+
+# Datos reales (cifrados) y sus respaldos
+datos/
+
+__pycache__/

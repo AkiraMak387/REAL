@@ -1,0 +1,557 @@
+/* ===============================
+   SOLICITUDES
+================================ */
+.page-solicitudes .btn--ghost {
+    background: #fff;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+.page-solicitudes .btn--ghost:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.page-solicitudes .btn--danger {
+    background: #dc2626;
+    color: #fff;
+}
+
+.page-solicitudes .btn--small {
+    padding: 7px 12px;
+    font-size: 12.5px;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.alertas-card {
+    margin-top: 20px;
+    border-color: #fecaca;
+}
+
+.acciones-celda {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.page-solicitudes .branch-table td {
+    vertical-align: top;
+}
+
+/* Etiquetas */
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tag--ok { background: #dcfce7; color: #15803d; }
+.tag--warn { background: #fef3c7; color: #b45309; }
+.tag--info { background: #e0e7ff; color: #3730a3; }
+.tag--danger { background: #fee2e2; color: #b91c1c; }
+.tag--muted { background: #f1f5f9; color: #64748b; }
+
+/* Barra de pestañas */
+.solicitudes-barra {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.solicitudes-barra .settings-tabs {
+    flex-wrap: wrap;
+}
+
+.solicitudes-barra select {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+}
+
+/* Tarjeta de solicitud */
+.lista-solicitudes {
+    display: grid;
+    gap: 14px;
+}
+
+.lista-vacia {
+    padding: 28px;
+    text-align: center;
+    color: #64748b;
+}
+
+.solicitud {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px;
+    background: #fff;
+}
+
+.solicitud header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.solicitud header > div:first-child {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.solicitud__detalle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 14px 0 10px;
+}
+
+.solicitud__detalle div {
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.solicitud__detalle .detalle-ancho {
+    grid-column: 1 / -1;
+}
+
+.solicitud__detalle span {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.solicitud__detalle strong {
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.solicitud__detalle .propuesta {
+    color: #3730a3;
+}
+
+.solicitud__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.historial summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: #475569;
+}
+
+.historial ol {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.7;
+}
+
+/* Formulario en línea (contraproponer, rechazar, otra propuesta) */
+.sol-inline {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px dashed #c7d2fe;
+    border-radius: 12px;
+    background: #f5f7ff;
+}
+
+.sol-inline label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.sol-inline input {
+    padding: 9px 10px;
+    border: 1px solid #dbe3f0;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.sol-inline__ancho,
+.sol-inline .form-error,
+.sol-inline__acciones {
+    grid-column: 1 / -1;
+}
+
+.sol-inline__acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Ventana del formulario */
+.sol-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.sol-modal__caja {
+    width: min(620px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+}
+
+.sol-modal__caja h3 {
+    margin: 0 0 6px;
+    font-size: 19px;
+    color: #0f172a;
+}
+
+.sol-modal__caja .field-hint {
+    margin: 0 0 16px;
+}
+
+.sol-modal textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.sol-modal .hint-box {
+    margin-top: 14px;
+}
+
+/* Documentos para imprimir: acta y aviso de rescisión */
+#zonaImpresion {
+    display: none;
+}
+
+.doc {
+    color: #0f172a;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.doc__encabezado {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #252060;
+}
+
+.doc__encabezado img {
+    width: 90px;
+}
+
+.doc__encabezado h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    text-transform: uppercase;
+    color: #252060;
+}
+
+.doc__encabezado p {
+    margin: 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.doc__hechos {
+    padding: 10px 14px;
+    border-left: 3px solid #252060;
+    background: #f8fafc;
+}
+
+.doc__renglones span {
+    display: block;
+    height: 26px;
+    border-bottom: 1px solid #94a3b8;
+}
+
+.doc__lista {
+    margin: 6px 0 12px;
+}
+
+.doc__firmas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 48px 40px;
+    margin-top: 56px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.doc__firmas span {
+    display: block;
+    margin-bottom: 6px;
+    border-top: 1px solid #0f172a;
+}
+
+@media print {
+    body.imprimiendo > *:not(#zonaImpresion) {
+        display: none !important;
+    }
+
+    body.imprimiendo #zonaImpresion {
+        display: block;
+    }
+
+    body.imprimiendo {
+        background: #fff;
+    }
+}
+
+@media (max-width: 640px) {
+    .solicitud__detalle,
+    .sol-inline,
+    .doc__firmas {
+        grid-template-columns: 1fr;
+    }
+}
+
+.page-solicitudes .main-content {
+    min-width: 0;
+}
+
+/* Confirmación ("¿estás seguro?") y mensaje de listo */
+.confirm-resumen {
+    display: grid;
+    gap: 8px;
+}
+
+.confirm-resumen div {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #edf2f7;
+    border-radius: 10px;
+    background: #f8fafc;
+    font-size: 14px;
+}
+
+.confirm-resumen span {
+    color: #64748b;
+}
+
+.confirm-resumen strong {
+    color: #0f172a;
+    overflow-wrap: anywhere;
+}
+
+.confirm-acciones {
+    flex-wrap: wrap;
+}
+
+.page-solicitudes .btn--descartar {
+    margin-right: auto;
+    color: #b91c1c;
+}
+
+#pasoListo {
+    text-align: center;
+}
+
+.listo-icono {
+    width: 56px;
+    height: 56px;
+    margin: 4px auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #16a34a;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+#pasoListo .field-hint {
+    margin: 0;
+    font-size: 14px;
+}
+
+#pasoListo .branch-form__actions {
+    justify-content: center;
+    margin-top: 18px;
+}
+
+/* Respuestas nuevas: aviso, marca en la pestaña y en la tarjeta */
+.novedades {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border: 1px solid #c7d2fe;
+    border-radius: 12px;
+    background: #eef2ff;
+    color: #312e81;
+    font-size: 14px;
+}
+
+.link-novedad {
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.novedades + .lista-solicitudes {
+    margin-top: 14px;
+}
+
+.tab-nuevas {
+    display: inline-block;
+    min-width: 18px;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.solicitud--nueva {
+    border-color: #a5b4fc;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.tag--nuevo {
+    background: #4f46e5;
+    color: #fff;
+}
+
+/* Buscador de trabajador */
+.buscador-fila {
+    display: flex;
+    gap: 8px;
+}
+
+.buscador-fila select {
+    flex: 0 0 38%;
+    min-width: 0;
+}
+
+/* Con el filtro de sucursal, el trabajador ocupa todo el ancho del formulario */
+.form-field:has(.buscador-fila select:not(.hidden)) {
+    grid-column: 1 / -1;
+}
+
+.buscador-emp {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.buscador-emp input[type="search"] {
+    width: 100%;
+}
+
+.buscador-emp__lista {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 290px;
+    margin: 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #c7d2fe;
+    border-radius: 12px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+}
+
+.buscador-emp__lista li {
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #0f172a;
+    cursor: pointer;
+}
+
+.buscador-emp__lista li span {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.buscador-emp__lista li:hover,
+.buscador-emp__lista li.es-resaltado {
+    background: #eef2ff;
+}
+
+.buscador-emp__lista .buscador-emp__nota {
+    font-size: 12.5px;
+    color: #64748b;
+    cursor: default;
+}
+
+.buscador-emp__lista .buscador-emp__nota:hover {
+    background: none;
+}
+
+/* Certificado del IMSS */
+.form-field input[type="file"] {
+    padding: 8px;
+    background: #f8fafc;
+}
+
+.link-certificado {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #312e81;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.solicitud__detalle small {
+    font-weight: 400;
+    color: #64748b;
+}

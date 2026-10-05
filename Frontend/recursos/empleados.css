@@ -1,0 +1,2374 @@
+/* ===============================
+   PÁGINA DE EMPLEADOS
+================================ */
+
+body.page-empleados {
+    display: flex;
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+.page-empleados .employee-header {
+    padding: 18px 28px;
+    align-items: flex-start;
+}
+
+.page-empleados .employee-header__left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.page-empleados .status-dot {
+    width: 10px;
+    height: 10px;
+    background: #22c55e;
+    border-radius: 50%;
+    margin-top: 12px;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+}
+
+.page-empleados .header-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.page-empleados .employee-header h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.15;
+    color: #111827;
+}
+
+.page-empleados .employee-header p {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.page-empleados .employee-header__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-empleados .btn--secondary,
+.page-empleados .btn--outline,
+.page-empleados .btn--ghost,
+.page-empleados .btn--primary {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.page-empleados .btn--pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 18px;
+    background: #eef2ff;
+    color: #2b2d7c;
+    border: 1px solid rgba(67, 56, 202, 0.1);
+    text-decoration: none;
+}
+
+.page-empleados .btn--new-employee {
+    min-height: 42px;
+    padding: 10px 18px;
+    background: #2b2d7c;
+    color: white;
+    border: none;
+}
+
+.page-empleados .employee-content {
+    padding-top: 22px;
+}
+
+.page-empleados .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.page-empleados .metric-card {
+    width: 100%;
+    text-align: left;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 20px 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-empleados .metric-card.is-active {
+    border-color: #2b2d7c;
+    box-shadow: 0 10px 20px rgba(43, 45, 124, 0.08);
+    transform: translateY(-1px);
+}
+
+.page-empleados .employee-detail-panel {
+    position: fixed;
+    inset: 0 0 0 260px;
+    display: flex;
+    background: rgba(248, 250, 252, 0.92);
+    z-index: 300;
+    padding: 0;
+}
+
+.page-empleados .employee-detail-panel.hidden {
+    display: none;
+}
+
+.page-empleados .detail-panel__inner {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    background: #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 26px 28px 20px;
+    overflow-y: auto;
+    border-left: 1px solid #e5e7eb;
+}
+
+.page-empleados .detail-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.page-empleados .detail-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-empleados .detail-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(190, 29, 44, 0.18);
+    background: #fef2f2;
+    color: #be1d2c;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.page-empleados .detail-panel__title-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.page-empleados .detail-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #dbeafe, #d9f4f0);
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.page-empleados .detail-panel__eyebrow {
+    color: #64748b;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.page-empleados .detail-panel__title-area h3 {
+    margin: 6px 0 0;
+    font-size: 28px;
+    color: #111827;
+}
+
+.page-empleados .detail-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.page-empleados .detail-panel__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.page-empleados .detail-panel__meta span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #e2e8f0;
+}
+
+.page-empleados .status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .status-pill--success { background: #dcfce7; color: #166534; }
+.page-empleados .status-pill--warning { background: #fef3c7; color: #92400e; }
+.page-empleados .status-pill--purple { background: #ede9fe; color: #6d28d9; }
+
+.page-empleados .employee-profile-layout {
+    display: grid;
+    gap: 22px;
+}
+
+.page-empleados .employee-profile-summary,
+.page-empleados .employee-profile-section {
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 18px;
+    padding: 18px 20px;
+}
+
+.page-empleados .profile-card--primary h4,
+.page-empleados .section-header h4,
+.page-empleados .chart-header h5 {
+    margin: 0 0 16px;
+    color: #111827;
+    font-size: 18px;
+}
+
+.page-empleados .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.page-empleados .profile-item {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.page-empleados .profile-item span {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.page-empleados .profile-item strong {
+    display: block;
+    color: #111827;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.page-empleados .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.page-empleados .section-header span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .history-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-empleados .compact-select {
+    min-width: 120px;
+}
+
+.page-empleados .hours-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-empleados .hours-detail-button {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .hours-filter-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.page-empleados .hours-filter-row--calendar {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.page-empleados .hours-select-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .hours-select-wrap select,
+.page-empleados .hours-select-wrap input {
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid #dfe7ef;
+    background: white;
+    color: #0f172a;
+    padding: 0 12px;
+    font-size: 14px;
+}
+
+.page-empleados .metrics-grid-detail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.page-empleados .mini-stat {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.page-empleados .mini-stat span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.page-empleados .mini-stat strong {
+    display: block;
+    color: #111827;
+    font-size: 30px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+}
+
+.page-empleados .mini-stat small {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.page-empleados .mini-stat__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.page-empleados .mini-stat__badges span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.page-empleados .mini-stat__badges .badge-danger {
+    background: var(--falta-bg);
+    color: var(--falta-tx);
+}
+
+.page-empleados .mini-stat__badges .badge-warning {
+    background: var(--retardo-bg);
+    color: var(--retardo-tx);
+}
+
+.page-empleados .chart-block {
+    margin-top: 20px;
+}
+
+.page-empleados .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.page-empleados .chart-header h5 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.page-empleados .chart-header span {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    height: 170px;
+    padding: 14px 12px 8px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #edf2f7;
+}
+
+.page-empleados .chart-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    height: 100%;
+}
+
+.page-empleados .chart-bar-wrap {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.page-empleados .chart-bar {
+    width: 100%;
+    max-width: 28px;
+    min-height: 24px;
+    background: linear-gradient(180deg, #2b2d7c 0%, #7c8cff 100%);
+    border-radius: 8px 8px 0 0;
+}
+
+.page-empleados .chart-day span {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 700;
+}
+
+.page-empleados .month-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.page-empleados .month-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.page-empleados .month-item__label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.page-empleados .month-item__bar {
+    width: 100%;
+    height: 10px;
+    background: #edf2f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.page-empleados .month-item__bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2b2d7c, #7c8cff);
+}
+
+.page-empleados .month-item__value {
+    margin-top: 8px;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .vacation-list,
+.page-empleados .history-list {
+    display: grid;
+    gap: 12px;
+}
+
+.page-empleados .vacation-item,
+.page-empleados .history-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.page-empleados .vacation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.page-empleados .vacation-item strong,
+.page-empleados .vacation-item span {
+    display: block;
+}
+
+.page-empleados .vacation-item strong {
+    color: #111827;
+    font-size: 14px;
+}
+
+.page-empleados .vacation-item span {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.page-empleados .vacation-badge,
+.page-empleados .history-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.page-empleados .vacation-badge {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.page-empleados .history-item__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.page-empleados .history-badge { }
+.page-empleados .badge-blue { background: #dbeafe; color: #1d4ed8; }
+.page-empleados .badge-gold { background: #fef3c7; color: #92400e; }
+.page-empleados .badge-pink { background: #fce7f3; color: #be185d; }
+
+.page-empleados .history-days {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.page-empleados .history-item__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.page-empleados .history-item__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.page-empleados .status-ok { background: #dcfce7; color: #166534; }
+.page-empleados .status-warn { background: #fef3c7; color: #92400e; }
+
+.page-empleados .history-empty {
+    background: white;
+    border: 1px dashed #dfe7ef;
+    border-radius: 12px;
+    padding: 18px;
+    color: #64748b;
+    text-align: center;
+}
+
+.page-empleados .mini-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.page-empleados .mini-stat {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.page-empleados .mini-stat span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    margin-bottom: 6px;
+}
+
+.page-empleados .mini-stat strong {
+    color: #111827;
+    font-size: 18px;
+}
+
+.page-empleados .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    height: 160px;
+    padding-top: 10px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #edf2f7;
+    padding: 14px 12px 8px;
+}
+
+.page-empleados .chart-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    height: 100%;
+}
+
+.page-empleados .chart-bar-wrap {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.page-empleados .chart-bar {
+    width: 100%;
+    max-width: 28px;
+    min-height: 24px;
+    background: linear-gradient(180deg, #2b2d7c 0%, #7c8cff 100%);
+    border-radius: 8px 8px 0 0;
+}
+
+.page-empleados .chart-day span {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 700;
+}
+
+.page-empleados .month-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.page-empleados .month-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.page-empleados .month-item__label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.page-empleados .month-item__bar {
+    width: 100%;
+    height: 10px;
+    background: #edf2f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.page-empleados .month-item__bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2b2d7c, #7c8cff);
+}
+
+.page-empleados .month-item__value {
+    margin-top: 8px;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .metric-card__title {
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.page-empleados .metric-card__value {
+    font-size: 42px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.page-empleados .metric-card__meta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.page-empleados .metric-card__meta.success {
+    color: #16a34a;
+}
+
+.page-empleados .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.page-empleados .searchbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 280px;
+    max-width: 540px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 14px;
+    min-height: 48px;
+}
+
+.page-empleados .search-icon {
+    color: #64748b;
+    font-size: 20px;
+}
+
+.page-empleados .searchbox input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+}
+
+.page-empleados .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.page-empleados .toolbar-select,
+.page-empleados .btn--ghost,
+.page-empleados .btn--outline {
+    min-height: 42px;
+    border-radius: 10px;
+    border: 1px solid #dfe7ef;
+    background: white;
+    color: #334155;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.page-empleados .btn--ghost {
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.page-empleados .btn--outline {
+    cursor: pointer;
+}
+
+.page-empleados .table-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.page-empleados .employee-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.page-empleados .employee-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.page-empleados .employee-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf2f7;
+    font-size: 14px;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.page-empleados .employee-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-empleados .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1f2937;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .avatar-rose { background: #f8d9d9; }
+.page-empleados .avatar-purple { background: #e5dbff; }
+.page-empleados .avatar-gold { background: #f8e7a9; }
+.page-empleados .avatar-sky { background: #dff1ff; }
+.page-empleados .avatar-peach { background: #ffe7bf; }
+.page-empleados .avatar-ice { background: #d9f4f0; }
+.page-empleados .avatar-lime { background: #d9f5d9; }
+
+.page-empleados .employee-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.page-empleados .employee-email {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.page-empleados .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.page-empleados .status-active {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.page-empleados .status-incapacitated {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.page-empleados .status-vacation {
+    color: #7c3aed;
+    background: #ede9fe;
+}
+
+.page-empleados .link-button {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: #2b2d7c;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.page-empleados .link-button span {
+    color: #475569;
+    font-weight: 500;
+}
+
+.page-empleados .table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 18px;
+    background: #fff;
+    border-top: 1px solid #edf2f7;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.page-empleados .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-empleados .pagination button {
+    min-width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #334155;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.page-empleados .pagination button.active {
+    background: #2b2d7c;
+    color: white;
+    border-color: #2b2d7c;
+}
+
+/* modal */
+
+.page-empleados .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.page-empleados .modal-overlay.hidden {
+    display: none;
+}
+
+.page-empleados .employee-modal,
+.page-empleados .hours-chart-modal {
+    width: min(1100px, 100%);
+    max-height: calc(100vh - 40px);
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22);
+    overflow: auto;
+}
+
+.page-empleados .hours-chart-modal {
+    width: min(900px, 100%);
+}
+
+.page-empleados .employee-modal__header,
+.page-empleados .hours-chart-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.page-empleados .employee-modal__title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-empleados .back-icon {
+    font-size: 22px;
+    color: #475569;
+}
+
+.page-empleados .employee-modal__eyebrow {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.page-empleados .employee-modal__header h3,
+.page-empleados .hours-chart-modal__header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.page-empleados .hours-chart-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.page-empleados .hours-chart-modal__content {
+    padding: 20px 22px 22px;
+}
+
+.page-empleados .hours-chart-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.page-empleados .half-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 16px;
+}
+
+.page-empleados .half-card span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.page-empleados .half-card strong {
+    display: block;
+    color: #111827;
+    font-size: 26px;
+    margin-bottom: 10px;
+}
+
+.page-empleados .connection-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid #dbeafe;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.page-empleados .connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+
+.page-empleados .wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 14px 22px 0;
+}
+
+.page-empleados .wizard-step {
+    border: 1px solid #dfe7ef;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 10px 10px 0 0;
+    padding: 12px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.page-empleados .wizard-step.active {
+    background: #2b2d7c;
+    color: white;
+    border-color: #2b2d7c;
+}
+
+.page-empleados .wizard-panel {
+    padding: 18px 22px 0;
+}
+
+.page-empleados .wizard-panel__content {
+    display: none;
+    background: #f9fafb;
+    border: 1px solid #edf2f7;
+    border-radius: 16px;
+    padding: 18px;
+}
+
+.page-empleados .wizard-panel__content.active {
+    display: block;
+}
+
+.page-empleados .form-layout {
+    display: grid;
+    grid-template-columns: 310px 1fr;
+    gap: 22px;
+}
+
+.page-empleados .vector-scan-box {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 380px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.page-empleados .vector-scan-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.page-empleados .vector-scan-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.page-empleados .privacy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e6fffa;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.page-empleados .vector-step-guide {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.page-empleados .guide-step {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: #f8fafc;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #f1f5f9;
+    flex: 1;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.page-empleados .guide-step span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.page-empleados .guide-step.active {
+    color: #0284c7;
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.page-empleados .guide-step.active span {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.page-empleados .camera-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.page-empleados .camera-preview video,
+.page-empleados .camera-preview canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.page-empleados .camera-preview video.hidden,
+.page-empleados .camera-preview canvas.hidden {
+    display: none;
+}
+
+.page-empleados .camera-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #94a3b8;
+    padding: 16px;
+    text-align: center;
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+}
+
+.page-empleados .camera-off-badge {
+    font-size: 32px;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.page-empleados .camera-placeholder strong {
+    font-size: 13px;
+    color: #f1f5f9;
+}
+
+.page-empleados .camera-placeholder small {
+    font-size: 11px;
+    color: #94a3b8;
+    max-width: 220px;
+    line-height: 1.4;
+}
+
+/* Face Overlay & Oval Target */
+.page-empleados .face-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    z-index: 10;
+}
+
+.page-empleados .face-guide-ellipse {
+    position: relative;
+    width: 135px;
+    height: 170px;
+    border: 2px dashed rgba(56, 189, 248, 0.8);
+    border-radius: 50%;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45);
+    transition: all 0.3s ease;
+}
+
+.page-empleados .face-guide-ellipse.is-scanning {
+    border: 2px solid #38bdf8;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45), 0 0 20px rgba(56, 189, 248, 0.6);
+}
+
+.page-empleados .face-guide-ellipse.is-error {
+    border: 2px solid #f87171;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55), 0 0 20px rgba(248, 113, 113, 0.6);
+}
+
+.page-empleados .corner-reticle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: #38bdf8;
+    border-style: solid;
+}
+
+.page-empleados .corner-reticle.top-left {
+    top: -4px;
+    left: 20px;
+    border-width: 2px 0 0 2px;
+}
+
+.page-empleados .corner-reticle.top-right {
+    top: -4px;
+    right: 20px;
+    border-width: 2px 2px 0 0;
+}
+
+.page-empleados .corner-reticle.bottom-left {
+    bottom: -4px;
+    left: 20px;
+    border-width: 0 0 2px 2px;
+}
+
+.page-empleados .corner-reticle.bottom-right {
+    bottom: -4px;
+    right: 20px;
+    border-width: 0 2px 2px 0;
+}
+
+.page-empleados .scan-line {
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+    box-shadow: 0 0 12px #38bdf8;
+    animation: scanMove 1.4s infinite ease-in-out;
+}
+
+@keyframes scanMove {
+    0% { top: 10%; }
+    50% { top: 85%; }
+    100% { top: 10%; }
+}
+
+.page-empleados .face-guide-text {
+    margin-top: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    background: rgba(15, 23, 42, 0.75);
+    padding: 3px 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Device Picker */
+.page-empleados .camera-device-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 10px;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.page-empleados .camera-device-picker select {
+    width: 100%;
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    font-size: 11px;
+}
+
+.page-empleados .camera-device-picker.hidden {
+    display: none;
+}
+
+/* Camera Buttons */
+.page-empleados .camera-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.page-empleados .camera-actions .btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.page-empleados .btn--success {
+    background: #10b981;
+    color: #ffffff;
+    border: 1px solid #059669;
+}
+
+.page-empleados .btn--success:hover:not(:disabled) {
+    background: #059669;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.page-empleados .btn--ghost-warn {
+    background: #fffbebfb;
+    color: #b45309;
+    border: 1px dashed #fde68a;
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+}
+
+.page-empleados .btn--ghost-warn:hover {
+    background: #fef3c7;
+}
+
+.page-empleados .camera-actions .btn.hidden {
+    display: none !important;
+}
+
+/* Vector Feedback Card & Alerts */
+.page-empleados .vector-feedback-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: left;
+    transition: all 0.25s ease;
+}
+
+.page-empleados .feedback-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.page-empleados .feedback-card-header strong {
+    font-weight: 700;
+}
+
+.page-empleados .vector-feedback-card p {
+    margin: 0;
+    color: inherit;
+}
+
+.page-empleados .vector-feedback-card.info {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+}
+
+.page-empleados .vector-feedback-card.scanning {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    color: #6b21a8;
+}
+
+.page-empleados .vector-feedback-card.success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+}
+
+.page-empleados .vector-feedback-card.danger {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.page-empleados .vector-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.page-empleados .metric-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    color: #166534;
+    border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.page-empleados .metric-chip code {
+    font-family: monospace;
+    font-weight: 700;
+    background: #dcfce7;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.page-empleados .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.page-empleados .fields-grid--compact {
+    gap: 16px;
+}
+
+.page-empleados .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.page-empleados .field--full {
+    grid-column: 1 / -1;
+}
+
+.page-empleados .field label {
+    font-size: 13px;
+    color: #334155;
+    font-weight: 700;
+}
+
+.page-empleados .field input,
+.page-empleados .field select {
+    min-height: 42px;
+    border: 1px solid #dfe7ef;
+    border-radius: 10px;
+    background: white;
+    font-size: 14px;
+    color: #0f172a;
+    padding: 0 12px;
+}
+
+.page-empleados .sync-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid #cfe0f9;
+    background: #eef6ff;
+    border-radius: 12px;
+    padding: 18px 16px;
+    color: #1e3a5f;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.page-empleados .sync-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.page-empleados .config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+}
+
+.page-empleados .checkbox-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.page-empleados .checkbox-row input {
+    width: 16px;
+    height: 16px;
+}
+
+.page-empleados .tolerance-box {
+    min-width: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid #dfe7ef;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #475569;
+    font-size: 13px;
+}
+
+.page-empleados .tolerance-value {
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.page-empleados .tolerance-value small {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.page-empleados .wizard-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 22px 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.page-empleados .btn--secondary {
+    background: #e2e8f0;
+    color: #0f172a;
+    border: none;
+    padding: 11px 18px;
+    cursor: pointer;
+}
+
+.page-empleados .btn--primary {
+    background: #2b2d7c;
+    color: white;
+    border: none;
+    padding: 11px 18px;
+    cursor: pointer;
+}
+
+.page-empleados .hidden {
+    display: none !important;
+}
+
+@media (max-width: 980px) {
+    .page-empleados .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-empleados .form-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .page-empleados .employee-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 720px) {
+    .page-empleados .toolbar,
+    .page-empleados .table-footer,
+    .page-empleados .config-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-empleados .fields-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-empleados .wizard-steps {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===============================
+   LISTA: 4 TARJETAS, ID, PERIODOS
+================================ */
+.page-empleados .metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.page-empleados .employee-id {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2b2d7c;
+    white-space: nowrap;
+}
+
+/* ID + nombre dentro de la ficha: que no tome el estilo gris de las etiquetas */
+.page-empleados .profile-item strong span {
+    display: inline;
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.page-empleados .profile-item strong .employee-id {
+    font-weight: 700;
+    color: #2b2d7c;
+}
+
+.page-empleados .status-baja {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.page-empleados .status-scheduled {
+    color: #3730a3;
+    background: #e0e7ff;
+}
+
+.page-empleados .status-finished {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.page-empleados .status-pill--danger { background: #fee2e2; color: #b91c1c; }
+
+/* En escritorio la barra va en un solo renglón: el buscador cede espacio
+   para que los filtros no bajen al elegir "Por semana" */
+.page-empleados .toolbar {
+    flex-wrap: nowrap;
+}
+
+.page-empleados .toolbar .searchbox {
+    min-width: 160px;
+}
+
+.page-empleados .toolbar-actions,
+.page-empleados .period-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+    .page-empleados .toolbar,
+    .page-empleados .toolbar-actions,
+    .page-empleados .period-filters {
+        flex-wrap: wrap;
+    }
+}
+
+.page-empleados .employee-table tbody tr[data-id] {
+    cursor: pointer;
+}
+
+.page-empleados .employee-table tbody tr[data-id]:hover {
+    background: #f8fafc;
+}
+
+.page-empleados .table-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 28px 18px;
+}
+
+.page-empleados .pagination button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* ===============================
+   EXPEDIENTE: HORAS DÍA/SEMANA/MES/AÑO
+================================ */
+.page-empleados .hours-filter-row--four,
+.page-empleados .metrics-grid-detail--four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.page-empleados .metrics-grid-detail--four .mini-stat strong {
+    font-size: 26px;
+}
+
+/* ===============================
+   ALTA: INSTRUCCIONES, VALIDACIÓN, SUELDO
+================================ */
+.page-empleados .form-instructions {
+    background: #eef6ff;
+    border: 1px solid #cfe0f9;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #1e3a5f;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.page-empleados .form-instructions ol {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+.page-empleados .field-hint {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: -4px;
+}
+
+.page-empleados .field-error {
+    font-size: 12px;
+    font-weight: 600;
+    color: #b91c1c;
+    margin-top: -4px;
+}
+
+.page-empleados .field-error:empty {
+    display: none;
+}
+
+.page-empleados .field input::placeholder {
+    color: #94a3b8;
+}
+
+.page-empleados .field input.is-invalid,
+.page-empleados .field select.is-invalid {
+    border-color: #f87171;
+    background: #fef2f2;
+}
+
+.page-empleados .field input[readonly],
+.page-empleados .field select:disabled {
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.page-empleados .face-guide-ellipse.is-ok {
+    border: 2px solid #22c55e;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45), 0 0 20px rgba(34, 197, 94, 0.6);
+}
+
+.page-empleados .face-guide-ellipse.is-warn {
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.5), 0 0 16px rgba(251, 191, 36, 0.5);
+}
+
+.page-empleados .new-employee-summary {
+    margin-top: 16px;
+}
+
+.page-empleados .summary-section + .summary-section {
+    margin-top: 16px;
+}
+
+.page-empleados .summary-section h5 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: #111827;
+}
+
+/* ===============================
+   REGISTRAR INCIDENCIA
+================================ */
+.page-empleados .record-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.page-empleados .field textarea {
+    border: 1px solid #dfe7ef;
+    border-radius: 10px;
+    background: white;
+    font: inherit;
+    font-size: 14px;
+    color: #0f172a;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+.page-empleados .field textarea.is-invalid {
+    border-color: #f87171;
+    background: #fef2f2;
+}
+
+.page-empleados .detail-panel__actions .btn--primary {
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.page-empleados .toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 500;
+    background: #2b2d7c;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+    font-size: 14px;
+}
+
+/* ===============================
+   VENTANAS PEQUEÑAS (CONFIRMAR, EXPORTAR, IMPORTAR)
+================================ */
+.page-empleados .small-modal {
+    width: min(560px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.22);
+}
+
+.page-empleados .small-modal__body {
+    display: grid;
+    gap: 14px;
+    padding: 18px 22px;
+}
+
+.page-empleados .option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid #dfe7ef;
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+}
+
+.page-empleados .option-card:has(input:checked) {
+    border-color: #2b2d7c;
+    background: #f5f5ff;
+}
+
+.page-empleados .option-card input {
+    margin-top: 3px;
+}
+
+.page-empleados .option-card strong {
+    display: block;
+    font-size: 14px;
+    color: #111827;
+}
+
+.page-empleados .option-card span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #64748b;
+}
+
+.page-empleados .export-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.page-empleados .export-range .field-hint {
+    grid-column: 1 / -1;
+    margin-top: 0;
+}
+
+.page-empleados .form-message {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.page-empleados .form-message.is-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.page-empleados .form-message.is-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.page-empleados .form-message.is-info { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+
+.page-empleados .file-drop {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 16px;
+    background: #f8fafc;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.page-empleados .import-errors {
+    max-height: 180px;
+    overflow: auto;
+    margin: 10px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #7f1d1d;
+}
+
+.page-empleados .confirm-block {
+    text-align: center;
+}
+
+.page-empleados .confirm-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    color: #2b2d7c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.page-empleados .confirm-block h3,
+.page-empleados .save-progress__title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #111827;
+}
+
+.page-empleados .confirm-block p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+}
+
+.page-empleados .save-steps {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.page-empleados .save-steps li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.page-empleados .save-step__icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.page-empleados .save-steps li.is-running { color: #334155; }
+.page-empleados .save-steps li.is-done { color: #111827; }
+.page-empleados .save-steps li.is-error { color: #b91c1c; }
+
+.page-empleados .save-steps li.is-running .save-step__icon {
+    background: transparent;
+    border: 3px solid #c7d2fe;
+    border-top-color: #2b2d7c;
+    animation: girarGuardado 0.8s linear infinite;
+}
+
+.page-empleados .save-steps li.is-done .save-step__icon { background: #dcfce7; color: #166534; }
+.page-empleados .save-steps li.is-error .save-step__icon { background: #fee2e2; color: #b91c1c; }
+
+@keyframes girarGuardado {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1200px) {
+    .page-empleados .metrics-grid,
+    .page-empleados .hours-filter-row--four,
+    .page-empleados .metrics-grid-detail--four {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .page-empleados .metrics-grid,
+    .page-empleados .hours-filter-row--four,
+    .page-empleados .metrics-grid-detail--four,
+    .page-empleados .export-range {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===============================
+   FALTAS EN 30 DÍAS Y DOCUMENTOS
+================================ */
+.page-empleados .faltas-alert {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.page-empleados .faltas-alert--warn {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+}
+
+.page-empleados .faltas-alert--danger {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.page-empleados .faltas-alert a {
+    color: inherit;
+    font-weight: 700;
+}
+
+.page-empleados .documents-note {
+    margin: 0 0 12px;
+    font-size: 12.5px;
+    color: #64748b;
+}
+
+.page-empleados .documents-list {
+    display: grid;
+    gap: 8px;
+}
+
+.page-empleados .document-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+}
+
+.page-empleados .document-row__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.page-empleados .document-row__info strong {
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.page-empleados .document-row__info small {
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+.page-empleados .document-row__info span {
+    font-size: 12px;
+    color: #64748b;
+    overflow-wrap: anywhere;
+}
+
+.page-empleados .document-row__motivo {
+    color: #b91c1c !important;
+}
+
+.page-empleados .document-row__actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.page-empleados .btn--doc {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.page-empleados .doc-tag {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.page-empleados .doc-tag--ok { background: #dcfce7; color: #15803d; }
+.page-empleados .doc-tag--warn { background: #fef3c7; color: #b45309; }
+.page-empleados .doc-tag--danger { background: #fee2e2; color: #b91c1c; }
+.page-empleados .doc-tag--muted { background: #f1f5f9; color: #64748b; }
+
+@media (max-width: 760px) {
+    .page-empleados .document-row {
+        grid-template-columns: 1fr;
+    }
+
+    .page-empleados .document-row__actions {
+        justify-content: flex-start;
+    }
+}
+
+.page-empleados .faltas-alert--ok {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+/* Aviso corto de documentos faltantes junto al nombre */
+.page-empleados .docs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border: 1px solid #fde68a;
+    border-radius: 999px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.page-empleados .docs-chip:hover {
+    background: #fef3c7;
+}
+
+.page-empleados .docs-chip__ver {
+    font-weight: 500;
+    text-decoration: underline;
+}
+
+/* Editar y borrar en la ficha (solo Super usuario y RH) */
+.page-empleados .detail-edit,
+.page-empleados .detail-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.page-empleados .detail-edit {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.page-empleados .detail-edit:hover {
+    background: #cbd5e1;
+}
+
+.page-empleados .detail-delete,
+.page-empleados .btn--peligro {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+.page-empleados .detail-delete:hover,
+.page-empleados .btn--peligro:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* Al editar no se muestra el registro de rostro: los campos ocupan todo el ancho */
+.page-empleados .form-layout--sin-rostro {
+    display: block;
+}
+
+.page-empleados .confirm-cambios {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    text-align: left;
+    font-size: 13px;
+    color: #334155;
+}
+
+.page-empleados .confirm-cambios li + li {
+    margin-top: 4px;
+}
+
+.page-empleados .confirm-aviso {
+    display: block;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 13px;
+    text-align: left;
+}

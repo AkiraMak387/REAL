@@ -1,0 +1,516 @@
+/* ===============================
+   LISTA DE ASISTENCIA SEMANAL (ventana y hoja para PDF)
+   Los colores de cada concepto vienen de main.css
+================================ */
+
+/* ---------- Ventana ---------- */
+.lista-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.lista-modal__caja {
+    display: flex;
+    flex-direction: column;
+    width: min(1180px, 100%);
+    max-height: 100%;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+    overflow: hidden;
+}
+
+.lista-modal__barra {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.lista-modal__barra h3 {
+    margin: 0 0 2px;
+    font-size: 19px;
+    color: #0f172a;
+}
+
+.lista-modal__barra p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.lista-controles {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.lista-controles label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.lista-controles select {
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.lista-modos {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 10px;
+    background: #f1f5f9;
+}
+
+.lista-modos label {
+    margin: 0;
+    cursor: pointer;
+}
+
+.lista-modos input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lista-modos span {
+    display: block;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.lista-modos input:checked + span {
+    background: #fff;
+    color: #252060;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+
+.lista-modos input:focus-visible + span {
+    outline: 2px solid #252060;
+}
+
+.lista-modal__vista {
+    flex: 1;
+    overflow: auto;
+    padding: 18px;
+    background: #e2e8f0;
+}
+
+.lista-modal__vista .lista-hoja {
+    margin: 0 auto;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+}
+
+.lista-modal__acciones {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 22px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.lista-modal__acciones p {
+    margin: 0;
+    font-size: 12.5px;
+    color: #64748b;
+}
+
+.lista-modal__acciones div {
+    display: flex;
+    gap: 10px;
+}
+
+/* ---------- La hoja (en pantalla y en el PDF) ---------- */
+.lista-hoja {
+    width: 1120px;
+    padding: 18px 20px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 11px;
+    line-height: 1.3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.la-encabezado {
+    display: grid;
+    grid-template-columns: auto 1fr 1.4fr;
+    align-items: center;
+    gap: 16px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: #252060;
+    color: #fff;
+}
+
+.la-encabezado img {
+    width: 62px;
+    padding: 5px;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.la-encabezado h2 {
+    margin: 0;
+    font-size: 19px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.la-encabezado p {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #c7d2fe;
+}
+
+.la-semana {
+    text-align: right;
+}
+
+.la-semana p {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.la-tarjetas {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.la-tarjeta {
+    padding: 5px 10px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.la-tarjeta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.la-tarjeta strong {
+    font-size: 15px;
+}
+
+.la-tarjeta span {
+    font-size: 9.5px;
+    line-height: 1.15;
+    color: #475569;
+}
+
+.la-tarjeta--asistencia { border-left-color: var(--asistencia-pt); }
+.la-tarjeta--asistencia strong { color: var(--asistencia-tx); }
+.la-tarjeta--retardo { border-left-color: var(--retardo-pt); }
+.la-tarjeta--retardo strong { color: var(--retardo-tx); }
+.la-tarjeta--falta { border-left-color: var(--falta-pt); }
+.la-tarjeta--falta strong { color: var(--falta-tx); }
+.la-tarjeta--incapacidad { border-left-color: var(--incapacidad-pt); }
+.la-tarjeta--incapacidad strong { color: var(--incapacidad-tx); }
+.la-tarjeta--vacaciones { border-left-color: var(--vacaciones-pt); }
+.la-tarjeta--vacaciones strong { color: var(--vacaciones-tx); }
+.la-tarjeta--permiso { border-left-color: var(--permiso-pt); }
+.la-tarjeta--permiso strong { color: var(--permiso-tx); }
+
+.la-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.la-tabla th,
+.la-tabla td {
+    border: 1px solid #94a3b8;
+    padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.la-tabla thead th {
+    background: #252060;
+    color: #fff;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.la-tabla thead .la-th-fecha,
+.la-tabla thead .la-th-total {
+    background: #e0e7ff;
+    color: #1e1b4b;
+    text-transform: none;
+}
+
+.la-tabla thead .la-th-hoy {
+    background: #fde68a;
+}
+
+.la-tabla td.la-num { color: #475569; }
+
+.la-grupo td {
+    background: #f1f5f9;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #252060;
+}
+
+.la-tabla td.la-nombre {
+    text-align: left;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #1e3a8a;
+}
+
+.la-nombre span {
+    font-size: 10.5px;
+}
+
+/* El ID va en el mismo renglón, a la derecha, para no hacer más alto el renglón */
+.la-nombre small {
+    float: right;
+    margin-left: 6px;
+    font-size: 8.5px;
+    font-weight: 500;
+    line-height: 14px;
+    text-transform: none;
+    color: #64748b;
+}
+
+.la-ingreso {
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.la-puesto {
+    font-size: 9px;
+    line-height: 1.15;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.la-dia {
+    height: 27px;
+    font-size: 10px;
+}
+
+.la-dia strong,
+.la-dia small {
+    display: block;
+}
+
+.la-dia strong {
+    white-space: nowrap;
+}
+
+.la-dia strong {
+    font-size: 9.5px;
+}
+
+.la-dia small {
+    font-size: 8.5px;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.la-dia--asistencia { color: var(--asistencia-tx); }
+.la-dia--retardo { background: var(--retardo-bg); color: var(--retardo-tx); }
+.la-dia--falta { background: var(--falta-bg); color: var(--falta-tx); }
+.la-dia--incapacidad { background: var(--incapacidad-bg); color: var(--incapacidad-tx); }
+.la-dia--vacaciones { background: var(--vacaciones-bg); color: var(--vacaciones-tx); }
+.la-dia--permiso { background: var(--permiso-bg); color: var(--permiso-tx); }
+.la-dia--descanso { background: var(--descanso-bg); color: var(--descanso-tx); }
+
+.la-dia--fuera {
+    background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 5px, #e2e8f0 5px, #e2e8f0 6px);
+    color: #64748b;
+    font-size: 9px;
+}
+
+.la-total {
+    font-weight: 700;
+}
+
+.la-total--retardo { color: var(--retardo-tx); }
+.la-total--falta { color: var(--falta-tx); }
+
+.la-pie td {
+    background: #eef2ff;
+    font-weight: 800;
+    color: #1e1b4b;
+}
+
+.la-pie td:first-child {
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.la-vacia {
+    padding: 18px !important;
+    color: #64748b;
+}
+
+.la-final {
+    margin-top: 8px;
+    break-inside: avoid;
+}
+
+.la-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 7px;
+}
+
+.la-chip {
+    padding: 3px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 700;
+}
+
+.la-avisos {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.la-avisos h3 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #252060;
+}
+
+.la-avisos ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 2;
+    column-gap: 24px;
+}
+
+.la-avisos li {
+    position: relative;
+    padding-left: 12px;
+    font-size: 10px;
+    break-inside: avoid;
+}
+
+.la-avisos li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.la-avisos p {
+    margin: 0;
+    font-size: 10.5px;
+    color: #475569;
+}
+
+.la-aviso--falta::before { background: var(--falta-pt) !important; }
+.la-aviso--retardo::before { background: var(--retardo-pt) !important; }
+.la-aviso--asistencia::before { background: var(--asistencia-pt) !important; }
+.la-aviso--incapacidad::before { background: var(--incapacidad-pt) !important; }
+.la-aviso--vacaciones::before { background: var(--vacaciones-pt) !important; }
+
+.la-firmas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 60px;
+    row-gap: 3px;
+    margin-top: 26px;
+    padding: 0 60px;
+    text-align: center;
+    break-inside: avoid;
+}
+
+.la-firmas span {
+    display: block;
+    padding-top: 5px;
+    border-top: 1px solid #0f172a;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.la-firmas small {
+    font-size: 9.5px;
+    color: #475569;
+}
+
+.la-firmas p {
+    grid-column: 1 / -1;
+    margin: 4px 0 0;
+    font-size: 8.5px;
+    color: #64748b;
+}
+
+/* ---------- PDF: solo sale la hoja, en horizontal ---------- */
+#zonaLista {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: letter landscape;
+        margin: 9mm;
+    }
+
+    body.imprimiendo-lista > *:not(#zonaLista) {
+        display: none !important;
+    }
+
+    body.imprimiendo-lista #zonaLista {
+        display: block;
+    }
+
+    body.imprimiendo-lista {
+        background: #fff;
+    }
+
+    #zonaLista .lista-hoja {
+        width: 100%;
+        padding: 0;
+    }
+
+    /* El encabezado de la tabla se repite en cada hoja y los renglones no se parten */
+    .la-tabla thead { display: table-header-group; }
+    .la-tabla tr { break-inside: avoid; }
+}
