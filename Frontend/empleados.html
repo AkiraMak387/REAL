@@ -2321,6 +2321,40 @@
             return !mensaje;
         }
 
+        // ID del trabajador: sucursal (2) + clave del departamento (2) + consecutivo (4)
+        function prefijoIdTrabajador(suc, nombreDepto) {
+            const depto = DEPARTAMENTOS.find((d) => d.nombre === nombreDepto);
+            if (!suc || !depto) return '';
+            return `${String(suc).padStart(2, '0')}${depto.clave}`;
+        }
+
+        // Genera el ID que le corresponde al siguiente trabajador
+        function siguienteIdTrabajador(suc, nombreDepto) {
+            const prefijo = prefijoIdTrabajador(suc, nombreDepto);
+            if (!prefijo) return '';
+
+            const usados = [...TODOS_EMPLEADOS, ...EMPLEADOS]
+                .map((e) => String(e.id || ''))
+                .filter((id) => id.length === prefijo.length + 4 && id.startsWith(prefijo))
+                .map((id) => Number(id.slice(prefijo.length)))
+                .filter(Number.isFinite);
+
+            const siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
+
+            return `${prefijo}${String(siguiente).padStart(4, '0')}`;
+        }
+
+        // Reserva/genera el ID al guardar
+        function reservarIdTrabajador(suc, nombreDepto) {
+            const id = siguienteIdTrabajador(suc, nombreDepto);
+
+            if (!id) {
+                throw new Error('Elige la sucursal y el departamento para generar el ID.');
+            }
+
+            return id;
+        }
+
         // Al editar el ID no cambia; en un alta se muestra el que le tocaría
         function actualizarIdAutomatico() {
             if (empleadoEditando) return;
