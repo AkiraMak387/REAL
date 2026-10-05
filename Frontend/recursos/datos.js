@@ -77,9 +77,27 @@ const SUCURSALES = {
     '13': 'Santiago Tianguistenco'
 };
 
-// Sucursales agregadas desde Información (se guardan en el navegador)
-const CLAVE_SUCURSALES = 'elnevado.sucursales.v1';
-Object.assign(SUCURSALES, ALMACEN.leer(CLAVE_SUCURSALES) || {});
+// Bodegas (sucursales). Cada una se guarda como un registro propio: en Firebase es el documento
+// bodegas/{clave}, y adentro quedan sus trabajadores, solicitudes y reportes.
+const CLAVE_BODEGAS = 'elnevado.bodegas.v1';
+const CLAVE_SUCURSALES = 'elnevado.sucursales.v1'; // formato anterior: solo las agregadas, todas juntas
+const BODEGAS = ALMACEN.leer(CLAVE_BODEGAS) || [];
+
+function guardarBodegas() {
+    return ALMACEN.escribir(CLAVE_BODEGAS, [...BODEGAS].sort((a, b) => a.clave.localeCompare(b.clave)));
+}
+
+(function cargarBodegas() {
+    const anteriores = ALMACEN.leer(CLAVE_SUCURSALES) || {};
+    Object.assign(SUCURSALES, anteriores);
+    BODEGAS.forEach((b) => { SUCURSALES[b.clave] = b.nombre; });
+    // Las bodegas de base (y las del formato anterior) que aún no tienen su registro se crean una vez
+    const faltantes = Object.keys(SUCURSALES).filter((clave) => !BODEGAS.some((b) => b.clave === clave));
+    if (!faltantes.length || !puede('editarSucursales')) return;
+    faltantes.forEach((clave) => BODEGAS.push({ clave, nombre: SUCURSALES[clave] }));
+    if (!guardarBodegas()) BODEGAS.splice(BODEGAS.length - faltantes.length, faltantes.length);
+    else if (Object.keys(anteriores).length) ALMACEN.borrar(CLAVE_SUCURSALES);
+})();
 
 // Lista ordenada por clave. Ojo: Object.entries pondría "10"-"13" antes que "00"-"08"
 // El admin de sucursal solo ve la suya
@@ -90,9 +108,14 @@ function listaSucursales() {
         .sort((a, b) => a.clave.localeCompare(b.clave));
 }
 
+// Crea la bodega con su registro propio. Sus colecciones (empleados, solicitudes, reportes)
+// se van llenando dentro de ella conforme se registran datos.
 function agregarSucursal(clave, nombre) {
-    const guardadas = { ...(ALMACEN.leer(CLAVE_SUCURSALES) || {}), [clave]: nombre };
-    if (!ALMACEN.escribir(CLAVE_SUCURSALES, guardadas)) return false;
+    BODEGAS.push({ clave, nombre, creada: new Date().toISOString(), creadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
+    if (!guardarBodegas()) {
+        BODEGAS.pop();
+        return false;
+    }
     SUCURSALES[clave] = nombre;
     return true;
 }
@@ -184,7 +207,7 @@ function guardarCambios() {
 
 // Borra todo lo registrado: trabajadores, reglas y sucursales agregadas (deja la plantilla vacía)
 function restablecerDatosDemo() {
-    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES].forEach((clave) => ALMACEN.borrar(clave));
+    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES, CLAVE_BODEGAS].forEach((clave) => ALMACEN.borrar(clave));
     location.reload();
 }
 
