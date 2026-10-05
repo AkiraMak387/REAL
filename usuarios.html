@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios y sistema | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <link rel="stylesheet" href="recursos/configuracion.css">
+    <link rel="stylesheet" href="recursos/usuarios.css">
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
+</head>
+
+<body class="page-configuracion page-usuarios">
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+            <a href="usuarios.html" class="nav-item active">
+                <span class="nav-icon">🔐</span> Usuarios y sistema
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar"></div>
+            <div class="user-info">
+                <strong></strong>
+                <span></span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="header__left">
+                <h2 class="header-title">Usuarios y sistema</h2>
+            </div>
+            <div class="header__right">
+                <div class="header-date" id="headerDate"></div>
+            </div>
+        </header>
+
+        <section class="content configuration-shell">
+            <div class="configuration-header">
+                <div>
+                    <h1>Usuarios y Sistema</h1>
+                    <p>Cuentas con acceso, estado del sistema y checadoras por sucursal.</p>
+                </div>
+                <div class="configuration-header__actions">
+                    <button class="btn btn--primary" type="button" id="newUserBtn">+ Nuevo usuario</button>
+                </div>
+            </div>
+
+            <div class="stat-grid" id="userStats"></div>
+
+            <div class="configuration-grid">
+                <div class="config-column">
+                    <!-- ========== CUENTAS ========== -->
+                    <div class="config-card">
+                        <div class="config-card__title">
+                            <span class="config-icon">🔐</span>
+                            <div>
+                                <h3>Cuentas</h3>
+                                <p id="userCount"></p>
+                            </div>
+                        </div>
+
+                        <div class="branch-form hidden" id="userForm">
+                            <h4 class="user-form__title" id="userFormTitle">Nuevo usuario</h4>
+                            <div class="config-form-grid">
+                                <div class="form-field">
+                                    <label for="userName">Usuario</label>
+                                    <input id="userName" type="text" maxlength="30" autocomplete="off" placeholder="Ej. admin02">
+                                    <small class="field-hint">Sin espacios. Con él se inicia sesión.</small>
+                                </div>
+                                <div class="form-field">
+                                    <label for="userFullName">Nombre completo</label>
+                                    <input id="userFullName" type="text" maxlength="80" autocomplete="off" placeholder="Ej. Rosa Navarro Campos">
+                                </div>
+                                <div class="form-field">
+                                    <label for="userRole">Rol</label>
+                                    <select id="userRole"></select>
+                                </div>
+                                <div class="form-field">
+                                    <label for="userBranch">Sucursal</label>
+                                    <select id="userBranch"></select>
+                                    <small class="field-hint" id="userBranchHint"></small>
+                                </div>
+                                <div class="form-field field-full">
+                                    <label for="userPassword">Contraseña</label>
+                                    <input id="userPassword" type="text" maxlength="40" autocomplete="off">
+                                    <small class="field-hint" id="userPasswordHint"></small>
+                                </div>
+                            </div>
+                            <p class="form-error hidden" id="userError" role="alert"></p>
+                            <div class="branch-form__actions">
+                                <button class="btn btn--ghost" type="button" id="cancelUserBtn">Cancelar</button>
+                                <button class="btn btn--primary" type="button" id="saveUserBtn">Guardar usuario</button>
+                            </div>
+                        </div>
+
+                        <div class="table-scroll">
+                            <table class="branch-table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Nombre</th>
+                                        <th>Rol</th>
+                                        <th>Sucursal</th>
+                                        <th>Estado</th>
+                                        <th class="num">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="config-column">
+                    <!-- ========== ESTADO DEL SISTEMA (Sistemas y Super usuario) ========== -->
+                    <div class="config-card hidden" id="systemCard">
+                        <div class="config-card__title">
+                            <span class="config-icon">🖥️</span>
+                            <div>
+                                <h3>Estado del sistema</h3>
+                                <p>Para verificar que el sistema funciona en cada sucursal</p>
+                            </div>
+                            <button class="btn btn--ghost btn--small config-card__action" type="button" id="checkSystemBtn">↻ Revisar</button>
+                        </div>
+                        <div class="system-filter">
+                            <label for="systemBranch">Revisar</label>
+                            <select id="systemBranch"></select>
+                        </div>
+                        <ul class="info-list" id="systemInfo"></ul>
+                        <div class="hint-box">Mientras no exista el servidor, los datos se guardan en este navegador. Cuando exista, aquí se mostrará el estado de la base de datos y de las checadoras.</div>
+                        <div class="branch-form__actions">
+                            <button class="btn btn--ghost btn--small" type="button" id="resetDemoBtn">Restablecer datos de prueba</button>
+                        </div>
+                    </div>
+
+                    <!-- ========== CHECADORAS (Sistemas y Super usuario) ========== -->
+                    <div class="config-card hidden" id="clockCard">
+                        <div class="config-card__title">
+                            <span class="config-icon">🕒</span>
+                            <div>
+                                <h3>Checadoras</h3>
+                                <p>Registros de hoy por sucursal y reportes de falla</p>
+                            </div>
+                        </div>
+                        <table class="branch-table">
+                            <thead>
+                                <tr>
+                                    <th>Sucursal</th>
+                                    <th class="num">Checaron</th>
+                                    <th class="num">Sin checar</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clockTableBody"></tbody>
+                        </table>
+
+                        <h4 class="user-form__title clock-subtitle">Reportes de falla por revisar</h4>
+                        <div id="clockReports"></div>
+                        <div class="hint-box">Los admins reportan a quien no pudo checar. Confirma si la checadora falló ese día; con eso RH captura la asistencia a mano.</div>
+                    </div>
+
+                    <div class="config-card">
+                        <div class="config-card__title">
+                            <span class="config-icon">📋</span>
+                            <div>
+                                <h3>Qué puede hacer cada rol</h3>
+                                <p>Se aplica en todas las páginas del sistema</p>
+                            </div>
+                        </div>
+                        <ul class="info-list">
+                            <li><span>Super usuario</span><strong>Ve y edita todo. Único que cambia reglas, otorga bonos y da bajas.</strong></li>
+                            <li><span>Recursos Humanos</span><strong>Ve y edita trabajadores, sueldos y nómina. Aprueba solicitudes. Ve las reglas sin cambiarlas.</strong></li>
+                            <li><span>Admin de sucursal</span><strong>Solo su sucursal. Da altas sin ver sueldos. No ve nómina.</strong></li>
+                            <li><span>Sistemas</span><strong>Cuentas de usuario y estado del sistema. No ve datos personales ni sueldos.</strong></li>
+                        </ul>
+                        <div class="hint-box">Solo un Super usuario puede crear o editar cuentas de Super usuario. Nadie puede desactivar su propia cuenta ni cambiarse el rol.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="recursos/datos.js"></script>
+    <script>
+        const campo = (id) => document.getElementById(id);
+        const REGEX_USUARIO = /^[a-z0-9._-]{3,30}$/;
+        let usuarioEditando = null; // null = cuenta nueva
+
+        function mostrarToast(texto) {
+            const toast = campo('toast');
+            toast.textContent = texto;
+            toast.classList.remove('hidden');
+            clearTimeout(mostrarToast.temporizador);
+            mostrarToast.temporizador = setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        // Todas las sucursales (listaSucursales() solo da la del usuario si no ve todas)
+        const todasLasSucursales = () => Object.keys(SUCURSALES).sort().map((clave) => ({ clave, nombre: SUCURSALES[clave] }));
+
+        // Solo un Super usuario asigna o modifica cuentas de Super usuario
+        const puedeTocar = (usuario) => usuario.rol !== 'super' || puede('crearSuperUsuario');
+        // El Super usuario solo edita las cuentas: activar y desactivar queda en Sistemas
+        const PUEDE_ACTIVAR = USUARIO_ACTUAL.rol !== 'super';
+
+        const tarjeta = (valor, etiqueta, clase = '') => `
+            <div class="stat-card ${clase}">
+                <strong>${valor}</strong>
+                <span>${etiqueta}</span>
+            </div>`;
+
+        // ---------- Cuentas ----------
+        function renderUsuarios() {
+            const usuarios = listaUsuarios();
+            const activos = usuarios.filter((u) => u.activo);
+            const porRol = (rol) => activos.filter((u) => u.rol === rol).length;
+            campo('userStats').innerHTML =
+                tarjeta(activos.length, 'Cuentas activas') +
+                tarjeta(porRol('super') + porRol('rh'), 'Super usuario y RH') +
+                tarjeta(porRol('admin'), 'Admins de sucursal') +
+                tarjeta(usuarios.length - activos.length, 'Desactivadas', usuarios.length > activos.length ? 'stat-card--warning' : '');
+
+            campo('userCount').textContent = `${usuarios.length} cuenta${usuarios.length === 1 ? '' : 's'} registrada${usuarios.length === 1 ? '' : 's'}`;
+            campo('userTableBody').innerHTML = usuarios.map((u) => {
+                const esYo = u.usuario === USUARIO_ACTUAL.usuario;
+                const estado = u.activo
+                    ? '<span class="badge badge--success">Activa</span>'
+                    : '<span class="badge badge--danger">Desactivada</span>';
+                const acciones = puedeTocar(u)
+                    ? `<button class="btn btn--ghost btn--small" type="button" data-editar="${escaparHtml(u.usuario)}">Editar</button>` +
+                      (esYo || !PUEDE_ACTIVAR ? '' : `<button class="btn btn--ghost btn--small" type="button" data-activar="${escaparHtml(u.usuario)}">${u.activo ? 'Desactivar' : 'Activar'}</button>`)
+                    : '<span class="field-hint">Solo Super usuario</span>';
+                return `<tr class="${u.activo ? '' : 'is-inactive'}">
+                    <td class="branch-key">${escaparHtml(u.usuario)}${esYo ? ' <span class="config-badge config-badge--inline">Tú</span>' : ''}</td>
+                    <td>${escaparHtml(u.nombre)}</td>
+                    <td><span class="role-pill role-pill--${u.rol}">${escaparHtml(ROLES[u.rol]?.nombre || u.rol)}</span></td>
+                    <td>${u.rol === 'admin' ? escaparHtml(nombreSucursal(u.sucursal)) : 'Todas'}</td>
+                    <td>${estado}</td>
+                    <td class="num user-actions">${acciones}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function actualizarCampoSucursal() {
+            const esAdmin = campo('userRole').value === 'admin';
+            campo('userBranch').disabled = !esAdmin;
+            campo('userBranchHint').textContent = esAdmin ? 'Solo verá los trabajadores de esta sucursal.' : 'Este rol no depende de una sucursal.';
+        }
+
+        function abrirFormulario(usuario = null) {
+            usuarioEditando = usuario;
+            const roles = Object.entries(ROLES).filter(([clave]) => clave !== 'super' || puede('crearSuperUsuario'));
+            campo('userRole').innerHTML = roles.map(([clave, rol]) => `<option value="${clave}">${escaparHtml(rol.nombre)}</option>`).join('');
+            campo('userBranch').innerHTML = todasLasSucursales().map(({ clave, nombre }) => `<option value="${clave}">${clave} - ${escaparHtml(nombre)}</option>`).join('');
+
+            campo('userFormTitle').textContent = usuario ? `Editar ${usuario.usuario}` : 'Nuevo usuario';
+            campo('userName').value = usuario ? usuario.usuario : '';
+            campo('userName').readOnly = Boolean(usuario);
+            campo('userFullName').value = usuario ? usuario.nombre : '';
+            campo('userRole').value = usuario ? usuario.rol : 'admin';
+            campo('userBranch').value = usuario && usuario.rol === 'admin' ? usuario.sucursal : '01';
+            // Nadie se cambia su propio rol (evita quedarse sin acceso a esta página)
+            campo('userRole').disabled = Boolean(usuario && usuario.usuario === USUARIO_ACTUAL.usuario);
+            campo('userPassword').value = '';
+            campo('userPasswordHint').textContent = usuario
+                ? 'Déjala vacía para conservar la actual. Escribe una nueva para restablecerla.'
+                : 'Mínimo 6 caracteres. Entrégala al usuario en persona.';
+
+            campo('userError').classList.add('hidden');
+            document.querySelectorAll('#userForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+            actualizarCampoSucursal();
+            campo('userForm').classList.remove('hidden');
+            campo('newUserBtn').classList.add('hidden');
+            (usuario ? campo('userFullName') : campo('userName')).focus();
+        }
+
+        function cerrarFormulario() {
+            campo('userForm').classList.add('hidden');
+            campo('newUserBtn').classList.remove('hidden');
+            usuarioEditando = null;
+        }
+
+        function mostrarError(texto, idCampo) {
+            document.querySelectorAll('#userForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+            if (idCampo) campo(idCampo).classList.add('is-invalid');
+            campo('userError').textContent = texto;
+            campo('userError').classList.remove('hidden');
+        }
+
+        function guardarUsuario() {
+            const usuarios = listaUsuarios();
+            const datos = {
+                usuario: campo('userName').value.trim().toLowerCase(),
+                nombre: campo('userFullName').value.trim().replace(/\s+/g, ' '),
+                rol: campo('userRole').value,
+                sucursal: campo('userRole').value === 'admin' ? campo('userBranch').value : '00',
+                contrasena: campo('userPassword').value
+            };
+
+            if (!usuarioEditando) {
+                if (!REGEX_USUARIO.test(datos.usuario)) return mostrarError('El usuario debe tener de 3 a 30 caracteres: letras minúsculas, números, punto, guion o guion bajo.', 'userName');
+                if (usuarios.some((u) => u.usuario === datos.usuario)) return mostrarError(`Ya existe el usuario "${datos.usuario}".`, 'userName');
+            }
+            if (datos.nombre.split(' ').length < 2) return mostrarError('Escribe el nombre y al menos un apellido.', 'userFullName');
+            if (datos.rol === 'super' && !puede('crearSuperUsuario')) return mostrarError('Solo un Super usuario puede asignar ese rol.', 'userRole');
+            if ((!usuarioEditando || datos.contrasena) && datos.contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.', 'userPassword');
+
+            // Aquí irá la petición al servidor; por ahora se guarda en el navegador
+            let detalle;
+            if (usuarioEditando) {
+                const cuenta = usuarios.find((u) => u.usuario === usuarioEditando.usuario);
+                const cambios = [];
+                if (cuenta.nombre !== datos.nombre) cambios.push('nombre');
+                cuenta.nombre = datos.nombre;
+                if (cuenta.usuario !== USUARIO_ACTUAL.usuario) {
+                    if (cuenta.rol !== datos.rol) cambios.push(`rol ${ROLES[cuenta.rol].nombre} → ${ROLES[datos.rol].nombre}`);
+                    if (datos.rol === 'admin' && cuenta.sucursal !== datos.sucursal) cambios.push(`sucursal ${cuenta.sucursal} → ${datos.sucursal}`);
+                    cuenta.rol = datos.rol;
+                    cuenta.sucursal = datos.sucursal;
+                }
+                if (datos.contrasena) {
+                    cuenta.contrasena = datos.contrasena;
+                    cambios.push('contraseña restablecida');
+                }
+                detalle = `${cuenta.usuario}: ${cambios.join(', ') || 'sin cambios'}`;
+            } else {
+                usuarios.push({ ...datos, activo: true });
+                detalle = `${datos.usuario} · ${ROLES[datos.rol].nombre}${datos.rol === 'admin' ? ` · Suc. ${datos.sucursal}` : ''}`;
+            }
+
+            if (!guardarUsuarios(usuarios)) return mostrarError('Este navegador no permite guardar los usuarios.');
+            registrarBitacora(usuarioEditando ? 'Usuario modificado' : 'Usuario creado', detalle);
+            mostrarToast(usuarioEditando ? `✅ Se actualizó la cuenta ${usuarioEditando.usuario}.` : `✅ Se creó la cuenta ${datos.usuario}.`);
+            cerrarFormulario();
+            renderTodo();
+        }
+
+        function cambiarEstado(nombreUsuario) {
+            const usuarios = listaUsuarios();
+            const cuenta = usuarios.find((u) => u.usuario === nombreUsuario);
+            if (!PUEDE_ACTIVAR || !cuenta || !puedeTocar(cuenta) || cuenta.usuario === USUARIO_ACTUAL.usuario) return;
+            if (cuenta.activo && cuenta.rol === 'super' && usuarios.filter((u) => u.rol === 'super' && u.activo).length === 1) {
+                mostrarToast('⚠️ Debe quedar al menos un Super usuario activo.');
+                return;
+            }
+            cuenta.activo = !cuenta.activo;
+            if (!guardarUsuarios(usuarios)) {
+                mostrarToast('⚠️ Este navegador no permite guardar los usuarios.');
+                return;
+            }
+            registrarBitacora(cuenta.activo ? 'Usuario activado' : 'Usuario desactivado', cuenta.usuario);
+            mostrarToast(cuenta.activo ? `✅ Se activó la cuenta ${cuenta.usuario}.` : `Se desactivó la cuenta ${cuenta.usuario}. Ya no podrá iniciar sesión.`);
+            renderTodo();
+        }
+
+        // ---------- Estado del sistema ----------
+        function tamanoAlmacenado() {
+            let bytes = 0;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const clave = localStorage.key(i);
+                    if (clave.startsWith('elnevado.')) bytes += (clave.length + (localStorage.getItem(clave) || '').length) * 2;
+                }
+            } catch (error) {
+                return null;
+            }
+            return bytes;
+        }
+
+        async function revisarServidor() {
+            if (!navigator.onLine) return { ok: false, texto: 'Sin conexión a internet' };
+            if (location.protocol === 'file:') return { ok: false, texto: 'Abierta como archivo, sin servidor' };
+            try {
+                const respuesta = await fetch(location.href, { method: 'HEAD', cache: 'no-store' });
+                return respuesta.ok ? { ok: true, texto: 'Respondiendo' } : { ok: false, texto: `Error HTTP ${respuesta.status}` };
+            } catch (error) {
+                return { ok: false, texto: 'No responde' };
+            }
+        }
+
+        // Cómo está una sucursal hoy. La checadora se da por "sin conexión" si Sistemas confirmó una falla hoy
+        // o si había personal y nadie checó. Con el servidor, aquí llegará el estado real de cada checadora.
+        function estadoSucursal(clave) {
+            const descanso = HOY.getDay() === 0 || Boolean(feriadoEn(HOY_ISO));
+            const registros = TODOS_EMPLEADOS.filter((e) => e.suc === clave).map((e) => registroDia(e, HOY)).filter(Boolean);
+            const checaron = registros.filter((r) => r.estado === 'asistencia' || r.estado === 'retardo').length;
+            const sinChecar = registros.filter((r) => r.estado === 'falta').length;
+            const reportes = listaReportes().filter((r) => r.suc === clave);
+            const fallaHoy = reportes.some((r) => r.fecha === HOY_ISO && r.estado === 'confirmada');
+            const enLinea = !fallaHoy && (descanso || checaron + sinChecar === 0 || checaron > 0);
+            const porRevisar = reportes.filter((r) => r.estado === 'pendiente').length;
+            return { clave, descanso, checaron, sinChecar, enLinea, porRevisar, funciona: enLinea && porRevisar === 0 };
+        }
+
+        const punto = (ok) => `<span class="status-dot ${ok ? 'status-dot--ok' : 'status-dot--error'}"></span>`;
+        const horaRevision = () => new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        function renderSistemaSucursal(clave) {
+            const estado = estadoSucursal(clave);
+            const activos = TODOS_EMPLEADOS.filter((e) => e.suc === clave && !e.baja).length;
+            const admins = listaUsuarios().filter((u) => u.rol === 'admin' && u.sucursal === clave && u.activo);
+            const acceso = leerBitacora().find((m) => m.accion === 'Inicio de sesión' && admins.some((u) => u.usuario === m.usuario));
+            const registrosHoy = estado.descanso
+                ? 'Día de descanso'
+                : `${estado.checaron} ${estado.checaron === 1 ? 'checó' : 'checaron'} · ${estado.sinChecar} sin checar`;
+            campo('systemInfo').innerHTML = `
+                <li><span>Estado de la sucursal</span><strong>${punto(estado.funciona)}${estado.funciona ? 'Funcionando' : 'Requiere revisión'}</strong></li>
+                <li><span>Checadora</span><strong>${punto(estado.enLinea)}${estado.enLinea ? 'En línea' : 'Sin conexión'}</strong></li>
+                <li><span>Registros de hoy</span><strong>${registrosHoy}</strong></li>
+                <li><span>Reportes de falla por revisar</span><strong>${punto(!estado.porRevisar)}${estado.porRevisar}</strong></li>
+                <li><span>Trabajadores activos</span><strong>${activos}</strong></li>
+                <li><span>Admin de la sucursal</span><strong>${admins.length ? admins.map((u) => `${escaparHtml(u.nombre)} (${escaparHtml(u.usuario)})`).join(', ') : 'Sin cuenta de admin'}</strong></li>
+                <li><span>Último acceso del admin</span><strong>${acceso ? new Date(acceso.fecha).toLocaleString('es-MX') : '—'}</strong></li>
+                <li><span>Revisado</span><strong>${horaRevision()}</strong></li>`;
+        }
+
+        async function renderSistema() {
+            const sucursal = campo('systemBranch').value;
+            if (sucursal !== 'todas') return renderSistemaSucursal(sucursal);
+            const servidor = await revisarServidor();
+            if (campo('systemBranch').value !== 'todas') return; // cambió el filtro mientras respondía
+            const bytes = tamanoAlmacenado();
+            const usado = bytes === null ? 'No disponible' : `${(bytes / 1024).toFixed(1)} KB de ~5 MB`;
+            const ultimoAcceso = leerBitacora().find((m) => m.accion === 'Inicio de sesión');
+            const estados = todasLasSucursales().map(({ clave }) => estadoSucursal(clave));
+            const conProblema = estados.filter((e) => !e.funciona);
+            campo('systemInfo').innerHTML = `
+                <li><span>Sucursales funcionando</span><strong>${punto(!conProblema.length)}${estados.length - conProblema.length} de ${estados.length}</strong></li>
+                ${conProblema.length ? `<li><span>Requieren revisión</span><strong>${conProblema.map((e) => escaparHtml(nombreSucursal(e.clave))).join(', ')}</strong></li>` : ''}
+                <li><span>Servidor</span><strong>${punto(servidor.ok)}${escaparHtml(servidor.texto)}</strong></li>
+                <li><span>Almacenamiento del navegador</span><strong>${punto(bytes !== null)}${usado}</strong></li>
+                <li><span>Trabajadores registrados</span><strong>${TODOS_EMPLEADOS.length} (${TODOS_EMPLEADOS.filter((e) => !e.baja).length} activos)</strong></li>
+                <li><span>Sucursales</span><strong>${Object.keys(SUCURSALES).length}</strong></li>
+                <li><span>Último inicio de sesión</span><strong>${ultimoAcceso ? `${new Date(ultimoAcceso.fecha).toLocaleString('es-MX')} · ${escaparHtml(ultimoAcceso.usuario)}` : '—'}</strong></li>
+                <li><span>Revisado</span><strong>${horaRevision()}</strong></li>`;
+        }
+
+        // ---------- Checadoras ----------
+        // Solo cantidades por sucursal: Sistemas no ve nombres de trabajadores
+        function renderChecadoras() {
+            campo('clockTableBody').innerHTML = todasLasSucursales().map(({ clave, nombre }) => {
+                const { checaron, sinChecar, enLinea } = estadoSucursal(clave);
+                const estado = enLinea
+                    ? '<span class="badge badge--success">En línea</span>'
+                    : '<span class="badge badge--danger">Sin conexión</span>';
+                return `<tr><td>${clave} - ${escaparHtml(nombre)}</td><td class="num">${checaron}</td><td class="num">${sinChecar}</td><td>${estado}</td></tr>`;
+            }).join('');
+
+            // Reportes agrupados por día y sucursal
+            const grupos = {};
+            listaReportes().forEach((r) => {
+                const clave = `${r.fecha}|${r.suc}`;
+                (grupos[clave] = grupos[clave] || { fecha: r.fecha, suc: r.suc, reportes: [] }).reportes.push(r);
+            });
+            const lista = Object.values(grupos).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 20);
+            campo('clockReports').innerHTML = lista.length
+                ? `<table class="branch-table"><thead><tr><th>Fecha</th><th>Sucursal</th><th class="num">Reportes</th><th>Estado</th><th class="num"></th></tr></thead><tbody>
+                    ${lista.map((g) => {
+                        const pendientes = g.reportes.filter((r) => r.estado === 'pendiente').length;
+                        const estado = pendientes
+                            ? `<span class="badge badge--warning">${pendientes} por revisar</span>`
+                            : g.reportes.every((r) => r.estado === 'confirmada')
+                                ? '<span class="badge badge--success">Falla confirmada</span>'
+                                : '<span class="badge badge--danger">Sin falla</span>';
+                        const acciones = pendientes && puede('confirmarFallaChecadora')
+                            ? `<button class="btn btn--primary btn--small" type="button" data-falla="confirmada" data-grupo="${g.fecha}|${g.suc}">Hubo falla</button>
+                               <button class="btn btn--ghost btn--small" type="button" data-falla="descartada" data-grupo="${g.fecha}|${g.suc}">No hubo falla</button>`
+                            : '';
+                        return `<tr><td class="log-date">${formatoFecha(g.fecha)}</td><td>${g.suc} - ${escaparHtml(SUCURSALES[g.suc] || '')}</td><td class="num">${g.reportes.length}</td><td>${estado}</td><td class="num user-actions">${acciones}</td></tr>`;
+                    }).join('')}</tbody></table>`
+                : '<p class="field-hint">No hay reportes de falla.</p>';
+        }
+
+        function revisarFalla(grupo, estado) {
+            const [fecha, suc] = grupo.split('|');
+            const reportes = listaReportes();
+            const afectados = reportes.filter((r) => r.fecha === fecha && r.suc === suc && r.estado === 'pendiente');
+            afectados.forEach((r) => {
+                r.estado = estado;
+                r.revisadoPor = USUARIO_ACTUAL.usuario;
+                r.revisadoEl = new Date().toISOString();
+            });
+            if (!guardarReportes(reportes)) {
+                mostrarToast('⚠️ Este navegador no permite guardar los reportes.');
+                return;
+            }
+            registrarBitacora(estado === 'confirmada' ? 'Falla de checadora confirmada' : 'Falla de checadora descartada',
+                `Sucursal ${suc} · ${formatoFecha(fecha)} · ${afectados.length} reporte${afectados.length === 1 ? '' : 's'}`);
+            mostrarToast(estado === 'confirmada' ? '✅ Falla confirmada. RH ya puede capturar las asistencias.' : 'Se marcó que no hubo falla.');
+            renderChecadoras();
+            renderSistema();
+        }
+
+        function renderTodo() {
+            renderUsuarios();
+        }
+
+        campo('userTableBody').addEventListener('click', (evento) => {
+            const editar = evento.target.closest('[data-editar]');
+            const activar = evento.target.closest('[data-activar]');
+            if (editar) abrirFormulario(listaUsuarios().find((u) => u.usuario === editar.dataset.editar));
+            if (activar) cambiarEstado(activar.dataset.activar);
+        });
+        campo('userRole').addEventListener('change', actualizarCampoSucursal);
+        campo('newUserBtn').addEventListener('click', () => abrirFormulario());
+        campo('cancelUserBtn').addEventListener('click', cerrarFormulario);
+        campo('saveUserBtn').addEventListener('click', guardarUsuario);
+        campo('checkSystemBtn').addEventListener('click', () => {
+            renderSistema();
+            renderChecadoras();
+        });
+        campo('systemBranch').innerHTML = '<option value="todas">Todas las sucursales</option>' +
+            todasLasSucursales().map(({ clave, nombre }) => `<option value="${clave}">${clave} - ${escaparHtml(nombre)}</option>`).join('');
+        campo('systemBranch').addEventListener('change', renderSistema);
+        campo('clockReports').addEventListener('click', (evento) => {
+            const boton = evento.target.closest('[data-falla]');
+            if (boton) revisarFalla(boton.dataset.grupo, boton.dataset.falla);
+        });
+        campo('resetDemoBtn').addEventListener('click', () => {
+            if (!confirm('Se borrarán los trabajadores, sucursales y reglas guardados en este navegador y se volverá a los datos de prueba. Las cuentas de usuario se conservan. ¿Continuar?')) return;
+            registrarBitacora('Datos de prueba restablecidos');
+            restablecerDatosDemo();
+        });
+
+        campo('headerDate').textContent = fechaLarga(HOY);
+        campo('newUserBtn').classList.toggle('hidden', !puede('administrarUsuarios'));
+        campo('systemCard').classList.toggle('hidden', !puede('verMonitoreo'));
+        campo('clockCard').classList.toggle('hidden', !puede('confirmarFallaChecadora'));
+        renderTodo();
+        if (puede('verMonitoreo')) renderSistema();
+        if (puede('confirmarFallaChecadora')) renderChecadoras();
+    </script>
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>
