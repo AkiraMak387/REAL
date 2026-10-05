@@ -25,6 +25,7 @@ const FIREBASE = {
     messagingSenderId: "211847801101",
     appId: "1:211847801101:web:34f223210712ba37636844"
 };
+
 const USAR_FIREBASE = Boolean(FIREBASE.projectId && FIREBASE.apiKey);
 
 const ALMACEN = (() => {

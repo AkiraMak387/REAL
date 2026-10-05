@@ -1567,7 +1567,7 @@
             emp.documentos = emp.documentos || {};
             emp.documentos[clave] = { ...estadoDocumento(emp, clave), ...cambios };
             // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
-            guardarCambios();
+            if (guardarCambios() === false) mostrarToast('⚠️ No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
             renderDocumentos(emp);
         }
 
@@ -1861,7 +1861,7 @@
             }
 
             // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
-            guardarCambios();
+            if (guardarCambios() === false) return mostrarToast('⚠️ No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
             registrarBitacora(MENSAJES_REGISTRO[tipo], `${emp.id} · ${emp.nombre} · ${formatoFecha(inicio)}`);
             cerrarModal(recordModal);
             openEmployeeDetail(emp);
@@ -2785,7 +2785,13 @@
                 fechaNacimiento: datos.fechaNacimiento,
                 sueldo: datos.sueldo
             });
-            guardarCambios();
+            if (guardarCambios() === false) {
+                [EMPLEADOS, TODOS_EMPLEADOS].forEach((lista) => {
+                    const indice = lista.findIndex((e) => e.id === datos.id);
+                    if (indice >= 0) lista.splice(indice, 1);
+                });
+                throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+            }
             registrarBitacora('Alta de trabajador', `${datos.id} · ${datos.nombre} · ${nombreSucursal(datos.suc)}`);
         }
 
@@ -2807,7 +2813,7 @@
                 fechaNacimiento: datos.fechaNacimiento,
                 sueldo: datos.sueldo
             });
-            guardarCambios();
+            if (guardarCambios() === false) throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
             registrarBitacora('Trabajador modificado', `${emp.id} · ${emp.nombre} · ${cambios.join('; ')}`);
         }
 
@@ -3105,7 +3111,16 @@
             importacionPendiente.forEach((datos) => {
                 EMPLEADOS.push({ ...datos, id: reservarIdTrabajador(datos.suc, datos.depto), rostroPendiente: true });
             });
-            guardarCambios();
+            if (guardarCambios() === false) {
+                [EMPLEADOS, TODOS_EMPLEADOS].forEach((lista) => {
+                    importacionPendiente.forEach((datos) => {
+                        const indice = lista.findIndex((e) => e.curp === datos.curp && e.rostroPendiente);
+                        if (indice >= 0) lista.splice(indice, 1);
+                    });
+                });
+                importResult.innerHTML = '<p class="form-message is-error">⚠️ No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.</p>';
+                return;
+            }
             registrarBitacora('Importación de trabajadores', `${cantidad} trabajador${cantidad === 1 ? '' : 'es'}`);
             importacionPendiente = [];
             confirmImport.disabled = true;
