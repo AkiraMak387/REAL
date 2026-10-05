@@ -62,7 +62,19 @@ const EMPRESA = {
 // El usuario con la sesión abierta (USUARIO_ACTUAL) y sus permisos vienen de sesion.js
 
 const SUCURSALES = {
-    
+    '00': 'Oficina central',
+    '01': 'Colón',
+    '02': 'Pacífico',
+    '03': 'Torres',
+    '04': 'Temoaya',
+    '05': 'Atlacomulco',
+    '06': 'Huixquilucan',
+    '07': 'Sica Store Atlacomulco',
+    '08': 'Tenango',
+    '10': 'Sica Store Mexicaltzingo',
+    '11': 'Jilotepec',
+    '12': 'San Pablo Autopan',
+    '13': 'Santiago Tianguistenco'
 };
 
 // Bodegas (sucursales). Cada una se guarda como un registro propio: en Firebase es el documento
@@ -191,6 +203,50 @@ function guardarCambios() {
     });
     // Regresa true solo si quedó guardado (en Firebase o en el navegador)
     return ALMACEN.escribir(CLAVE_ALMACEN, TODOS_EMPLEADOS);
+}
+
+// ---------------------------------------------------------------------
+//  ID DEL TRABAJADOR: 8 dígitos = sucursal (2) + departamento (2) + número (4)
+//  Ej. 01 13 0001 = Colón · Almacenista · trabajador 1.
+//  El número es consecutivo dentro de la misma sucursal + departamento y NUNCA se
+//  repite, aunque el trabajador se borre: se guarda el último número usado de cada
+//  combinación (en Firebase: ajustes/elnevado.ids-usados.v1).
+// ---------------------------------------------------------------------
+const CLAVE_IDS_USADOS = 'elnevado.ids-usados.v1';
+const LARGO_NUMERO_ID = 4;
+
+function prefijoId(suc, deptoNombre) {
+    const depto = DEPARTAMENTOS.find((d) => d.nombre === deptoNombre);
+    return suc && depto ? String(suc) + depto.clave : '';
+}
+
+function ultimoNumeroUsado(prefijo, usados) {
+    const enPlantilla = [...TODOS_EMPLEADOS, ...EMPLEADOS]
+        .map((e) => String(e.id))
+        .filter((id) => id.length === prefijo.length + LARGO_NUMERO_ID && id.startsWith(prefijo) && /^\d+$/.test(id))
+        .map((id) => Number(id.slice(prefijo.length)));
+    return Math.max(0, Number(usados[prefijo]) || 0, ...enPlantilla);
+}
+
+const armarId = (prefijo, numero) => prefijo + String(numero).padStart(LARGO_NUMERO_ID, '0');
+
+// El ID que le tocaría a la siguiente alta (solo para mostrarlo; no lo aparta). '' si falta sucursal o departamento.
+function siguienteIdTrabajador(suc, deptoNombre) {
+    const prefijo = prefijoId(suc, deptoNombre);
+    if (!prefijo) return '';
+    return armarId(prefijo, ultimoNumeroUsado(prefijo, ALMACEN.leer(CLAVE_IDS_USADOS) || {}) + 1);
+}
+
+// Aparta el siguiente ID al momento de guardar el alta: queda anotado para que no se vuelva a dar
+function reservarIdTrabajador(suc, deptoNombre) {
+    const prefijo = prefijoId(suc, deptoNombre);
+    if (!prefijo) throw new Error('Elige la sucursal y el departamento para asignar el ID.');
+    const usados = ALMACEN.leer(CLAVE_IDS_USADOS) || {};
+    const numero = ultimoNumeroUsado(prefijo, usados) + 1;
+    if (numero >= 10 ** LARGO_NUMERO_ID) throw new Error('Ya no hay números de trabajador libres para esta sucursal y departamento.');
+    usados[prefijo] = numero;
+    if (!ALMACEN.escribir(CLAVE_IDS_USADOS, usados)) throw new Error('No se pudo apartar el ID en la base de datos. Revisa la conexión e inténtalo de nuevo.');
+    return armarId(prefijo, numero);
 }
 
 // Borra todo lo registrado: trabajadores, reglas y sucursales agregadas (deja la plantilla vacía)
