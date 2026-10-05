@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
 </head>
 
 <body class="page-empleados">
@@ -160,11 +161,10 @@
                 <div class="detail-panel__actions">
                     <a id="requestLink" class="btn btn--primary hidden" href="solicitudes.html">+ Solicitar a RH</a>
                     <button id="openRecordModal" class="btn btn--primary" type="button">+ Registrar incidencia</button>
-                    <!-- Editar y borrar: solo Super usuario y RH -->
+                    <!-- Editar: solo Super usuario y RH -->
                     <button id="editEmployeeBtn" class="detail-edit hidden" type="button">✏️ Editar</button>
                     <!-- Dar de baja: conserva al trabajador y su historial (permiso "darBaja") -->
                     <button id="bajaEmployeeBtn" class="detail-delete hidden" type="button">⛔ Dar de baja</button>
-                    <button id="deleteEmployeeBtn" class="detail-delete hidden" type="button">🗑 Borrar trabajador</button>
                     <button id="backToEmployees" class="detail-back" type="button">← Regresar</button>
                 </div>
             </div>
@@ -476,7 +476,6 @@
                             <div class="field field--half">
                                 <label for="newLastName2">Apellido materno</label>
                                 <input id="newLastName2" type="text" placeholder="Ej. Morales" autocomplete="off">
-                                <small class="field-hint">Déjalo vacío si no tiene.</small>
                                 <small class="field-error" data-error-for="newLastName2"></small>
                             </div>
                             <div class="field field--full">
@@ -526,7 +525,7 @@
                         <div class="field field--half">
                             <label for="newId">ID</label>
                             <input id="newId" type="text" readonly tabindex="-1">
-                            <small class="field-hint">Se asigna según la sucursal.</small>
+                            <small class="field-hint">Sucursal (2) + departamento (2) + número de trabajador (4), único en toda la empresa. Se asigna solo y nunca se repite.</small>
                         </div>
                         <div class="field field--half">
                             <label for="newBranch">Sucursal de Asignación *</label>
@@ -1448,7 +1447,6 @@
             // Un trabajador dado de baja queda solo de consulta: no se editan sus datos ni se le vuelve a dar de baja
             document.getElementById('editEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('editarTrabajador'));
             document.getElementById('bajaEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('darBaja'));
-            document.getElementById('deleteEmployeeBtn').classList.toggle('hidden', !puede('borrarTrabajador'));
 
             document.getElementById('detailExitDateItem').classList.toggle('hidden', !emp.baja);
             document.getElementById('detailExitReasonItem').classList.toggle('hidden', !emp.baja);
@@ -2323,13 +2321,12 @@
             return !mensaje;
         }
 
-        function siguienteId(suc) {
-            const usados = TODOS_EMPLEADOS.filter((e) => e.suc === suc).map((e) => Number(e.id.slice(2)));
-            return suc + String(Math.max(0, ...usados) + 1).padStart(2, '0');
-        }
-
+        // Al editar el ID no cambia; en un alta se muestra el que le tocaría
         function actualizarIdAutomatico() {
-            campo('newId').value = siguienteId(newBranch.value);
+            if (empleadoEditando) return;
+            const id = siguienteIdTrabajador(newBranch.value, newDepartment.value);
+            campo('newId').value = id;
+            campo('newId').placeholder = id ? '' : 'Elige sucursal y departamento';
         }
 
         function llenarPuestos() {
@@ -2552,7 +2549,7 @@
             // El ID se forma con la sucursal: si se cambiara, el ID dejaría de corresponder
             newBranch.value = emp.suc;
             newBranch.disabled = true;
-            campo('newBranchHint').textContent = 'La sucursal no se cambia al editar: el ID del trabajador depende de ella.';
+            campo('newBranchHint').textContent = 'La sucursal no se cambia al editar. El ID se conserva aunque cambie el departamento.';
             campo('newHireDate').value = emp.ingreso;
             newDepartment.value = emp.depto;
             llenarPuestos();
@@ -2604,7 +2601,10 @@
         campo('newRfc').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/\s/g, ''); });
         campo('newPhone').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); });
         newBranch.addEventListener('change', actualizarIdAutomatico);
-        newDepartment.addEventListener('change', llenarPuestos);
+        newDepartment.addEventListener('change', () => {
+            llenarPuestos();
+            actualizarIdAutomatico();
+        });
 
         document.getElementById('openNewEmployeeModal').addEventListener('click', () => openEmployeeModal());
         document.getElementById('editEmployeeBtn').addEventListener('click', () => {
@@ -2707,7 +2707,7 @@
                     { texto: 'Registrando el rostro en las checadoras', accion: () => wait(600) }
                 ],
                 listo: 'Guardado completado',
-                exito: `✅ <strong>${escaparHtml(d.nombre)}</strong> se guardó correctamente con ID <strong>${d.id}</strong>.`,
+                get exito() { return `✅ <strong>${escaparHtml(d.nombre)}</strong> se guardó correctamente con ID <strong>${d.id}</strong>.`; },
                 alTerminar: async () => {
                     await closeEmployeeModal();
                     renderTodo();
@@ -2764,6 +2764,11 @@
             if (TODOS_EMPLEADOS.some((e) => e.curp === datos.curp)) {
                 throw new Error('Ya existe un trabajador registrado con esta CURP.');
             }
+            // El ID se aparta hasta este momento para que nunca se repita
+            datos.id = reservarIdTrabajador(datos.suc, datos.depto);
+            if ([...TODOS_EMPLEADOS, ...EMPLEADOS].some((e) => e.id === datos.id)) {
+                throw new Error(`El ID ${datos.id} ya está en uso. Intenta guardar de nuevo.`);
+            }
             EMPLEADOS.push({
                 id: datos.id,
                 nombre: datos.nombre,
@@ -2804,65 +2809,6 @@
             });
             guardarCambios();
             registrarBitacora('Trabajador modificado', `${emp.id} · ${emp.nombre} · ${cambios.join('; ')}`);
-        }
-
-        // Borrar: quita al trabajador y todo lo suyo (no es una baja, que sí conserva el historial)
-        async function borrarTrabajador(emp) {
-            await wait(600);
-            if (!puede('borrarTrabajador')) throw new Error('Tu usuario no puede borrar trabajadores.');
-            [TODOS_EMPLEADOS, EMPLEADOS].forEach((lista) => {
-                const indice = lista.indexOf(emp);
-                if (indice >= 0) lista.splice(indice, 1);
-            });
-            guardarCambios();
-            guardarSolicitudes(listaSolicitudes().filter((s) => s.empleado !== emp.id));
-            guardarReportes(listaReportes().filter((r) => r.empleado !== emp.id));
-            registrarBitacora('Trabajador borrado', `${emp.id} · ${emp.nombre} · ${nombreSucursal(emp.suc)}`);
-        }
-
-        // Los archivos del expediente y los certificados del IMSS guardados en este navegador
-        async function borrarArchivosDe(emp) {
-            const claves = Object.keys(emp.documentos || {})
-                .concat((emp.incapacidades || []).filter((i) => i.archivo).map((i) => i.archivo.clave));
-            for (const clave of claves) {
-                try {
-                    await AlmacenDocumentos.borrar(emp.id, clave);
-                } catch (error) {
-                    // Sin acceso al almacén de archivos: no hay nada que borrar
-                }
-            }
-            await wait(300);
-        }
-
-        function confirmarBorrado(emp) {
-            const tiene = [];
-            if ((emp.vacaciones || []).length) tiene.push('vacaciones');
-            if ((emp.incapacidades || []).length) tiene.push('incapacidades');
-            if ((emp.permisos || []).length || (emp.incidencias || []).length || (emp.actas || []).length) tiene.push('permisos e incidencias');
-            if ((emp.bonos || []).length || (emp.recibos || []).length) tiene.push('recibos y bonos');
-            if (Object.keys(emp.documentos || {}).length) tiene.push('documentos');
-            pedirConfirmacion({
-                titulo: '¿Estás seguro de borrar a este trabajador?',
-                texto: `Se borrará a <strong>${escaparHtml(emp.nombre)}</strong> (ID <strong>${emp.id}</strong>) con todo su historial${tiene.length ? `: ${tiene.join(', ')}` : ''}, sus asistencias y sus solicitudes.
-                    <span class="confirm-aviso">Esto no se puede deshacer. Si la persona solo dejó de trabajar aquí, lo correcto es darla de baja: la baja conserva su historial.</span>`,
-                si: 'Sí, borrar',
-                no: 'No, cancelar',
-                peligro: true,
-                progreso: 'Borrando al trabajador…',
-                pasos: () => [
-                    { texto: 'Borrando sus datos, solicitudes y reportes', accion: () => borrarTrabajador(emp) },
-                    { texto: 'Borrando sus documentos guardados', accion: () => borrarArchivosDe(emp) },
-                    { texto: 'Actualizando la lista de empleados', accion: () => wait(300) }
-                ],
-                listo: 'Trabajador borrado',
-                exito: `✅ <strong>${escaparHtml(emp.nombre)}</strong> (ID ${emp.id}) se borró del sistema.`,
-                alTerminar: () => {
-                    empleadoDetalle = null;
-                    detailPanel.classList.add('hidden');
-                    detailPanel.setAttribute('aria-hidden', 'true');
-                    renderTodo();
-                }
-            });
         }
 
         async function ejecutarGuardado() {
@@ -2915,9 +2861,6 @@
             accionPendiente = null;
             cerrarModal(saveModal);
             if (accion) await accion.alTerminar();
-        });
-        document.getElementById('deleteEmployeeBtn').addEventListener('click', () => {
-            if (empleadoDetalle && puede('borrarTrabajador')) confirmarBorrado(empleadoDetalle);
         });
 
         // =====================================================================
@@ -3160,7 +3103,7 @@
         confirmImport.addEventListener('click', () => {
             const cantidad = importacionPendiente.length;
             importacionPendiente.forEach((datos) => {
-                EMPLEADOS.push({ ...datos, id: siguienteId(datos.suc), rostroPendiente: true });
+                EMPLEADOS.push({ ...datos, id: reservarIdTrabajador(datos.suc, datos.depto), rostroPendiente: true });
             });
             guardarCambios();
             registrarBitacora('Importación de trabajadores', `${cantidad} trabajador${cantidad === 1 ? '' : 'es'}`);
