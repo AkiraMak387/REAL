@@ -62,19 +62,7 @@ const EMPRESA = {
 // El usuario con la sesión abierta (USUARIO_ACTUAL) y sus permisos vienen de sesion.js
 
 const SUCURSALES = {
-    '00': 'Oficina central',
-    '01': 'Colón',
-    '02': 'Pacífico',
-    '03': 'Torres',
-    '04': 'Temoaya',
-    '05': 'Atlacomulco',
-    '06': 'Huixquilucan',
-    '07': 'Sica Store Atlacomulco',
-    '08': 'Tenango',
-    '10': 'Sica Store Mexicaltzingo',
-    '11': 'Jilotepec',
-    '12': 'San Pablo Autopan',
-    '13': 'Santiago Tianguistenco'
+    
 };
 
 // Bodegas (sucursales). Cada una se guarda como un registro propio: en Firebase es el documento

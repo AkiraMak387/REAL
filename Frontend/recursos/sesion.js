@@ -18,8 +18,12 @@
 //  Lo que es de toda la empresa queda aparte:  ajustes/configuracion
 // =====================================================================
 const FIREBASE = {
-    projectId: '',   // ej. 'checador-el-nevado'
-    apiKey: ''       // ej. 'AIzaSy...'
+    apiKey: "AIzaSyBbYhn_ppZ2bQpM9XzkjYK1wHaEvhlE3hY",
+    authDomain: "checador00nevado.firebaseapp.com",
+    projectId: "checador00nevado",
+    storageBucket: "checador00nevado.firebasestorage.app",
+    messagingSenderId: "211847801101",
+    appId: "1:211847801101:web:34f223210712ba37636844"
 };
 const USAR_FIREBASE = Boolean(FIREBASE.projectId && FIREBASE.apiKey);
 
