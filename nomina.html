@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nómina | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <link rel="stylesheet" href="recursos/nomina.css">
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
+</head>
+
+<body class="page-nomina">
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item active">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar">EG</div>
+            <div class="user-info">
+                <strong>Eduardo Gómez</strong>
+                <span>Admin de RRHH</span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="header__left">
+                <div class="search-box">
+                    <input id="payrollSearch" type="text" placeholder="Buscar empleado, departamento o clave...">
+                </div>
+            </div>
+            <div class="header__right">
+                <div class="header-date" id="todayLabel">Cargando fecha...</div>
+                <button class="btn-notification" type="button">🔔</button>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="page-header">
+                <div>
+                    <div class="title-row">
+                        <h1>Nómina y pagos</h1>
+                        <span class="badge badge--live">ACTUALIZADO</span>
+                    </div>
+                    <p class="page-subtitle">Pago semanal (sábado a viernes): días trabajados, horas extra y bonos.</p>
+                </div>
+
+                <!-- Los dos botones trabajan sobre la semana y la sucursal elegidas abajo -->
+                <div class="page-actions">
+                    <button class="btn btn--outline" id="summaryBtn" type="button" title="Cuánto se paga esta semana, con horas extra, bonos y el desglose por sucursal">📊 Resumen de la semana</button>
+                    <button class="btn btn--primary" id="registerPayrollBtn" type="button" title="Marca como pagados los recibos de la semana elegida">💵 Registrar pago de la semana</button>
+                </div>
+            </div>
+
+            <!-- ========== RECIBOS DE LA SEMANA (datos reales de asistencia) ========== -->
+            <div class="card recibos-card">
+                <div class="recibos-header">
+                    <div>
+                        <h3>Recibos de la semana</h3>
+                        <p>Días trabajados, horas extra y bonos. Abre un recibo para revisarlo, dar bonos y guardarlo.</p>
+                    </div>
+                    <div class="recibos-controles">
+                        <select id="reciboSemana" aria-label="Semana"></select>
+                        <select id="reciboSucursal" aria-label="Sucursal"></select>
+                        <button class="btn btn--outline" id="imprimirRecibos" type="button">⎙ Descargar todos (PDF)</button>
+                    </div>
+                </div>
+                <div class="recibos-resumen" id="recibosResumen"></div>
+                <div class="table-responsive">
+                    <table class="table recibos-tabla">
+                        <thead>
+                            <tr>
+                                <th>Trabajador</th>
+                                <th class="num">Días</th>
+                                <th class="num">Hrs. extra</th>
+                                <th class="num">Sueldo</th>
+                                <th class="num">Pago extra</th>
+                                <th>Bonos</th>
+                                <th class="num">Total</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="recibosBody"></tbody>
+                    </table>
+                </div>
+                <p class="recibos-nota">Horas extra: solo cuentan las horas completas después de la salida (19:01 a 20:00 = 1 h). Las primeras 9 de la semana se pagan al doble y las siguientes al triple. Las incapacidades las paga el IMSS.</p>
+            </div>
+
+            <div class="seccion-ejemplo">
+                <h3>Historial de pagos</h3>
+                <button class="btn btn--outline" id="exportPayrollBtn" type="button">↓ Exportar</button>
+            </div>
+
+            <div class="stats-grid">
+                <button type="button" class="stat-card is-active" data-filter="all" aria-pressed="true">
+                    <div class="stat-card__title">NOMINA TOTAL</div>
+                    <div class="stat-card__value" id="cardTotal">$0</div>
+                    <div class="stat-card__meta success">● Sin pagos registrados</div>
+                </button>
+
+                <button type="button" class="stat-card" data-filter="pagado" aria-pressed="false">
+                    <div class="stat-card__title">PAGADOS</div>
+                    <div class="stat-card__value positive">$0</div>
+                    <div class="stat-card__meta">0 empleados</div>
+                </button>
+
+                <button type="button" class="stat-card" data-filter="pendiente" aria-pressed="false">
+                    <div class="stat-card__title">PENDIENTES</div>
+                    <div class="stat-card__value caution">$0</div>
+                    <div class="stat-card__meta">0 por liquidar</div>
+                </button>
+
+                <button type="button" class="stat-card" data-filter="revision" aria-pressed="false">
+                    <div class="stat-card__title">EN REVISIÓN</div>
+                    <div class="stat-card__value alert">$0</div>
+                    <div class="stat-card__meta">0 pendientes</div>
+                </button>
+            </div>
+
+            <div class="filters-bar">
+                <div class="filter-tabs" id="periodTabs">
+                    <button class="filter-tab active" type="button" data-period="mes">Mes actual</button>
+                    <button class="filter-tab" type="button" data-period="semana">Semana</button>
+                    <button class="filter-tab" type="button" data-period="quincena">Quincena</button>
+                    <button class="filter-tab" type="button" data-period="anual">Anual</button>
+                </div>
+
+                <div class="filter-selects">
+                    <select id="departmentFilter">
+                        <option value="todos">Todos los departamentos</option>
+                        <option value="logistica">Logística</option>
+                        <option value="ventas">Ventas</option>
+                        <option value="almacen">Almacén</option>
+                        <option value="transporte">Transporte</option>
+                        <option value="administracion">Administración</option>
+                    </select>
+
+                    <select id="statusFilter">
+                        <option value="todos">Todos los estados</option>
+                        <option value="pagado">Pagado</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="revision">En revisión</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="card__header">
+                    <div>
+                        <h2>Detalle de pagos</h2>
+                        <p id="tableSummary">Mostrando 0 registros</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="payroll-table">
+                        <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Departamento</th>
+                                <th>Sueldo base</th>
+                                <th>Bono</th>
+                                <th>Descuentos</th>
+                                <th>Neto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payrollTableBody">
+                            <!-- Sin datos de ejemplo: aquí irá el historial real de pagos -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Recibo individual -->
+    <div class="recibo-modal hidden" id="reciboModal" role="dialog" aria-modal="true" aria-label="Recibo de pago">
+        <div class="recibo-modal__caja">
+            <p class="recibo-estado hidden" id="reciboEstado"></p>
+            <div id="reciboContenido"></div>
+
+            <!-- Bonos: solo el Super usuario, y solo mientras el recibo no esté pagado -->
+            <section class="bono-editor hidden" id="bonoEditor">
+                <h4>Bonos de este recibo</h4>
+                <p class="bono-editor__ayuda">Tú decides el monto y el motivo. Se suman al total y quedan en el recibo al guardar.</p>
+                <div class="bono-editor__sugerencia hidden" id="bonoSugerencia"></div>
+                <ul class="bono-editor__lista" id="bonoLista"></ul>
+                <div class="bono-editor__fila">
+                    <div class="bono-editor__campo">
+                        <label for="bonoConcepto">Tipo de bono</label>
+                        <input id="bonoConcepto" type="text" maxlength="60" list="bonoTipos" autocomplete="off" placeholder="Escribe qué bono es: productividad, apoyo…">
+                        <datalist id="bonoTipos"></datalist>
+                    </div>
+                    <div class="bono-editor__campo bono-editor__campo--monto">
+                        <label for="bonoMonto">Monto</label>
+                        <input id="bonoMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="$0.00">
+                    </div>
+                    <button class="btn btn--outline" id="bonoAgregar" type="button">+ Agregar bono</button>
+                </div>
+                <p class="bono-editor__error hidden" id="bonoError" role="alert"></p>
+            </section>
+
+            <div class="recibo-modal__acciones">
+                <button class="btn btn--outline" id="cerrarRecibo" type="button">Cerrar</button>
+                <button class="btn btn--primary" id="guardarRecibo" type="button">💾 Guardar recibo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de la semana -->
+    <div class="nom-modal hidden" id="resumenModal" role="dialog" aria-modal="true" aria-labelledby="resumenTitulo">
+        <div class="nom-modal__caja nom-modal__caja--ancha">
+            <h3 id="resumenTitulo"></h3>
+            <p class="nom-modal__texto" id="resumenTexto"></p>
+            <div class="nom-detalle" id="resumenDetalle"></div>
+            <div class="nom-estados" id="resumenEstados"></div>
+            <div id="resumenSucursales"></div>
+            <div class="nom-modal__acciones">
+                <button class="btn btn--primary" type="button" id="resumenCerrar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- "¿Estás seguro?" antes de guardar un recibo o registrar el pago -->
+    <div class="nom-modal hidden" id="preguntaModal" role="dialog" aria-modal="true" aria-labelledby="preguntaTitulo">
+        <div class="nom-modal__caja">
+            <h3 id="preguntaTitulo"></h3>
+            <p class="nom-modal__texto" id="preguntaTexto"></p>
+            <div class="nom-detalle" id="preguntaDetalle"></div>
+            <p class="nom-modal__nota" id="preguntaNota"></p>
+            <div class="nom-modal__acciones">
+                <button class="btn btn--outline" type="button" id="preguntaNo"></button>
+                <button class="btn btn--primary" type="button" id="preguntaSi"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avance mientras el sistema guarda -->
+    <div class="nom-modal hidden" id="avanceModal" role="dialog" aria-modal="true" aria-labelledby="avanceTitulo" aria-live="polite">
+        <div class="nom-modal__caja">
+            <h3 id="avanceTitulo"></h3>
+            <ol class="progreso-pasos" id="avancePasos"></ol>
+            <p class="nom-modal__nota hidden" id="avanceResultado"></p>
+            <div class="nom-modal__acciones">
+                <button class="btn btn--primary hidden" type="button" id="avanceCerrar">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lo que se manda a imprimir / guardar como PDF -->
+    <div id="zonaImpresion" aria-hidden="true"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="recursos/datos.js"></script>
+    <script>
+        // =====================================================================
+        //  RECIBOS DE LA SEMANA
+        // =====================================================================
+        (function () {
+            const campo = (id) => document.getElementById(id);
+            const selSemana = campo('reciboSemana');
+            const selSucursal = campo('reciboSucursal');
+            const PUEDE_BONOS = puede('otorgarBono');
+            const PUEDE_GUARDAR = puede('generarRecibos');
+            const pausa = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+            const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+            const sumaBonos = (bonos) => redondear(bonos.reduce((total, b) => total + b.monto, 0));
+            const estaPagado = (r) => Boolean(r.guardado && r.guardado.pagadoEl);
+            const fechaHora = (iso) => formatoFecha(aISO(new Date(iso)));
+            let recibosActuales = [];
+
+            function mostrarToast(texto) {
+                const toast = campo('toast');
+                toast.textContent = texto;
+                toast.classList.remove('hidden');
+                clearTimeout(mostrarToast.temporizador);
+                mostrarToast.temporizador = setTimeout(() => toast.classList.add('hidden'), 3500);
+            }
+
+            // Semana en curso y las 7 anteriores
+            const actual = inicioSemanaNomina(HOY);
+            selSemana.innerHTML = Array.from({ length: 8 }, (_, i) => {
+                const inicio = sumarDias(actual, -7 * i);
+                const texto = etiquetaSemana({ inicio, fin: sumarDias(inicio, 6) }) + (i === 0 ? ' (en curso)' : '');
+                return `<option value="${aISO(inicio)}">${texto}</option>`;
+            }).join('');
+            selSemana.value = aISO(sumarDias(actual, -7)); // la última semana completa
+            selSucursal.innerHTML = '<option value="todas">Todas las sucursales</option>' +
+                listaSucursales().map(({ clave, nombre }) => `<option value="${clave}">${clave} - ${escaparHtml(nombre)}</option>`).join('');
+
+            function textoSemana() {
+                const inicio = fechaDesdeISO(selSemana.value);
+                const fin = sumarDias(inicio, 6);
+                return `${etiquetaSemana({ inicio, fin })} ${fin.getFullYear()}`;
+            }
+
+            const textoSucursal = () => (selSucursal.value === 'todas' ? 'Todas las sucursales' : nombreSucursal(selSucursal.value));
+
+            function calcular() {
+                const inicio = fechaDesdeISO(selSemana.value);
+                const inicioIso = selSemana.value;
+                const finIso = aISO(sumarDias(inicio, 6));
+                return EMPLEADOS
+                    .filter((e) => e.ingreso <= finIso && (!e.baja || e.baja.fecha >= inicioIso))
+                    .filter((e) => selSucursal.value === 'todas' || e.suc === selSucursal.value)
+                    .sort((a, b) => a.id.localeCompare(b.id))
+                    .map((emp) => reciboSemana(emp, inicio));
+            }
+
+            function celdaBono(r) {
+                if (r.bonos.length) {
+                    const conceptos = r.bonos.map((b) => b.concepto).join(', ');
+                    return `<span class="tag tag--ok" title="${escaparHtml(conceptos)}">✓ ${formatoDinero(r.totalBonos)}</span>`;
+                }
+                return '—';
+            }
+
+            function celdaEstado(r) {
+                if (estaPagado(r)) return '<span class="tag tag--ok">Pagado</span>';
+                if (r.guardado) return '<span class="tag tag--info">Guardado</span>';
+                return '<span class="tag tag--warn">Por revisar</span>';
+            }
+
+            function render() {
+                recibosActuales = calcular();
+                const suma = (fn) => recibosActuales.reduce((t, r) => t + fn(r), 0);
+                const tarjeta = (valor, texto) => `<div><strong>${valor}</strong><span>${texto}</span></div>`;
+                const conBono = recibosActuales.filter((r) => r.bonos.length).length;
+                campo('recibosResumen').innerHTML =
+                    tarjeta(formatoDinero(suma((r) => r.total)), 'Total de la semana') +
+                    tarjeta(`${suma((r) => r.extras)} h`, `Horas extra · ${formatoDinero(suma((r) => r.pagoExtras))}`) +
+                    tarjeta(formatoDinero(suma((r) => r.totalBonos)), `Bonos · ${plural(conBono, 'trabajador', 'trabajadores')}`) +
+                    tarjeta(`${recibosActuales.filter(estaPagado).length} de ${recibosActuales.length}`, 'Recibos pagados');
+
+                campo('recibosBody').innerHTML = recibosActuales.length
+                    ? recibosActuales.map((r) => `<tr>
+                        <td><div class="employee-cell"><span class="employee-id">${r.emp.id}</span><strong>${escaparHtml(r.emp.nombre)}</strong></div></td>
+                        <td class="num">${r.dias.length}</td>
+                        <td class="num">${r.extras || '—'}</td>
+                        <td class="num">${formatoDinero(r.pagoDias)}</td>
+                        <td class="num">${r.pagoExtras ? formatoDinero(r.pagoExtras) : '—'}</td>
+                        <td>${celdaBono(r)}</td>
+                        <td class="num"><strong>${formatoDinero(r.total)}</strong></td>
+                        <td>${celdaEstado(r)}</td>
+                        <td class="num"><button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">Abrir recibo</button></td>
+                    </tr>`).join('')
+                    : '<tr><td colspan="9" class="recibos-vacio">No hay trabajadores en esta semana con estos filtros.</td></tr>';
+            }
+
+            // ---------- Recibo ----------
+            const NOMBRE_DIA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+            // "bonos" permite pintar el recibo con los bonos que se están capturando, antes de guardarlos
+            function htmlRecibo(r, bonos = r.bonos) {
+                const nombreDia = (iso) => `${NOMBRE_DIA[fechaDesdeISO(iso).getDay()]} ${formatoFecha(iso)}`;
+                // Los días trabajados y los de descanso (domingo y feriados), en orden
+                const filas = r.dias.concat(r.descansos.map((d) => ({ ...d, descanso: true })))
+                    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+                const filaDia = (d) => (d.descanso
+                    ? `<tr class="recibo__descanso"><td>${nombreDia(d.fecha)}${d.feriado ? `<small>${escaparHtml(d.feriado)}</small>` : ''}</td><td>Descanso</td><td>Descanso</td><td class="num">—</td></tr>`
+                    : `<tr><td>${nombreDia(d.fecha)}</td><td>${d.entrada}</td><td>${d.salida}</td><td class="num">${d.extras || '—'}</td></tr>`);
+                const notas = [];
+                if (r.faltas) notas.push(`${r.faltas} falta${r.faltas === 1 ? '' : 's'} (no se paga${r.faltas === 1 ? '' : 'n'})`);
+                if (r.permisosSinGoce) notas.push(`${r.permisosSinGoce} día${r.permisosSinGoce === 1 ? '' : 's'} de permiso sin goce`);
+                if (r.incapacidad) notas.push(`${r.incapacidad} día${r.incapacidad === 1 ? '' : 's'} de incapacidad (los paga el IMSS)`);
+                const extras = [];
+                if (r.extrasDobles) extras.push(`${r.extrasDobles} h al doble`);
+                if (r.extrasTriples) extras.push(`${r.extrasTriples} h al triple`);
+                const total = redondear(r.pagoDias + r.pagoExtras + sumaBonos(bonos));
+                return `<article class="recibo">
+                    <header class="recibo__encabezado">
+                        <img src="recursos/logo.png" alt="El Nevado">
+                        <div>
+                            <h2>Recibo de pago semanal</h2>
+                            <p>${escaparHtml(EMPRESA.razonSocial)} · RFC ${escaparHtml(EMPRESA.rfc)}</p>
+                            <p>Periodo: <strong>${etiquetaSemana({ inicio: r.inicio, fin: r.fin })} ${r.fin.getFullYear()}</strong></p>
+                        </div>
+                    </header>
+                    <section class="recibo__datos">
+                        <div><span>Trabajador</span><strong>${r.emp.id} · ${escaparHtml(r.emp.nombre)}</strong></div>
+                        <div><span>Puesto</span><strong>${escaparHtml(r.emp.puesto)}</strong></div>
+                        <div><span>Sucursal</span><strong>${escaparHtml(nombreSucursal(r.emp.suc))}</strong></div>
+                        <div><span>Sueldo diario</span><strong>${formatoDinero(r.diario)}</strong></div>
+                    </section>
+                    <h3>Días de la semana (${plural(r.dias.length, 'trabajado', 'trabajados')})</h3>
+                    <table class="recibo__tabla">
+                        <thead><tr><th>Día</th><th>Entrada</th><th>Salida</th><th class="num">Horas extra</th></tr></thead>
+                        <tbody>${filas.map(filaDia).join('') || '<tr><td colspan="4">Sin días trabajados en esta semana.</td></tr>'}</tbody>
+                    </table>
+                    <h3>Lo que ganó</h3>
+                    <table class="recibo__tabla recibo__importes">
+                        <tbody>
+                            <tr><td>Sueldo: ${r.diasPagados} día${r.diasPagados === 1 ? '' : 's'} pagado${r.diasPagados === 1 ? '' : 's'} × ${formatoDinero(r.diario)}<small>Incluye el descanso semanal${r.diasConGoce ? ` y ${r.diasConGoce} día${r.diasConGoce === 1 ? '' : 's'} de vacaciones o permiso con goce` : ''}</small></td><td class="num">${formatoDinero(r.pagoDias)}</td></tr>
+                            <tr><td>Horas extra${extras.length ? `: ${extras.join(' + ')}` : ''}</td><td class="num">${formatoDinero(r.pagoExtras)}</td></tr>
+                            ${bonos.length
+                                ? bonos.map((b) => `<tr><td>Bono: ${escaparHtml(b.concepto)}</td><td class="num">${formatoDinero(b.monto)}</td></tr>`).join('')
+                                : `<tr><td>Bonos</td><td class="num">${formatoDinero(0)}</td></tr>`}
+                            <tr class="recibo__total"><td>Total a pagar</td><td class="num">${formatoDinero(total)}</td></tr>
+                        </tbody>
+                    </table>
+                    ${notas.length ? `<p class="recibo__nota">No incluye: ${notas.join(' · ')}.</p>` : ''}
+                </article>`;
+            }
+
+            function imprimir(recibos) {
+                campo('zonaImpresion').innerHTML = recibos.map((r) => htmlRecibo(r)).join('');
+                document.body.classList.add('imprimiendo-recibos');
+                // Dar tiempo a que cargue el logo antes de abrir el diálogo de impresión
+                setTimeout(() => {
+                    window.print();
+                    document.body.classList.remove('imprimiendo-recibos');
+                }, 300);
+                registrarBitacora('Recibos generados', `${recibos.length} recibo${recibos.length === 1 ? '' : 's'} · semana ${selSemana.value}`);
+            }
+
+            // ---------- Ventanas de "¿estás seguro?" y de avance ----------
+            let respuesta = null;
+
+            // opciones: { titulo, texto, filas: [[concepto, valor, destacado]], nota, si, no, alAceptar, alCancelar }
+            function preguntar(opciones) {
+                respuesta = opciones;
+                campo('preguntaTitulo').textContent = opciones.titulo;
+                campo('preguntaTexto').textContent = opciones.texto || '';
+                campo('preguntaDetalle').innerHTML = (opciones.filas || [])
+                    .map(([concepto, valor, destacado]) => `<div class="${destacado ? 'es-total' : ''}"><span>${escaparHtml(concepto)}</span><span>${escaparHtml(valor)}</span></div>`).join('');
+                campo('preguntaNota').textContent = opciones.nota || '';
+                campo('preguntaSi').textContent = opciones.si;
+                campo('preguntaNo').textContent = opciones.no;
+                campo('preguntaModal').classList.remove('hidden');
+                campo('preguntaSi').focus();
+            }
+
+            function responder(acepta) {
+                const opciones = respuesta;
+                respuesta = null;
+                campo('preguntaModal').classList.add('hidden');
+                if (!opciones) return;
+                if (acepta) opciones.alAceptar();
+                else if (opciones.alCancelar) opciones.alCancelar();
+            }
+
+            // Hace el trabajo paso por paso y muestra el avance.
+            // Hoy cada paso es inmediato (se guarda en el navegador); con el servidor, aquí se esperará su respuesta.
+            async function avanzar({ titulo, pasos, listo, resultado, alTerminar }) {
+                const lista = campo('avancePasos');
+                campo('avanceTitulo').textContent = titulo;
+                campo('avanceResultado').classList.add('hidden');
+                campo('avanceCerrar').classList.add('hidden');
+                lista.innerHTML = pasos.map(([texto]) => `<li>${texto}</li>`).join('');
+                campo('avanceModal').classList.remove('hidden');
+                let salioBien = true;
+                try {
+                    for (let i = 0; i < pasos.length; i++) {
+                        lista.children[i].className = 'en-curso';
+                        await pausa(450);
+                        pasos[i][1]();
+                        lista.children[i].className = 'hecho';
+                    }
+                    campo('avanceTitulo').textContent = listo;
+                    campo('avanceResultado').textContent = resultado();
+                } catch (error) {
+                    console.error(error);
+                    salioBien = false;
+                    campo('avanceTitulo').textContent = '⚠️ No se pudo guardar';
+                    campo('avanceResultado').textContent = 'Ocurrió un error al guardar. Revisa los datos e inténtalo de nuevo.';
+                }
+                campo('avanceResultado').classList.remove('hidden');
+                campo('avanceCerrar').classList.remove('hidden');
+                campo('avanceCerrar').onclick = () => {
+                    campo('avanceModal').classList.add('hidden');
+                    if (salioBien && alTerminar) alTerminar();
+                };
+                campo('avanceCerrar').focus();
+            }
+
+            // ---------- Abrir el recibo y dar bonos ----------
+            let abierto = null; // { recibo, bonos (lo que se está capturando), original, editable }
+
+            const hayCambios = () => Boolean(abierto) && JSON.stringify(abierto.bonos) !== abierto.original;
+            const hayBonoSinAgregar = () => Boolean(abierto && abierto.editable) && Boolean(campo('bonoConcepto').value.trim() || campo('bonoMonto').value);
+
+            function abrirRecibo(empId) {
+                const recibo = recibosActuales.find((r) => r.emp.id === empId);
+                if (!recibo) return;
+                const bonos = recibo.bonos.map((b) => ({ ...b }));
+                const pagado = estaPagado(recibo);
+                abierto = { recibo, bonos, original: JSON.stringify(bonos), editable: PUEDE_BONOS && !pagado };
+
+                const estado = campo('reciboEstado');
+                estado.className = 'recibo-estado' + (pagado ? ' recibo-estado--pagado' : '');
+                if (pagado) estado.textContent = `✓ Pagado el ${fechaHora(recibo.guardado.pagadoEl)} · lo registró ${recibo.guardado.pagadoPor}. Ya no se puede modificar.`;
+                else if (recibo.guardado) estado.textContent = `Guardado el ${fechaHora(recibo.guardado.guardadoEl)} por ${recibo.guardado.guardadoPor}. Puedes cambiarlo mientras no se registre el pago.`;
+                else estado.classList.add('hidden');
+
+                campo('bonoEditor').classList.toggle('hidden', !abierto.editable);
+                campo('guardarRecibo').classList.toggle('hidden', !PUEDE_GUARDAR || pagado);
+                campo('bonoConcepto').value = '';
+                campo('bonoMonto').value = '';
+                campo('bonoError').classList.add('hidden');
+                // Sugerencias: los tipos de bono que ya se han dado antes
+                const usados = new Set(['Puntualidad']);
+                TODOS_EMPLEADOS.forEach((e) => (e.bonos || []).forEach((b) => b.concepto && usados.add(b.concepto)));
+                campo('bonoTipos').innerHTML = [...usados].map((c) => `<option value="${escaparHtml(c)}"></option>`).join('');
+                pintarRecibo();
+                campo('reciboModal').classList.remove('hidden');
+            }
+
+            function pintarRecibo() {
+                const { recibo, bonos, editable } = abierto;
+                campo('reciboContenido').innerHTML = htmlRecibo(recibo, bonos);
+                if (!editable) return;
+                campo('bonoLista').innerHTML = bonos.length
+                    ? bonos.map((b, i) => `<li><span>${escaparHtml(b.concepto)}</span><strong>${formatoDinero(b.monto)}</strong>
+                        <button type="button" class="bono-editor__quitar" data-quitar="${i}" aria-label="Quitar bono ${escaparHtml(b.concepto)}">✕ Quitar</button></li>`).join('')
+                    : '<li class="bono-editor__vacio">Este recibo todavía no tiene bonos.</li>';
+                // Si no tuvo retardos ni faltas, se propone el bono de puntualidad (el Super usuario decide)
+                const yaTienePuntualidad = bonos.some((b) => normalizar(b.concepto) === 'puntualidad');
+                const sugerir = recibo.elegibleBono && !yaTienePuntualidad && CONFIGURACION.bonoPuntualidad > 0;
+                campo('bonoSugerencia').classList.toggle('hidden', !sugerir);
+                if (sugerir) campo('bonoSugerencia').innerHTML = `<span>⭐ Sin retardos ni faltas esta semana.</span>
+                    <button class="btn btn--outline btn--mini" type="button" id="bonoPuntualidadBtn">+ Bono de puntualidad (${formatoDinero(CONFIGURACION.bonoPuntualidad)})</button>`;
+            }
+
+            function errorBono(texto) {
+                campo('bonoError').textContent = texto;
+                campo('bonoError').classList.remove('hidden');
+                return false;
+            }
+
+            function agregarBono() {
+                const concepto = campo('bonoConcepto').value.trim().replace(/\s+/g, ' ');
+                const monto = redondear(Number(campo('bonoMonto').value));
+                if (concepto.length < 3) return errorBono('Escribe qué tipo de bono le estás dando (por ejemplo: Puntualidad, Productividad, Apoyo).');
+                if (!(monto > 0)) return errorBono('Escribe el monto del bono: debe ser mayor a cero.');
+                abierto.bonos.push({ concepto, monto });
+                campo('bonoConcepto').value = '';
+                campo('bonoMonto').value = '';
+                campo('bonoError').classList.add('hidden');
+                pintarRecibo();
+                campo('bonoConcepto').focus();
+                return true;
+            }
+
+            function cerrarRecibo() {
+                campo('reciboModal').classList.add('hidden');
+                abierto = null;
+            }
+
+            function intentarCerrarRecibo() {
+                if (!hayCambios() && !hayBonoSinAgregar()) return cerrarRecibo();
+                preguntar({
+                    titulo: '¿Salir sin guardar?',
+                    texto: `Cambiaste los bonos de ${abierto.recibo.emp.nombre} y todavía no guardas el recibo.`,
+                    nota: 'Si sales ahora, el recibo se queda como estaba.',
+                    si: 'Sí, descartar cambios',
+                    no: 'No, seguir editando',
+                    alAceptar: () => {
+                        cerrarRecibo();
+                        mostrarToast('Cambios descartados: el recibo quedó como estaba.');
+                    }
+                });
+            }
+
+            function pedirGuardarRecibo() {
+                if (!abierto || !PUEDE_GUARDAR || estaPagado(abierto.recibo)) return;
+                // Si dejó un bono escrito sin agregar, se agrega antes de preguntar
+                if (hayBonoSinAgregar() && !agregarBono()) return;
+                const { recibo, bonos } = abierto;
+                const total = redondear(recibo.pagoDias + recibo.pagoExtras + sumaBonos(bonos));
+                preguntar({
+                    titulo: '¿Estás seguro de guardar este recibo?',
+                    texto: `${recibo.emp.id} · ${recibo.emp.nombre} · ${textoSemana()}`,
+                    filas: [['Sueldo', formatoDinero(recibo.pagoDias)], ['Horas extra', formatoDinero(recibo.pagoExtras)]]
+                        .concat(bonos.length ? bonos.map((b) => [`Bono: ${b.concepto}`, formatoDinero(b.monto)]) : [['Bonos', 'Sin bonos']])
+                        .concat([['Total a pagar', formatoDinero(total), true]]),
+                    nota: 'Queda guardado con tu usuario en la bitácora. Lo puedes volver a cambiar mientras no se registre el pago de la semana.',
+                    si: 'Sí, guardar',
+                    no: 'No, seguir editando',
+                    alAceptar: aplicarGuardado,
+                    alCancelar: () => mostrarToast('No se guardó nada: puedes seguir editando el recibo.')
+                });
+            }
+
+            function aplicarGuardado() {
+                const { recibo, bonos, editable } = abierto;
+                const emp = recibo.emp;
+                const semana = aISO(recibo.inicio);
+                const ahora = new Date().toISOString();
+                let nuevo = recibo;
+                avanzar({
+                    titulo: 'Guardando el recibo…',
+                    pasos: [
+                        ['Guardando los bonos', () => {
+                            if (!editable) return;
+                            emp.bonos = (emp.bonos || []).filter((b) => b.semana !== semana).concat(bonos.map((b) => ({
+                                semana, concepto: b.concepto, monto: b.monto,
+                                otorgadoPor: b.otorgadoPor || USUARIO_ACTUAL.usuario, fecha: b.fecha || ahora
+                            })));
+                        }],
+                        ['Recalculando el total a pagar', () => {
+                            nuevo = reciboSemana(emp, recibo.inicio);
+                        }],
+                        ['Guardando el recibo', () => {
+                            marcarRecibo(emp, semana, { guardadoEl: ahora, guardadoPor: USUARIO_ACTUAL.usuario, total: nuevo.total });
+                            // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
+                            guardarCambios();
+                        }],
+                        ['Actualizando los recibos de la semana', render],
+                        ['Anotando el cambio en la bitácora', () => {
+                            const detalleBonos = nuevo.bonos.length ? nuevo.bonos.map((b) => `${b.concepto} ${formatoDinero(b.monto)}`).join(', ') : 'sin bonos';
+                            registrarBitacora('Recibo guardado', `${emp.id} · ${emp.nombre} · semana ${semana} · bonos: ${detalleBonos} · total ${formatoDinero(nuevo.total)}`);
+                        }]
+                    ],
+                    listo: '✅ Recibo guardado',
+                    resultado: () => `${emp.nombre}: total a pagar ${formatoDinero(nuevo.total)}`
+                        + (nuevo.bonos.length ? `, con ${plural(nuevo.bonos.length, 'bono', 'bonos')} por ${formatoDinero(nuevo.totalBonos)}.` : ', sin bonos.'),
+                    alTerminar: cerrarRecibo
+                });
+            }
+
+            // ---------- Resumen de la semana ----------
+            function abrirResumen() {
+                if (!recibosActuales.length) return mostrarToast('No hay recibos en esta semana con estos filtros.');
+                const suma = (lista, fn) => redondear(lista.reduce((t, r) => t + fn(r), 0));
+                const todos = recibosActuales;
+                const pagados = todos.filter(estaPagado);
+                const guardados = todos.filter((r) => r.guardado && !estaPagado(r));
+                const fila = (texto, valor, clase = '') => `<div class="${clase}"><span>${texto}</span><span>${valor}</span></div>`;
+                const porSucursal = new Map();
+                todos.forEach((r) => porSucursal.set(r.emp.suc, (porSucursal.get(r.emp.suc) || []).concat(r)));
+                campo('resumenTitulo').textContent = 'Resumen de la semana';
+                campo('resumenTexto').textContent = `${textoSemana()} · ${textoSucursal()}`;
+                campo('resumenDetalle').innerHTML =
+                    fila('Trabajadores', todos.length) +
+                    fila('Sueldos', formatoDinero(suma(todos, (r) => r.pagoDias))) +
+                    fila(`Horas extra (${suma(todos, (r) => r.extras)} h)`, formatoDinero(suma(todos, (r) => r.pagoExtras))) +
+                    fila(`Bonos (${plural(todos.filter((r) => r.bonos.length).length, 'trabajador', 'trabajadores')})`, formatoDinero(suma(todos, (r) => r.totalBonos))) +
+                    fila('Total de la semana', formatoDinero(suma(todos, (r) => r.total)), 'es-total');
+                campo('resumenEstados').innerHTML =
+                    `<span class="tag tag--ok">${pagados.length} pagados · ${formatoDinero(suma(pagados, (r) => r.total))}</span>
+                     <span class="tag tag--info">${guardados.length} guardados sin pagar</span>
+                     <span class="tag tag--warn">${todos.length - pagados.length - guardados.length} por revisar</span>`;
+                campo('resumenSucursales').innerHTML = porSucursal.size > 1
+                    ? `<table class="recibo__tabla"><thead><tr><th>Sucursal</th><th class="num">Trabajadores</th><th class="num">Total</th></tr></thead><tbody>${
+                        [...porSucursal.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([suc, lista]) =>
+                            `<tr><td>${escaparHtml(nombreSucursal(suc))}</td><td class="num">${lista.length}</td><td class="num">${formatoDinero(suma(lista, (r) => r.total))}</td></tr>`).join('')
+                    }</tbody></table>`
+                    : '';
+                campo('resumenModal').classList.remove('hidden');
+            }
+
+            // ---------- Registrar el pago de la semana ----------
+            function pedirPago() {
+                if (!PUEDE_GUARDAR) return;
+                if (!recibosActuales.length) return mostrarToast('No hay recibos en esta semana con estos filtros.');
+                const semana = selSemana.value;
+                if (aISO(sumarDias(fechaDesdeISO(semana), 6)) > HOY_ISO) {
+                    return mostrarToast('⚠️ Esta semana todavía no termina. Elige una semana terminada para registrar su pago.');
+                }
+                const porPagar = recibosActuales.filter((r) => !estaPagado(r));
+                if (!porPagar.length) return mostrarToast('Todos los recibos de esta semana ya están pagados.');
+                const yaPagados = recibosActuales.length - porPagar.length;
+                const sinGuardar = porPagar.filter((r) => !r.guardado).length;
+                const total = redondear(porPagar.reduce((t, r) => t + r.total, 0));
+                preguntar({
+                    titulo: '¿Registrar el pago de esta semana?',
+                    texto: `${textoSemana()} · ${textoSucursal()}`,
+                    filas: [['Recibos por pagar', String(porPagar.length)]]
+                        .concat(yaPagados ? [['Ya pagados (no cambian)', String(yaPagados)]] : [])
+                        .concat([['Total a pagar', formatoDinero(total), true]]),
+                    nota: (sinGuardar ? `⚠️ ${plural(sinGuardar, 'recibo no se ha', 'recibos no se han')} guardado: se pagará${sinGuardar === 1 ? '' : 'n'} con lo calculado. Si quieres darles un bono, hazlo antes en su recibo. ` : '')
+                        + 'Después de registrar el pago, estos recibos ya no se pueden modificar.',
+                    si: 'Sí, registrar pago',
+                    no: 'No, cancelar',
+                    alAceptar: () => aplicarPago(porPagar, semana, total),
+                    alCancelar: () => mostrarToast('No se registró ningún pago.')
+                });
+            }
+
+            function aplicarPago(porPagar, semana, total) {
+                const ahora = new Date().toISOString();
+                const usuario = USUARIO_ACTUAL.usuario;
+                avanzar({
+                    titulo: 'Registrando el pago…',
+                    pasos: [
+                        [`Marcando ${plural(porPagar.length, 'recibo como pagado', 'recibos como pagados')}`, () => {
+                            porPagar.forEach((r) => marcarRecibo(r.emp, semana, {
+                                guardadoEl: (r.guardado && r.guardado.guardadoEl) || ahora,
+                                guardadoPor: (r.guardado && r.guardado.guardadoPor) || usuario,
+                                total: r.total, pagadoEl: ahora, pagadoPor: usuario
+                            }));
+                        }],
+                        // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
+                        ['Guardando el pago', guardarCambios],
+                        ['Actualizando los recibos de la semana', render],
+                        ['Anotando el pago en la bitácora', () => {
+                            registrarBitacora('Pago de nómina registrado', `semana ${semana} · ${textoSucursal()} · ${plural(porPagar.length, 'recibo', 'recibos')} · ${formatoDinero(total)}`);
+                        }]
+                    ],
+                    listo: '✅ Pago registrado',
+                    resultado: () => `${plural(porPagar.length, 'recibo quedó pagado', 'recibos quedaron pagados')} por ${formatoDinero(total)}. Ya aparecen como "Pagado" en la tabla.`
+                });
+            }
+
+            // ---------- Eventos ----------
+            campo('recibosBody').addEventListener('click', (evento) => {
+                const verRecibo = evento.target.closest('[data-recibo]');
+                if (verRecibo) abrirRecibo(verRecibo.dataset.recibo);
+            });
+            campo('imprimirRecibos').addEventListener('click', () => {
+                if (!recibosActuales.length) return mostrarToast('No hay recibos para descargar con estos filtros.');
+                imprimir(recibosActuales);
+            });
+            campo('bonoAgregar').addEventListener('click', agregarBono);
+            ['bonoConcepto', 'bonoMonto'].forEach((id) => campo(id).addEventListener('keydown', (evento) => {
+                if (evento.key !== 'Enter') return;
+                evento.preventDefault();
+                agregarBono();
+            }));
+            campo('bonoEditor').addEventListener('click', (evento) => {
+                const quitar = evento.target.closest('[data-quitar]');
+                if (quitar) {
+                    abierto.bonos.splice(Number(quitar.dataset.quitar), 1);
+                    pintarRecibo();
+                } else if (evento.target.closest('#bonoPuntualidadBtn')) {
+                    abierto.bonos.push({ concepto: 'Puntualidad', monto: CONFIGURACION.bonoPuntualidad });
+                    pintarRecibo();
+                }
+            });
+            campo('guardarRecibo').addEventListener('click', pedirGuardarRecibo);
+            campo('cerrarRecibo').addEventListener('click', intentarCerrarRecibo);
+            campo('reciboModal').addEventListener('click', (evento) => {
+                if (evento.target === campo('reciboModal')) intentarCerrarRecibo();
+            });
+            campo('preguntaSi').addEventListener('click', () => responder(true));
+            campo('preguntaNo').addEventListener('click', () => responder(false));
+            campo('summaryBtn').addEventListener('click', abrirResumen);
+            campo('resumenCerrar').addEventListener('click', () => campo('resumenModal').classList.add('hidden'));
+            campo('resumenModal').addEventListener('click', (evento) => {
+                if (evento.target === campo('resumenModal')) campo('resumenModal').classList.add('hidden');
+            });
+            campo('registerPayrollBtn').addEventListener('click', pedirPago);
+            selSemana.addEventListener('change', render);
+            selSucursal.addEventListener('change', render);
+            render();
+        })();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('payrollSearch');
+            const departmentFilter = document.getElementById('departmentFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const rows = Array.from(document.querySelectorAll('.payroll-row'));
+            const statCards = Array.from(document.querySelectorAll('.stat-card'));
+            const tabs = Array.from(document.querySelectorAll('.filter-tab'));
+            const tableSummary = document.getElementById('tableSummary');
+            const todayLabel = document.getElementById('todayLabel');
+            const exportBtn = document.getElementById('exportPayrollBtn');
+
+            let activeStatFilter = 'all';
+            let activePeriod = 'mes';
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN',
+                    minimumFractionDigits: 0
+                }).format(value);
+            }
+
+            function updateDateLabel() {
+                todayLabel.textContent = new Date().toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+
+            function getVisibleData() {
+                const query = searchInput.value.trim().toLowerCase();
+                const deptValue = departmentFilter.value;
+                const stateValue = statusFilter.value;
+
+                return rows.filter((row) => {
+                    const name = row.dataset.name.toLowerCase();
+                    const department = row.dataset.department.toLowerCase();
+                    const clave = row.dataset.clave.toLowerCase();
+                    const status = row.dataset.status;
+                    const period = row.dataset.period;
+
+                    const searchMatch = !query || name.includes(query) || department.includes(query) || clave.includes(query);
+                    const departmentMatch = deptValue === 'todos' || department === deptValue;
+                    const statusMatch = stateValue === 'todos' || status === stateValue;
+                    const periodMatch = activePeriod === 'mes' ? period === 'mes' || period === 'semana' || period === 'quincena' || period === 'anual' : period === activePeriod;
+                    const statMatch = activeStatFilter === 'all' || status === activeStatFilter;
+
+                    return searchMatch && departmentMatch && statusMatch && periodMatch && statMatch;
+                });
+            }
+
+            function updateTable() {
+                const visibleRows = getVisibleData();
+                let totalNeto = 0;
+
+                rows.forEach((row) => {
+                    const isVisible = visibleRows.includes(row);
+                    row.hidden = !isVisible;
+                });
+
+                visibleRows.forEach((row) => {
+                    const rawValue = row.children[5].textContent.replace(/[$,]/g, '').trim();
+                    totalNeto += Number(rawValue);
+                });
+
+                tableSummary.textContent = `Mostrando ${visibleRows.length} registros · Neto acumulado ${formatCurrency(totalNeto)}`;
+            }
+
+            statCards.forEach((card) => {
+                card.addEventListener('click', () => {
+                    activeStatFilter = card.dataset.filter;
+                    statCards.forEach((item) => {
+                        const active = item === card;
+                        item.classList.toggle('is-active', active);
+                        item.setAttribute('aria-pressed', String(active));
+                    });
+                    updateTable();
+                });
+            });
+
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    activePeriod = tab.dataset.period;
+                    tabs.forEach((item) => item.classList.toggle('active', item === tab));
+                    updateTable();
+                });
+            });
+
+            searchInput.addEventListener('input', updateTable);
+            departmentFilter.addEventListener('change', updateTable);
+            statusFilter.addEventListener('change', updateTable);
+
+            exportBtn.addEventListener('click', () => {
+                const visibleRows = getVisibleData();
+
+                if (!visibleRows.length) {
+                    window.alert('No hay registros para exportar con los filtros actuales.');
+                    return;
+                }
+
+                const headers = ['Nombre', 'Departamento', 'Clave', 'Sueldo base', 'Bono', 'Descuentos', 'Neto', 'Estado'];
+                const csvRows = [headers.join(',')];
+
+                visibleRows.forEach((row) => {
+                    const cells = Array.from(row.children);
+                    const name = row.dataset.name.replace(/,/g, '');
+                    const department = cells[1].textContent.trim();
+                    const clave = row.dataset.clave;
+                    const sueldo = cells[2].textContent.trim();
+                    const bono = cells[3].textContent.trim();
+                    const descuentos = cells[4].textContent.trim();
+                    const neto = cells[5].textContent.trim();
+                    const estado = cells[6].textContent.trim();
+                    csvRows.push([name, department, clave, sueldo, bono, descuentos, neto, estado].join(','));
+                });
+
+                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'nomina-el-nevado.csv';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+
+            updateDateLabel();
+            updateTable();
+        });
+    </script>
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>

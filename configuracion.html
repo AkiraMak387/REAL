@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración del sistema | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <link rel="stylesheet" href="recursos/configuracion.css">
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
+</head>
+
+<body class="page-configuracion">
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item active">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar">EG</div>
+            <div class="user-info">
+                <strong>Eduardo Gómez</strong>
+                <span>Admin de RRHH</span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="header__left">
+                <h2 class="header-title">Configuración</h2>
+            </div>
+            <div class="header__right">
+                <div class="header-date" id="headerDate"></div>
+                <button class="btn-notification" type="button">🔔</button>
+            </div>
+        </header>
+
+        <section class="content configuration-shell">
+            <div class="configuration-header">
+                <div>
+                    <h1>Configuración del Sistema</h1>
+                    <p>Reglas que usa el sistema para calcular la asistencia y la nómina.</p>
+                    <p class="readonly-note hidden" id="readonlyNote">🔒 Solo lectura: únicamente el Super usuario puede cambiar las reglas.</p>
+                </div>
+
+                <div class="configuration-header__actions">
+                    <span class="unsaved-pill hidden" id="unsavedPill">Cambios sin guardar</span>
+                    <button class="btn btn--ghost" type="button" id="discardBtn">✕ Descartar cambios</button>
+                    <button class="btn btn--primary" type="button" id="saveBtn">💾 Guardar configuración</button>
+                </div>
+            </div>
+
+            <div class="settings-tabs" role="tablist" aria-label="Configuración">
+                <button class="settings-tab active" type="button" role="tab" data-panel="politicas">⚖️ Políticas</button>
+                <button class="settings-tab" type="button" role="tab" data-panel="nomina">🧾 Centro de Nómina</button>
+            </div>
+
+            <!-- ========== POLÍTICAS ========== -->
+            <div class="settings-panel configuration-grid" data-panel="politicas">
+                <div class="config-card">
+                    <div class="config-card__title">
+                        <span class="config-icon">⚖️</span>
+                        <div>
+                            <h3>Políticas de Asistencia</h3>
+                            <p>Tolerancia de entrada y retardos</p>
+                        </div>
+                    </div>
+
+                    <div class="config-form-grid">
+                        <div class="form-field">
+                            <label for="toleranciaMinutos">Minutos de tolerancia en la entrada</label>
+                            <div class="input-suffix">
+                                <input id="toleranciaMinutos" type="number" min="0" max="60" step="1">
+                                <span>min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hint-box" id="politicaResumen"></div>
+                </div>
+
+                <div class="config-card">
+                    <div class="config-card__title">
+                        <span class="config-icon">🕒</span>
+                        <div>
+                            <h3>Horario Laboral</h3>
+                            <p>Semana de trabajo de sábado a viernes</p>
+                        </div>
+                    </div>
+
+                    <ul class="info-list">
+                        <li><span>Lunes a viernes</span><strong>08:00 – 18:00 (1 h de comida)</strong></li>
+                        <li><span>Sábado</span><strong>08:00 – 14:00</strong></li>
+                        <li><span>Domingo</span><strong>Descanso semanal</strong></li>
+                        <li><span>Horas extra</span><strong>Solo horas completas después de la salida (19:01 a 20:00 = 1 h)</strong></li>
+                        <li><span>Descansos obligatorios</span><strong>Según la Ley Federal del Trabajo</strong></li>
+                    </ul>
+                    <div class="hint-box">El calendario de descansos obligatorios del año está al final de la página de <a href="vacaciones.html">Vacaciones</a>.</div>
+                </div>
+            </div>
+
+            <!-- ========== CENTRO DE NÓMINA ========== -->
+            <div class="settings-panel configuration-grid hidden" data-panel="nomina">
+                <div class="config-card">
+                    <div class="config-card__title">
+                        <span class="config-icon">🧾</span>
+                        <div>
+                            <h3>Centro de Nómina</h3>
+                            <p>Periodo de pago y salario mínimo</p>
+                        </div>
+                    </div>
+
+                    <div class="config-form-grid">
+                        <div class="form-field">
+                            <label for="periodoNomina">Periodo de pago</label>
+                            <input id="periodoNomina" type="text" value="Semanal (sábado a viernes)" readonly>
+                        </div>
+                        <div class="form-field">
+                            <label for="diaPago">Día de pago</label>
+                            <select id="diaPago">
+                                <option>Viernes</option>
+                                <option>Sábado</option>
+                                <option>Lunes</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="salarioMinimoDiario">Salario mínimo diario</label>
+                            <div class="input-suffix input-suffix--prefix">
+                                <span>$</span>
+                                <input id="salarioMinimoDiario" type="number" min="1" step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label for="salarioMinimoSemanal">Salario mínimo semanal (× 7 días)</label>
+                            <input id="salarioMinimoSemanal" type="text" readonly>
+                        </div>
+                        <div class="form-field">
+                            <label for="bonoPuntualidad">Bono por puntualidad (por semana)</label>
+                            <div class="input-suffix input-suffix--prefix">
+                                <span>$</span>
+                                <input id="bonoPuntualidad" type="number" min="0" step="1">
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label for="zonaSalarial">Zona salarial</label>
+                            <input id="zonaSalarial" type="text" value="General (todas las sucursales están en el Estado de México)" readonly>
+                        </div>
+                    </div>
+
+                    <div class="hint-box">El salario mínimo semanal es el sueldo más bajo permitido al dar de alta a un trabajador en Empleados. El bono se propone a quien no tuvo retardos ni faltas en la semana; solo el Super usuario lo otorga en Nómina.</div>
+                </div>
+
+                <div class="config-card">
+                    <div class="config-card__title">
+                        <span class="config-icon">🧮</span>
+                        <div>
+                            <h3>Cómo se calcula la semana</h3>
+                            <p>Reglas aplicadas en cada periodo</p>
+                        </div>
+                    </div>
+
+                    <ul class="info-list" id="reglasNomina"></ul>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="recursos/datos.js"></script>
+    <script>
+        const CAMPOS_NUMERICOS = {
+            toleranciaMinutos: { min: 0, max: 60, decimales: false, nombre: 'La tolerancia' },
+            salarioMinimoDiario: { min: 1, max: 5000, decimales: true, nombre: 'El salario mínimo' },
+            bonoPuntualidad: { min: 0, max: 10000, decimales: false, nombre: 'El bono por puntualidad' }
+        };
+        const campo = (id) => document.getElementById(id);
+
+        function mostrarToast(texto) {
+            const toast = campo('toast');
+            toast.textContent = texto;
+            toast.classList.remove('hidden');
+            clearTimeout(mostrarToast.temporizador);
+            mostrarToast.temporizador = setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        function leerFormulario() {
+            const valores = { diaPago: campo('diaPago').value };
+            Object.keys(CAMPOS_NUMERICOS).forEach((id) => { valores[id] = Number(campo(id).value); });
+            return valores;
+        }
+
+        function llenarFormulario(config) {
+            Object.keys(CAMPOS_NUMERICOS).forEach((id) => { campo(id).value = config[id]; });
+            campo('diaPago').value = config.diaPago;
+            actualizarVistaPrevia();
+        }
+
+        // Textos que explican, con los valores escritos, cómo se aplicará cada regla
+        function actualizarVistaPrevia() {
+            const v = leerFormulario();
+            const tolerancia = Number.isFinite(v.toleranciaMinutos) ? v.toleranciaMinutos : 0;
+            const limite = `08:${String(Math.min(59, tolerancia)).padStart(2, '0')}`;
+            const retardoDesde = `08:${String(Math.min(59, tolerancia + 1)).padStart(2, '0')}`;
+
+            campo('politicaResumen').innerHTML = `
+                Entrada a las 08:00: quien checa a las <strong>${limite}</strong> o antes llega a tiempo; desde las <strong>${retardoDesde}</strong> es retardo.<br>
+                Los retardos <strong>no descuentan sueldo</strong>: se registran para que RH hable con el trabajador y quitan el bono por puntualidad de esa semana.`;
+
+            const semanal = (v.salarioMinimoDiario || 0) * 7;
+            campo('salarioMinimoSemanal').value = formatoDinero(semanal);
+            campo('reglasNomina').innerHTML = `
+                <li><span>Días pagados por semana</span><strong>7 (incluye el domingo)</strong></li>
+                <li><span>Falta sin justificar</span><strong>Se descuenta 1 día</strong></li>
+                <li><span>Retardos</span><strong>No descuentan; RH habla con el trabajador</strong></li>
+                <li><span>Horas extra</span><strong>Primeras 9 de la semana al doble; las siguientes al triple</strong></li>
+                <li><span>Bono por puntualidad</span><strong>${formatoDinero(v.bonoPuntualidad || 0)} sin retardos ni faltas (lo otorga el Super usuario)</strong></li>
+                <li><span>Permiso sin goce</span><strong>Se descuentan los días del permiso</strong></li>
+                <li><span>Descanso obligatorio trabajado</span><strong>Salario doble adicional</strong></li>
+                <li><span>Día de pago</span><strong>${escaparHtml(v.diaPago)}</strong></li>`;
+
+
+            const hayCambios = Object.keys(v).some((clave) => String(v[clave]) !== String(CONFIGURACION[clave]));
+            campo('unsavedPill').classList.toggle('hidden', !hayCambios);
+        }
+
+        function validar(valores) {
+            for (const [id, regla] of Object.entries(CAMPOS_NUMERICOS)) {
+                const valor = valores[id];
+                const valido = Number.isFinite(valor) && valor >= regla.min && valor <= regla.max && (regla.decimales || Number.isInteger(valor));
+                campo(id).classList.toggle('is-invalid', !valido);
+                if (!valido) {
+                    return `${regla.nombre} debe ser un número ${regla.decimales ? '' : 'entero '}entre ${regla.min} y ${regla.max}.`;
+                }
+            }
+            return '';
+        }
+
+        function guardar() {
+            if (!puede('editarConfiguracion')) return;
+            const valores = leerFormulario();
+            const error = validar(valores);
+            if (error) {
+                mostrarToast(`⚠️ ${error}`);
+                return;
+            }
+            valores.salarioMinimoDiario = Math.round(valores.salarioMinimoDiario * 100) / 100;
+            if (!guardarConfiguracion({ ...CONFIGURACION, ...valores })) {
+                mostrarToast('⚠️ Este navegador no permite guardar la configuración.');
+                return;
+            }
+            const cambios = Object.keys(valores).filter((clave) => String(valores[clave]) !== String(CONFIGURACION[clave]));
+            registrarBitacora('Configuración modificada', cambios.map((clave) => `${clave}: ${CONFIGURACION[clave]} → ${valores[clave]}`).join(' · ') || 'Sin cambios');
+            Object.assign(CONFIGURACION, valores);
+            actualizarVistaPrevia();
+            mostrarToast('✅ Configuración guardada. Se aplica en todas las páginas.');
+        }
+
+        // Pestañas
+        document.querySelectorAll('.settings-tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.settings-tab').forEach((t) => t.classList.toggle('active', t === tab));
+                document.querySelectorAll('.settings-panel').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== tab.dataset.panel));
+            });
+        });
+
+        document.querySelectorAll('input, select').forEach((el) => {
+            el.addEventListener('input', actualizarVistaPrevia);
+            el.addEventListener('change', actualizarVistaPrevia);
+        });
+        campo('saveBtn').addEventListener('click', guardar);
+        campo('discardBtn').addEventListener('click', () => {
+            llenarFormulario(CONFIGURACION);
+            document.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+            mostrarToast('Se descartaron los cambios.');
+        });
+
+        campo('headerDate').textContent = fechaLarga(HOY);
+        llenarFormulario(CONFIGURACION);
+
+        // RH ve las reglas pero no las cambia
+        if (!puede('editarConfiguracion')) {
+            document.querySelectorAll('.settings-panel input, .settings-panel select').forEach((el) => { el.disabled = true; });
+            campo('saveBtn').classList.add('hidden');
+            campo('discardBtn').classList.add('hidden');
+            campo('readonlyNote').classList.remove('hidden');
+        }
+    </script>
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incapacidades | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <link rel="stylesheet" href="recursos/asistencia.css">
+    <link rel="stylesheet" href="recursos/incapacidades.css">
+    <!-- SheetJS: genera archivos de Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
+</head>
+
+<body class="page-incapacidades">
+
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item active">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar">EG</div>
+            <div class="user-info">
+                <strong>Eduardo Gómez</strong>
+                <span>Admin de RRHH</span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header header--compact">
+            <div class="header__left header__breadcrumb">
+                <span class="breadcrumb-label">GESTIÓN DE PERSONAL</span>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">Incapacidades</span>
+            </div>
+
+            <div class="header__right">
+                <div class="header-date" id="headerDate"></div>
+                <button class="btn-notification" aria-label="Notificaciones">🔔</button>
+            </div>
+        </header>
+
+        <section class="content incapacidad-content">
+            <div class="page-header">
+                <div class="header-main-copy">
+                    <h1>Control de Incapacidades</h1>
+                    <p>Gestión de certificados médicos oficiales, folios IMSS y registro de subsidios corporativos.</p>
+                </div>
+            </div>
+
+            <div class="kpi-grid kpi-grid--2">
+                <article class="kpi-card grip-card" data-filter="activa" tabindex="0" role="button" aria-label="Filtrar incapacidades activas">
+                    <div class="kpi-card__header">
+                        <span class="kpi-label">INCAPACIDADES ACTIVAS</span>
+                        <span class="kpi-icon incapacidad">⚠</span>
+                    </div>
+                    <div class="kpi-card__value incapacidad" id="kpiActivas">0</div>
+                    <div class="kpi-meta">
+                        <span class="muted">Trabajadores incapacitados hoy</span>
+                    </div>
+                </article>
+
+                <article class="kpi-card grip-card" data-filter="finalizada" tabindex="0" role="button" aria-label="Filtrar incapacidades finalizadas">
+                    <div class="kpi-card__header">
+                        <span class="kpi-label">FINALIZADAS ESTE MES</span>
+                        <span class="kpi-icon success">✓</span>
+                    </div>
+                    <div class="kpi-card__value success" id="kpiFinalizadas">0</div>
+                    <div class="kpi-meta">
+                        <span class="muted">Personal reincorporado con éxito</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="filters-bar compact-filters">
+                <div class="filter-row">
+                    <div class="search-box">
+                        <input id="searchInput" type="search" placeholder="Buscar por nombre..." aria-label="Buscar por nombre del trabajador" autocomplete="off">
+                    </div>
+                    <label>
+                        Estado:
+                        <select id="statusFilter">
+                            <option value="todos">Todas</option>
+                            <option value="activa">Activas</option>
+                            <option value="finalizada">Finalizadas</option>
+                        </select>
+                    </label>
+                    <label>
+                        Sucursal:
+                        <select id="sucursalFilter"></select>
+                    </label>
+                    <label class="period-label">
+                        Mes:
+                        <input id="periodFilter" type="month" aria-label="Seleccionar mes de incapacidades">
+                    </label>
+                </div>
+
+                <button id="exportBtn" class="btn btn--outline" type="button">↓ Exportar Excel</button>
+            </div>
+
+            <div class="card table-card">
+                <div class="table-responsive">
+                    <table class="table incapacidad-table">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Departamento</th>
+                                <th>Folio IMSS</th>
+                                <th>Tipo Incapacidad</th>
+                                <th>Periodo</th>
+                                <th>Días</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaIncapacidades"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <span id="footerText"></span>
+                    <div class="pagination" id="pagination" aria-label="Paginación"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Expediente de incapacidades del trabajador (se abre aquí, sin salir de la página) -->
+    <div class="expediente-modal hidden" id="expedienteModal" role="dialog" aria-modal="true" aria-labelledby="expedienteNombre">
+        <div class="expediente-modal__caja">
+            <header class="expediente-modal__encabezado">
+                <div class="expediente-avatar" id="expedienteAvatar"></div>
+                <div>
+                    <span class="expediente-eyebrow">Expediente de incapacidades</span>
+                    <h3 id="expedienteNombre"></h3>
+                    <p id="expedienteDatos"></p>
+                </div>
+                <button class="expediente-cerrar" type="button" id="expedienteCerrar" aria-label="Cerrar">✕</button>
+            </header>
+            <div class="expediente-resumen" id="expedienteResumen"></div>
+            <h4>Historial de incapacidades</h4>
+            <div class="table-responsive">
+                <table class="table expediente-tabla">
+                    <thead>
+                        <tr>
+                            <th>Folio IMSS</th>
+                            <th>Tipo</th>
+                            <th>Periodo</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                            <th>Certificado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expedienteTabla"></tbody>
+                </table>
+            </div>
+            <div class="expediente-modal__acciones">
+                <button class="btn btn--primary" type="button" id="expedienteAceptar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="recursos/datos.js"></script>
+    <script src="recursos/documentos.js"></script>
+    <script>
+        const POR_PAGINA = 8;
+        const statusFilter = document.getElementById('statusFilter');
+        const sucursalFilter = document.getElementById('sucursalFilter');
+        const periodFilter = document.getElementById('periodFilter');
+        const searchInput = document.getElementById('searchInput');
+        const tabla = document.getElementById('tablaIncapacidades');
+        const cardButtons = [...document.querySelectorAll('.kpi-card')];
+        const MES_ACTUAL = HOY_ISO.slice(0, 7);
+        let paginaActual = 1;
+
+        // Todas las incapacidades de todos los trabajadores (las que se registran en Empleados)
+        function todasLasIncapacidades() {
+            return EMPLEADOS.flatMap((emp) => (emp.incapacidades || []).map((inc) => {
+                const fin = finIncapacidad(inc);
+                return { emp, inc, fin, estado: fin >= HOY_ISO ? 'activa' : 'finalizada' };
+            }));
+        }
+
+        function rangoDelMes(mes) {
+            const [anio, numero] = mes.split('-').map(Number);
+            return { inicio: `${mes}-01`, fin: `${mes}-${String(new Date(anio, numero, 0).getDate()).padStart(2, '0')}` };
+        }
+
+        function filasFiltradas() {
+            const busqueda = normalizar(searchInput.value);
+            const mes = periodFilter.value ? rangoDelMes(periodFilter.value) : null;
+            return todasLasIncapacidades()
+                .filter((r) => statusFilter.value === 'todos' || r.estado === statusFilter.value)
+                .filter((r) => sucursalFilter.value === 'todas' || r.emp.suc === sucursalFilter.value)
+                .filter((r) => !mes || (r.inc.inicio <= mes.fin && r.fin >= mes.inicio))
+                .filter((r) => !busqueda || normalizar(r.emp.nombre).includes(busqueda))
+                .sort((a, b) => b.inc.inicio.localeCompare(a.inc.inicio));
+        }
+
+        function actualizarTarjetas() {
+            const todas = todasLasIncapacidades();
+            const activasHoy = todas.filter((r) => r.inc.inicio <= HOY_ISO && r.fin >= HOY_ISO);
+            const mes = rangoDelMes(MES_ACTUAL);
+            const finalizadasMes = todas.filter((r) => r.estado === 'finalizada' && r.fin >= mes.inicio);
+            document.getElementById('kpiActivas').textContent = new Set(activasHoy.map((r) => r.emp.id)).size;
+            document.getElementById('kpiFinalizadas').textContent = finalizadasMes.length;
+            cardButtons.forEach((card) => card.classList.toggle('active-card', card.dataset.filter === statusFilter.value));
+        }
+
+        function fila({ emp, inc, fin, estado }) {
+            const pill = estado === 'activa'
+                ? '<span class="status-pill status-pill--active">Activa</span>'
+                : '<span class="status-pill status-pill--done">Finalizada</span>';
+            return `
+                <tr>
+                    <td><div class="employee-cell"><span class="employee-id">${emp.id}</span><strong>${escaparHtml(emp.nombre)}</strong></div></td>
+                    <td>${escaparHtml(emp.depto)}</td>
+                    <td class="col-hora">${escaparHtml(inc.folio)}</td>
+                    <td>${escaparHtml(inc.tipo)}</td>
+                    <td class="col-hora">${formatoFecha(inc.inicio)}<br>${formatoFecha(fin)}</td>
+                    <td><span class="day-pill">${inc.dias}</span></td>
+                    <td>${pill}</td>
+                    <td class="action-cell"><button type="button" data-expediente="${emp.id}" data-folio="${escaparHtml(inc.folio)}">Ver <span>expediente</span> ›</button></td>
+                </tr>`;
+        }
+
+        function renderizar() {
+            actualizarTarjetas();
+            const filas = filasFiltradas();
+            const totalPaginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
+            paginaActual = Math.min(paginaActual, totalPaginas);
+            const inicio = (paginaActual - 1) * POR_PAGINA;
+            const visibles = filas.slice(inicio, inicio + POR_PAGINA);
+
+            tabla.innerHTML = visibles.length
+                ? visibles.map(fila).join('')
+                : '<tr><td colspan="8" class="table-empty">No hay incapacidades con estos filtros.</td></tr>';
+
+            document.getElementById('footerText').textContent = filas.length
+                ? `Mostrando ${inicio + 1} a ${inicio + visibles.length} de ${filas.length} ${filas.length === 1 ? 'incapacidad' : 'incapacidades'}`
+                : 'Sin incapacidades';
+
+            let botones = `<button type="button" data-page="${paginaActual - 1}" ${paginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+            for (let p = 1; p <= totalPaginas; p++) {
+                botones += `<button type="button" data-page="${p}" class="${p === paginaActual ? 'active' : ''}">${p}</button>`;
+            }
+            botones += `<button type="button" data-page="${paginaActual + 1}" ${paginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+            document.getElementById('pagination').innerHTML = botones;
+        }
+
+        // =====================================================================
+        //  EXPEDIENTE DE INCAPACIDADES (ventana en esta misma página)
+        // =====================================================================
+        const expedienteModal = document.getElementById('expedienteModal');
+        let elementoAnterior = null;
+
+        function abrirExpediente(empId, folio) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            if (!emp) return;
+            const incapacidades = (emp.incapacidades || [])
+                .map((inc) => ({ inc, fin: finIncapacidad(inc) }))
+                .sort((a, b) => b.inc.inicio.localeCompare(a.inc.inicio));
+            const anio = HOY.getFullYear();
+            const delAnio = incapacidades.filter(({ inc }) => Number(inc.inicio.slice(0, 4)) === anio);
+            const activa = incapacidades.find(({ inc, fin }) => inc.inicio <= HOY_ISO && fin >= HOY_ISO);
+
+            document.getElementById('expedienteAvatar').textContent = emp.nombre.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+            document.getElementById('expedienteNombre').textContent = emp.nombre;
+            document.getElementById('expedienteDatos').textContent =
+                `ID ${emp.id} · ${emp.puesto === emp.depto ? emp.depto : `${emp.depto} · ${emp.puesto}`} · ${nombreSucursal(emp.suc)}`;
+
+            const tarjeta = (valor, texto) => `<div><strong>${valor}</strong><span>${texto}</span></div>`;
+            document.getElementById('expedienteResumen').innerHTML =
+                tarjeta(activa ? `Hasta el ${formatoFecha(activa.fin)}` : 'Sin incapacidad', activa ? 'Incapacitado hoy' : 'Estado de hoy') +
+                tarjeta(delAnio.length, `Incapacidades en ${anio}`) +
+                tarjeta(delAnio.reduce((total, { inc }) => total + inc.dias, 0), `Días en ${anio}`) +
+                tarjeta(incapacidades.length, 'En todo su historial');
+
+            document.getElementById('expedienteTabla').innerHTML = incapacidades.map(({ inc, fin }) => `
+                <tr class="${inc.folio === folio ? 'es-seleccionada' : ''}">
+                    <td class="col-hora">${escaparHtml(inc.folio)}</td>
+                    <td>${escaparHtml(inc.tipo)}</td>
+                    <td class="col-hora">${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}</td>
+                    <td><span class="day-pill">${inc.dias}</span></td>
+                    <td>${fin >= HOY_ISO
+                        ? '<span class="status-pill status-pill--active">Activa</span>'
+                        : '<span class="status-pill status-pill--done">Finalizada</span>'}</td>
+                    <td class="action-cell">${inc.archivo
+                        ? `<button type="button" data-certificado="${escaparHtml(inc.archivo.clave)}" data-emp="${emp.id}" title="${escaparHtml(inc.archivo.nombre)}">📎 Ver</button>`
+                        : '<span class="sin-certificado">Sin adjuntar</span>'}</td>
+                </tr>`).join('');
+
+            elementoAnterior = document.activeElement;
+            expedienteModal.classList.remove('hidden');
+            document.getElementById('expedienteCerrar').focus();
+        }
+
+        function cerrarExpediente() {
+            expedienteModal.classList.add('hidden');
+            if (elementoAnterior) elementoAnterior.focus();
+        }
+
+        function reiniciarYRenderizar() {
+            paginaActual = 1;
+            renderizar();
+        }
+
+        function mostrarToast(texto) {
+            const toast = document.getElementById('toast');
+            toast.textContent = texto;
+            toast.classList.remove('hidden');
+            window.clearTimeout(mostrarToast.temporizador);
+            mostrarToast.temporizador = window.setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        // Exporta a Excel todo lo que coincide con los filtros (no solo la página visible)
+        function exportarExcel() {
+            const filas = filasFiltradas();
+            if (!filas.length) {
+                mostrarToast('No hay incapacidades para exportar con estos filtros.');
+                return;
+            }
+            const hoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Folio IMSS', 'Tipo de incapacidad', 'Inicio', 'Fin', 'Días', 'Estado']]
+                .concat(filas.map(({ emp, inc, fin, estado }) => [
+                    emp.id, emp.nombre, nombreSucursal(emp.suc), emp.depto, inc.folio, inc.tipo,
+                    formatoFecha(inc.inicio), formatoFecha(fin), inc.dias, estado === 'activa' ? 'Activa' : 'Finalizada'
+                ]));
+            const formato = descargarExcel(`incapacidades_${periodFilter.value || 'todas'}`, [{ nombre: 'Incapacidades', filas: hoja }]);
+            mostrarToast(formato === 'xlsx' ? 'Archivo de Excel descargado.' : 'Sin internet: se descargó en CSV (se abre en Excel).');
+        }
+
+        // Filtros iniciales
+        document.getElementById('headerDate').textContent = fechaLarga(HOY);
+        sucursalFilter.innerHTML = '<option value="todas">Todas las sucursales</option>' +
+            listaSucursales().map(({ clave, nombre }) => `<option value="${clave}">${clave} - ${escaparHtml(nombre)}</option>`).join('');
+        fijarSucursalUnica(sucursalFilter);
+        periodFilter.value = MES_ACTUAL;
+
+        [statusFilter, sucursalFilter, periodFilter].forEach((filtro) => filtro.addEventListener('change', reiniciarYRenderizar));
+        searchInput.addEventListener('input', reiniciarYRenderizar);
+        document.getElementById('exportBtn').addEventListener('click', exportarExcel);
+        tabla.addEventListener('click', (event) => {
+            const boton = event.target.closest('[data-expediente]');
+            if (boton) abrirExpediente(boton.dataset.expediente, boton.dataset.folio);
+        });
+        document.getElementById('expedienteTabla').addEventListener('click', async (event) => {
+            const boton = event.target.closest('[data-certificado]');
+            if (!boton) return;
+            let archivo = null;
+            try {
+                archivo = await AlmacenDocumentos.obtener(boton.dataset.emp, boton.dataset.certificado);
+            } catch (error) {
+                // sin acceso al almacén
+            }
+            if (!archivo) return mostrarToast('El certificado no está en esta computadora (se subió desde otro navegador).');
+            const url = URL.createObjectURL(archivo);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        });
+        document.getElementById('expedienteCerrar').addEventListener('click', cerrarExpediente);
+        document.getElementById('expedienteAceptar').addEventListener('click', cerrarExpediente);
+        expedienteModal.addEventListener('click', (event) => { if (event.target === expedienteModal) cerrarExpediente(); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !expedienteModal.classList.contains('hidden')) cerrarExpediente();
+        });
+        document.getElementById('pagination').addEventListener('click', (event) => {
+            const boton = event.target.closest('button[data-page]');
+            if (!boton || boton.disabled) return;
+            paginaActual = Number(boton.dataset.page);
+            renderizar();
+        });
+
+        cardButtons.forEach((card) => {
+            const aplicar = () => {
+                // Un segundo clic en la misma tarjeta quita el filtro
+                statusFilter.value = statusFilter.value === card.dataset.filter ? 'todos' : card.dataset.filter;
+                periodFilter.value = MES_ACTUAL;
+                reiniciarYRenderizar();
+            };
+            card.addEventListener('click', aplicar);
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    aplicar();
+                }
+            });
+        });
+
+        renderizar();
+    </script>
+
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>

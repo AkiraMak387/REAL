@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacaciones | Distribuidora El Nevado</title>
+    <link rel="stylesheet" href="recursos/main.css">
+    <link rel="stylesheet" href="recursos/inicio.css">
+    <link rel="stylesheet" href="recursos/vacaciones.css">
+    <!-- SheetJS: genera archivos de Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
+    <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
+</head>
+
+<body class="page-vacaciones">
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <img src="recursos/logo.png" alt="El Nevado">
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="inicio.html" class="nav-item">
+                <span class="nav-icon">🏠</span> Inicio
+            </a>
+            <a href="empleados.html" class="nav-item">
+                <span class="nav-icon">👥</span> Empleados
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <span class="nav-icon">🕒</span> Asistencia
+            </a>
+            <a href="incapacidades.html" class="nav-item">
+                <span class="nav-icon">🏥</span> Incapacidades
+            </a>
+            <a href="vacaciones.html" class="nav-item active">
+                <span class="nav-icon">🏖️</span> Vacaciones
+            </a>
+            <a href="nomina.html" class="nav-item">
+                <span class="nav-icon">📄</span> Nómina
+            </a>
+            <a href="informacion.html" class="nav-item">
+                <span class="nav-icon">ℹ️</span> Información
+            </a>
+            <a href="configuracion.html" class="nav-item">
+                <span class="nav-icon">⚙️</span> Configuración
+            </a>
+        </nav>
+
+        <div class="sidebar__user">
+            <div class="user-avatar">EG</div>
+            <div class="user-info">
+                <strong>Eduardo Gómez</strong>
+                <span>Admin de RRHH</span>
+            </div>
+            <a href="index.html" class="btn-logout">↩ Cerrar sesión</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header">
+            <div class="header__left">
+                <div class="search-box">
+                    <input id="vacationSearch" type="text" placeholder="Buscar por nombre...">
+                </div>
+            </div>
+            <div class="header__right">
+                <div class="header-date" id="todayLabel"></div>
+                <button class="btn-notification" type="button" id="notifBtn" aria-label="Notificaciones">🔔</button>
+
+                <div class="notification-popover" id="notificationPopover">
+                    <div class="notif-header">
+                        <span>Avisos</span>
+                        <span class="count-pill" id="notifCountPill">0</span>
+                    </div>
+                    <div class="notif-list" id="notifList"></div>
+                </div>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="module-header">
+                <div class="module-header__main">
+                    <h1>Planificación y Control de Vacaciones</h1>
+                </div>
+
+                <div class="module-header__actions">
+                    <button class="btn btn--outline" type="button" id="exportReportBtn">
+                        <span>📊</span> Exportar Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="summary-grid summary-grid--single">
+                <article class="summary-card summary-card--primary summary-card--clickable" id="cardActiveToday" tabindex="0" role="button" title="Ver colaboradores con vacaciones activas hoy">
+                    <div class="summary-card__header">
+                        <div class="summary-card__label">Vacaciones activas hoy</div>
+                        <span class="card-arrow">➔</span>
+                    </div>
+                    <div class="summary-card__value" id="activeTodayValue">0</div>
+                    <div class="summary-card__meta">Colaboradores disfrutando actualmente</div>
+                </article>
+            </div>
+
+            <!-- Lista: vacaciones e incapacidades activas y programadas -->
+            <section class="vacation-section card-section" id="activeSection">
+                <div class="section-heading">
+                    <h2>Vacaciones Activas y Programadas</h2>
+                    <div class="section-heading__tools">
+                        <div class="list-filter" id="listFilter">
+                            <button class="list-filter__btn is-active" type="button" data-tipo="todos">Todos</button>
+                            <button class="list-filter__btn" type="button" data-tipo="vacaciones">Vacaciones</button>
+                            <button class="list-filter__btn" type="button" data-tipo="incapacidad">Incapacidades</button>
+                        </div>
+                        <span class="count-pill" id="activeCountPill">0 vigentes</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="vacation-table">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Sucursal</th>
+                                <th>Departamento</th>
+                                <th>Motivo</th>
+                                <th>Periodo</th>
+                                <th>Días</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeListBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Saldo de vacaciones por trabajador -->
+            <section class="table-panel card-section">
+                <div class="table-panel__header">
+                    <div>
+                        <h2>Control General de Saldo Vacacional</h2>
+                        <p id="saldoSubtitle">Cálculo automatizado conforme a la Ley Federal del Trabajo y antigüedad en El Nevado.</p>
+                    </div>
+
+                    <div class="table-panel__controls">
+                        <span class="employee-count" id="employeeCount">0</span>
+                        <span class="control-label">Empleados</span>
+                        <select id="vacationDepartmentFilter" class="control-select"></select>
+                        <div class="search-box search-box--compact">
+                            <input id="vacationTableSearch" type="text" placeholder="Filtrar empleado...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="vacation-table">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Departamento</th>
+                                <th>Fecha ingreso</th>
+                                <th>Días totales</th>
+                                <th>Días tomados</th>
+                                <th>Disponibles</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vacationTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <span id="tableFooterText"></span>
+                    <div class="pager" id="pager"></div>
+                </div>
+            </section>
+
+            <!-- Calendario de días de descanso obligatorio en México -->
+            <section class="card-section holidays-section">
+                <div class="section-heading">
+                    <div>
+                        <h2>Días de descanso obligatorio</h2>
+                        <p class="section-note">Artículo 74 de la Ley Federal del Trabajo. Se pagan completos; quien trabaje ese día recibe además salario doble (artículo 75). No se descuentan de las vacaciones.</p>
+                    </div>
+                    <div class="year-nav">
+                        <button type="button" id="prevYearBtn" aria-label="Año anterior">‹</button>
+                        <strong id="holidayYear"></strong>
+                        <button type="button" id="nextYearBtn" aria-label="Año siguiente">›</button>
+                    </div>
+                </div>
+
+                <div class="holidays-layout">
+                    <ul class="holiday-list" id="holidayList"></ul>
+                    <div class="year-calendar" id="yearCalendar"></div>
+                </div>
+
+                <div class="calendar-legend">
+                    <span><i class="legend-box legend-box--holiday"></i> Descanso obligatorio</span>
+                    <span><i class="legend-box legend-box--sunday"></i> Domingo (descanso semanal)</span>
+                    <span><i class="legend-box legend-box--today"></i> Hoy</span>
+                    <span class="calendar-legend__note">También es descanso obligatorio el día de la jornada electoral federal o local, cuando la haya.</span>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <!-- Vacaciones del trabajador (se abre aquí, sin salir de la página) -->
+    <div class="expediente-modal hidden" id="expedienteModal" role="dialog" aria-modal="true" aria-labelledby="expedienteNombre">
+        <div class="expediente-modal__caja">
+            <header class="expediente-modal__encabezado">
+                <div class="expediente-avatar" id="expedienteAvatar"></div>
+                <div>
+                    <span class="expediente-eyebrow">Vacaciones del trabajador</span>
+                    <h3 id="expedienteNombre"></h3>
+                    <p id="expedienteDatos"></p>
+                </div>
+                <button class="expediente-cerrar" type="button" id="expedienteCerrar" aria-label="Cerrar">✕</button>
+            </header>
+            <div class="expediente-resumen" id="expedienteResumen"></div>
+            <p class="expediente-nota hidden" id="expedienteNota"></p>
+            <h4>Historial de vacaciones</h4>
+            <div class="table-responsive">
+                <table class="vacation-table expediente-tabla">
+                    <thead>
+                        <tr>
+                            <th>Periodo</th>
+                            <th>Días</th>
+                            <th>Regresa</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expedienteTabla"></tbody>
+                </table>
+            </div>
+            <div class="expediente-modal__acciones">
+                <button class="btn btn--primary" type="button" id="expedienteAceptar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <script src="recursos/datos.js"></script>
+    <script>
+        const POR_PAGINA = 8;
+        const ANIO = HOY.getFullYear();
+        const vacationSearch = document.getElementById('vacationSearch');
+        const tableSearch = document.getElementById('vacationTableSearch');
+        const departmentFilter = document.getElementById('vacationDepartmentFilter');
+        const activeListBody = document.getElementById('activeListBody');
+        const vacationTableBody = document.getElementById('vacationTableBody');
+        let tipoLista = 'todos';
+        let paginaActual = 1;
+
+        function showToast(mensaje) {
+            const toast = document.getElementById('toast');
+            toast.textContent = mensaje;
+            toast.classList.add('show');
+            clearTimeout(showToast.temporizador);
+            showToast.temporizador = setTimeout(() => toast.classList.remove('show'), 2600);
+        }
+
+        function coincideBusqueda(emp, ...entradas) {
+            return entradas.every((entrada) => {
+                const texto = normalizar(entrada.value);
+                return !texto || normalizar(emp.nombre).includes(texto);
+            });
+        }
+
+        // Día en que se reincorpora: el siguiente día laborable después del último día
+        function fechaRegreso(finIso) {
+            let dia = sumarDias(fechaDesdeISO(finIso), 1);
+            while (dia.getDay() === 0 || feriadoEn(aISO(dia))) dia = sumarDias(dia, 1);
+            return aISO(dia);
+        }
+
+        function periodoTexto(inicio, fin) {
+            return inicio === fin ? formatoFecha(inicio) : `${formatoFecha(inicio)} – ${formatoFecha(fin)}`;
+        }
+
+        const activos = () => EMPLEADOS.filter((e) => !e.baja);
+
+        // ---------- Lista de vacaciones e incapacidades vigentes ----------
+        function ausenciasVigentes() {
+            return activos().flatMap((emp) => [
+                ...(emp.vacaciones || [])
+                    .filter((v) => v.fin >= HOY_ISO)
+                    .map((v) => ({ emp, tipo: 'vacaciones', inicio: v.inicio, fin: v.fin, dias: diasHabiles(v.inicio, v.fin) })),
+                ...(emp.incapacidades || [])
+                    .filter((i) => finIncapacidad(i) >= HOY_ISO)
+                    .map((i) => ({ emp, tipo: 'incapacidad', inicio: i.inicio, fin: finIncapacidad(i), dias: i.dias, incapacidad: i }))
+            ]).sort((a, b) => a.inicio.localeCompare(b.inicio));
+        }
+
+        function motivo(a) {
+            if (a.tipo === 'vacaciones') return '<span class="reason-pill reason-pill--vacation">Vacaciones</span>';
+            return `<span class="reason-pill reason-pill--incapacity">Incapacidad · ${escaparHtml(a.incapacidad.tipo)}</span>
+                    <small class="reason-note">Folio IMSS ${escaparHtml(a.incapacidad.folio)}</small>`;
+        }
+
+        function celdaEmpleado(emp) {
+            return `<td><div class="table-user"><span class="employee-id">${emp.id}</span><strong>${escaparHtml(emp.nombre)}</strong></div></td>`;
+        }
+
+        function renderLista() {
+            const lista = ausenciasVigentes()
+                .filter((a) => tipoLista === 'todos' || a.tipo === tipoLista)
+                .filter((a) => coincideBusqueda(a.emp, vacationSearch));
+
+            document.getElementById('activeCountPill').textContent = `${lista.length} ${lista.length === 1 ? 'vigente' : 'vigentes'}`;
+            activeListBody.innerHTML = lista.length
+                ? lista.map((a) => {
+                    const enCurso = a.inicio <= HOY_ISO;
+                    return `
+                        <tr data-id="${a.emp.id}">
+                            ${celdaEmpleado(a.emp)}
+                            <td>${escaparHtml(SUCURSALES[a.emp.suc])}</td>
+                            <td>${escaparHtml(a.emp.depto)}</td>
+                            <td>${motivo(a)}</td>
+                            <td class="nowrap">${formatoFecha(a.inicio)}${a.inicio === a.fin ? '' : '<br>' + formatoFecha(a.fin)}<small class="reason-note">${enCurso ? 'En curso · ' : ''}Regresa el ${formatoFecha(fechaRegreso(a.fin))}</small></td>
+                            <td class="nowrap">${textoDias(a.dias)}</td>
+                        </tr>`;
+                }).join('')
+                : '<tr><td colspan="6" class="table-empty">No hay vacaciones ni incapacidades vigentes con estos filtros.</td></tr>';
+        }
+
+        // ---------- Saldo vacacional por trabajador ----------
+        function saldos() {
+            return activos()
+                .filter((e) => departmentFilter.value === 'todos' || e.depto === departmentFilter.value)
+                .filter((e) => coincideBusqueda(e, vacationSearch, tableSearch))
+                .sort((a, b) => a.id.localeCompare(b.id))
+                .map((emp) => {
+                    const total = getVacationDaysForYear(antiguedadAnios(emp));
+                    const tomados = vacacionesTomadas(emp, ANIO);
+                    return { emp, total, tomados, disponibles: Math.max(0, total - tomados) };
+                });
+        }
+
+        function renderSaldos() {
+            const filas = saldos();
+            const totalPaginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
+            paginaActual = Math.min(paginaActual, totalPaginas);
+            const inicio = (paginaActual - 1) * POR_PAGINA;
+            const visibles = filas.slice(inicio, inicio + POR_PAGINA);
+
+            document.getElementById('employeeCount').textContent = filas.length;
+            vacationTableBody.innerHTML = visibles.length
+                ? visibles.map(({ emp, total, tomados, disponibles }) => `
+                    <tr data-id="${emp.id}">
+                        ${celdaEmpleado(emp)}
+                        <td>${escaparHtml(emp.depto)}</td>
+                        <td class="nowrap">${formatoFecha(emp.ingreso)}</td>
+                        <td>${total}</td>
+                        <td>${tomados}</td>
+                        <td><strong>${disponibles}</strong></td>
+                    </tr>`).join('')
+                : '<tr><td colspan="6" class="table-empty">No hay colaboradores con estos filtros.</td></tr>';
+
+            document.getElementById('tableFooterText').textContent = filas.length
+                ? `Mostrando ${inicio + 1} a ${inicio + visibles.length} de ${filas.length} colaboradores`
+                : 'Sin colaboradores';
+
+            let botones = `<button class="pager__button" type="button" data-page="${paginaActual - 1}" ${paginaActual === 1 ? 'disabled' : ''}>Anterior</button>`;
+            for (let p = 1; p <= totalPaginas; p++) {
+                botones += `<button class="pager__button ${p === paginaActual ? 'is-current' : ''}" type="button" data-page="${p}">${p}</button>`;
+            }
+            botones += `<button class="pager__button" type="button" data-page="${paginaActual + 1}" ${paginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>`;
+            document.getElementById('pager').innerHTML = botones;
+        }
+
+        // ---------- Tarjeta y notificaciones ----------
+        function renderResumen() {
+            const hoy = activos().filter((e) => vacacionEn(e, HOY_ISO)).length;
+            document.getElementById('activeTodayValue').textContent = hoy;
+
+            // Anticipación de los avisos: se define en Configuración → Alertas (0 = sin aviso)
+            const diasVacaciones = CONFIGURACION.avisoVacacionesDias;
+            const diasIncapacidad = CONFIGURACION.avisoIncapacidadDias;
+            const limiteVacaciones = aISO(sumarDias(HOY, diasVacaciones));
+            const limiteIncapacidad = aISO(sumarDias(HOY, diasIncapacidad));
+            const avisos = ausenciasVigentes()
+                .flatMap((a) => {
+                    const items = [];
+                    const regreso = fechaRegreso(a.fin);
+                    if (a.tipo === 'vacaciones' && diasVacaciones > 0) {
+                        if (a.inicio > HOY_ISO && a.inicio <= limiteVacaciones) {
+                            items.push({ fecha: a.inicio, icono: '🏖️', titulo: `${a.emp.nombre} sale de vacaciones`, texto: `${periodoTexto(a.inicio, a.fin)} · ${textoDias(a.dias)}` });
+                        }
+                        if (a.inicio <= HOY_ISO && regreso <= limiteVacaciones) {
+                            items.push({ fecha: regreso, icono: '↩️', titulo: `${a.emp.nombre} regresa de vacaciones`, texto: `Se reincorpora el ${formatoFecha(regreso)}` });
+                        }
+                    }
+                    if (a.tipo === 'incapacidad' && diasIncapacidad > 0 && a.fin <= limiteIncapacidad) {
+                        items.push({ fecha: a.fin, icono: '🏥', titulo: `${a.emp.nombre} termina su incapacidad`, texto: `Último día ${formatoFecha(a.fin)} · se reincorpora el ${formatoFecha(regreso)}` });
+                    }
+                    return items;
+                })
+                .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+            document.getElementById('notifCountPill').textContent = avisos.length;
+            document.getElementById('notifList').innerHTML = avisos.length
+                ? avisos.map((a) => `
+                    <div class="notif-item">
+                        <span class="notif-icon">${a.icono}</span>
+                        <div class="notif-content">
+                            <strong>${escaparHtml(a.titulo)}</strong>
+                            <span>${a.texto}</span>
+                        </div>
+                    </div>`).join('')
+                : '<div class="notif-item"><div class="notif-content"><span>Sin salidas, regresos ni fin de incapacidades próximos.</span></div></div>';
+        }
+
+        // ---------- Calendario de descansos obligatorios ----------
+        const DIAS_CORTOS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+        let anioCalendario = ANIO;
+
+        function estadoFeriado(iso) {
+            if (iso < HOY_ISO) return { texto: 'Ya pasó', clase: 'holiday-chip--past' };
+            if (iso === HOY_ISO) return { texto: 'Hoy', clase: 'holiday-chip--next' };
+            const dias = Math.round((fechaDesdeISO(iso) - HOY) / 86400000);
+            return { texto: `En ${textoDias(dias)}`, clase: 'holiday-chip--future' };
+        }
+
+        function renderCalendario() {
+            const feriados = descansosObligatorios(anioCalendario);
+            const proximo = feriados.find((f) => f.iso >= HOY_ISO);
+            document.getElementById('holidayYear').textContent = anioCalendario;
+
+            document.getElementById('holidayList').innerHTML = feriados.map((f) => {
+                const estado = f === proximo ? { texto: `Próximo · ${estadoFeriado(f.iso).texto.toLowerCase()}`, clase: 'holiday-chip--next' } : estadoFeriado(f.iso);
+                return `
+                    <li class="holiday-item ${f.iso < HOY_ISO ? 'is-past' : ''}">
+                        <div class="holiday-date">
+                            <strong>${f.fecha.getDate()}</strong>
+                            <span>${MESES_CORTOS[f.fecha.getMonth()]}</span>
+                        </div>
+                        <div class="holiday-info">
+                            <strong>${f.nombre}</strong>
+                            <span>${DIAS_SEMANA[f.fecha.getDay()]} · ${f.regla}</span>
+                        </div>
+                        <span class="holiday-chip ${estado.clase}">${estado.texto}</span>
+                    </li>`;
+            }).join('');
+
+            const porFecha = new Map(feriados.map((f) => [f.iso, f]));
+            let meses = '';
+            for (let mes = 0; mes < 12; mes++) {
+                const primero = new Date(anioCalendario, mes, 1, 12);
+                const huecos = (primero.getDay() + 6) % 7; // la semana empieza en lunes
+                const diasMes = new Date(anioCalendario, mes + 1, 0).getDate();
+                let celdas = '<span class="cal-empty"></span>'.repeat(huecos);
+                for (let d = 1; d <= diasMes; d++) {
+                    const fecha = new Date(anioCalendario, mes, d, 12);
+                    const iso = aISO(fecha);
+                    const feriado = porFecha.get(iso);
+                    const clases = ['cal-day'];
+                    if (fecha.getDay() === 0) clases.push('is-sunday');
+                    if (feriado) clases.push('is-holiday');
+                    if (iso === HOY_ISO) clases.push('is-today');
+                    celdas += `<span class="${clases.join(' ')}"${feriado ? ` title="${feriado.nombre}"` : ''}>${d}</span>`;
+                }
+                meses += `
+                    <div class="cal-month">
+                        <div class="cal-month__name">${MESES[mes]}</div>
+                        <div class="cal-grid">
+                            ${DIAS_CORTOS.map((d) => `<span class="cal-weekday">${d}</span>`).join('')}
+                            ${celdas}
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('yearCalendar').innerHTML = meses;
+        }
+
+        function renderTodo() {
+            renderResumen();
+            renderLista();
+            renderSaldos();
+            renderCalendario();
+        }
+
+        // ---------- Exportar a Excel ----------
+        function exportarExcel() {
+            const saldosHoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Fecha de ingreso', `Días totales ${ANIO}`, `Días tomados ${ANIO}`, 'Disponibles']]
+                .concat(saldos().map(({ emp, total, tomados, disponibles }) => [
+                    emp.id, emp.nombre, nombreSucursal(emp.suc), emp.depto, formatoFecha(emp.ingreso), total, tomados, disponibles
+                ]));
+            const vigentesHoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Motivo', 'Tipo de incapacidad', 'Folio IMSS', 'Inicio', 'Fin', 'Días', 'Regresa']]
+                .concat(ausenciasVigentes().map((a) => [
+                    a.emp.id, a.emp.nombre, nombreSucursal(a.emp.suc), a.emp.depto,
+                    a.tipo === 'vacaciones' ? 'Vacaciones' : 'Incapacidad',
+                    a.incapacidad ? a.incapacidad.tipo : '', a.incapacidad ? a.incapacidad.folio : '',
+                    formatoFecha(a.inicio), formatoFecha(a.fin), a.dias, formatoFecha(fechaRegreso(a.fin))
+                ]));
+            const formato = descargarExcel(`vacaciones_${HOY_ISO}`, [
+                { nombre: 'Saldo vacacional', filas: saldosHoja },
+                { nombre: 'Activas y programadas', filas: vigentesHoja }
+            ]);
+            showToast(formato === 'xlsx' ? '✅ Archivo de Excel descargado' : 'Sin internet: se descargó en CSV (se abre en Excel)');
+        }
+
+        // ---------- Eventos ----------
+        document.getElementById('todayLabel').textContent = fechaLarga(HOY);
+        departmentFilter.innerHTML = '<option value="todos">Todos los departamentos</option>' +
+            DEPARTAMENTOS.map((d) => `<option value="${escaparHtml(d.nombre)}">${escaparHtml(d.nombre)}</option>`).join('');
+        document.getElementById('saldoSubtitle').textContent =
+            `Días que le corresponden a cada colaborador en ${ANIO} según la Ley Federal del Trabajo y su antigüedad en El Nevado.`;
+
+        vacationSearch.addEventListener('input', () => { paginaActual = 1; renderLista(); renderSaldos(); });
+        tableSearch.addEventListener('input', () => { paginaActual = 1; renderSaldos(); });
+        departmentFilter.addEventListener('change', () => { paginaActual = 1; renderSaldos(); });
+
+        document.getElementById('listFilter').addEventListener('click', (event) => {
+            const boton = event.target.closest('.list-filter__btn');
+            if (!boton) return;
+            tipoLista = boton.dataset.tipo;
+            document.querySelectorAll('.list-filter__btn').forEach((b) => b.classList.toggle('is-active', b === boton));
+            renderLista();
+        });
+
+        document.getElementById('pager').addEventListener('click', (event) => {
+            const boton = event.target.closest('button[data-page]');
+            if (!boton || boton.disabled) return;
+            paginaActual = Number(boton.dataset.page);
+            renderSaldos();
+        });
+
+        // =====================================================================
+        //  VACACIONES DEL TRABAJADOR (ventana en esta misma página)
+        // =====================================================================
+        const expedienteModal = document.getElementById('expedienteModal');
+        let elementoAnterior = null;
+
+        function abrirExpediente(empId) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            if (!emp) return;
+            const derecho = getVacationDaysForYear(antiguedadAnios(emp));
+            const tomados = vacacionesTomadas(emp, ANIO);
+            const enSolicitud = diasEnSolicitud(emp, ANIO);
+            const actual = vacacionEn(emp, HOY_ISO);
+            const incapacidad = incapacidadEn(emp, HOY_ISO);
+            // Estado de hoy: de vacaciones, incapacitado o trabajando
+            const hoy = actual ? [`Regresa el ${formatoFecha(fechaRegreso(actual.fin))}`, 'De vacaciones hoy']
+                : incapacidad ? [`Hasta el ${formatoFecha(finIncapacidad(incapacidad))}`, 'Incapacitado hoy']
+                    : ['Trabajando', 'Estado de hoy'];
+
+            document.getElementById('expedienteAvatar').textContent = emp.nombre.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+            document.getElementById('expedienteNombre').textContent = emp.nombre;
+            document.getElementById('expedienteDatos').textContent =
+                `ID ${emp.id} · ${emp.puesto === emp.depto ? emp.depto : `${emp.depto} · ${emp.puesto}`} · ${nombreSucursal(emp.suc)} · Ingresó el ${formatoFecha(emp.ingreso)}`;
+
+            const tarjeta = (valor, texto, clase = '') => `<div class="${clase}"><strong>${valor}</strong><span>${texto}</span></div>`;
+            document.getElementById('expedienteResumen').innerHTML =
+                tarjeta(derecho, `Días que le corresponden en ${ANIO}`) +
+                tarjeta(tomados, `Días tomados en ${ANIO}`) +
+                tarjeta(Math.max(0, derecho - tomados), 'Días disponibles', 'es-principal') +
+                tarjeta(hoy[0], hoy[1]);
+
+            const nota = document.getElementById('expedienteNota');
+            const notas = [];
+            if (!derecho) notas.push('Todavía no cumple un año de antigüedad, por eso no tiene días de vacaciones.');
+            if (enSolicitud) notas.push(`Tiene ${textoDias(enSolicitud)} en una solicitud que RH aún no resuelve.`);
+            nota.textContent = notas.join(' ');
+            nota.classList.toggle('hidden', !notas.length);
+
+            const vacaciones = [...(emp.vacaciones || [])].sort((a, b) => b.inicio.localeCompare(a.inicio));
+            const estado = (v) => v.fin < HOY_ISO
+                ? '<span class="exp-tag exp-tag--muted">Disfrutadas</span>'
+                : v.inicio <= HOY_ISO ? '<span class="exp-tag exp-tag--ok">En curso</span>' : '<span class="exp-tag exp-tag--info">Programadas</span>';
+            document.getElementById('expedienteTabla').innerHTML = vacaciones.length
+                ? vacaciones.map((v) => `<tr>
+                    <td>${periodoTexto(v.inicio, v.fin)}</td>
+                    <td>${textoDias(diasHabiles(v.inicio, v.fin))}</td>
+                    <td>${formatoFecha(fechaRegreso(v.fin))}</td>
+                    <td>${estado(v)}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="4" class="expediente-vacio">Sin vacaciones registradas.</td></tr>';
+
+            elementoAnterior = document.activeElement;
+            expedienteModal.classList.remove('hidden');
+            document.getElementById('expedienteCerrar').focus();
+        }
+
+        function cerrarExpediente() {
+            expedienteModal.classList.add('hidden');
+            if (elementoAnterior) elementoAnterior.focus();
+        }
+
+        // Clic en cualquier renglón: muestra las vacaciones del trabajador aquí mismo
+        document.querySelectorAll('#activeListBody, #vacationTableBody').forEach((tbody) => {
+            tbody.addEventListener('click', (event) => {
+                const fila = event.target.closest('tr[data-id]');
+                if (fila) abrirExpediente(fila.dataset.id);
+            });
+        });
+        document.getElementById('expedienteCerrar').addEventListener('click', cerrarExpediente);
+        document.getElementById('expedienteAceptar').addEventListener('click', cerrarExpediente);
+        expedienteModal.addEventListener('click', (event) => { if (event.target === expedienteModal) cerrarExpediente(); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !expedienteModal.classList.contains('hidden')) cerrarExpediente();
+        });
+
+        // La tarjeta lleva a la lista de vacaciones
+        const cardActiveToday = document.getElementById('cardActiveToday');
+        const irALista = () => {
+            document.querySelector('.list-filter__btn[data-tipo="vacaciones"]').click();
+            document.getElementById('activeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+        cardActiveToday.addEventListener('click', irALista);
+        cardActiveToday.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                irALista();
+            }
+        });
+
+        const notificationPopover = document.getElementById('notificationPopover');
+        document.getElementById('notifBtn').addEventListener('click', (event) => {
+            event.stopPropagation();
+            notificationPopover.classList.toggle('is-show');
+        });
+        document.addEventListener('click', (event) => {
+            if (!notificationPopover.contains(event.target)) notificationPopover.classList.remove('is-show');
+        });
+
+        document.getElementById('exportReportBtn').addEventListener('click', exportarExcel);
+        document.getElementById('prevYearBtn').addEventListener('click', () => { anioCalendario--; renderCalendario(); });
+        document.getElementById('nextYearBtn').addEventListener('click', () => { anioCalendario++; renderCalendario(); });
+
+        renderTodo();
+    </script>
+    <script src="recursos/estado-servidor.js"></script>
+</body>
+
+</html>
