@@ -111,35 +111,8 @@ function listaSucursales() {
 // Crea la bodega con su registro propio. Sus colecciones (empleados, solicitudes, reportes)
 // se van llenando dentro de ella conforme se registran datos.
 function agregarSucursal(clave, nombre) {
-    BODEGAS.push({ clave, nombre, creada: new Date().toISOString(), creadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
-    if (!guardarBodegas()) {
-        BODEGAS.pop();
-        return false;
-    }
-    SUCURSALES[clave] = nombre;
-    return true;
-}
-
-// Cambia solo el nombre de la bodega. La clave no cambia: de ella dependen los ID de sus trabajadores
-// y en qué bodega se guardan sus datos. Regresa true solo si quedó guardado.
-function renombrarSucursal(clave, nombre) {
-    let bodega = BODEGAS.find((b) => b.clave === clave);
-    const esNueva = !bodega;
-    if (esNueva) {
-        bodega = { clave, nombre: SUCURSALES[clave] };
-        BODEGAS.push(bodega);
-    }
-    const anterior = { ...bodega };
-    Object.assign(bodega, { nombre, modificada: new Date().toISOString(), modificadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
-    if (!guardarBodegas()) {
-        // No se pudo guardar: se regresa como estaba
-        if (esNueva) BODEGAS.pop();
-        else {
-            Object.keys(bodega).forEach((campo) => delete bodega[campo]);
-            Object.assign(bodega, anterior);
-        }
-        return false;
-    }
+    const guardadas = { ...(ALMACEN.leer(CLAVE_SUCURSALES) || {}), [clave]: nombre };
+    if (!ALMACEN.escribir(CLAVE_SUCURSALES, guardadas)) return false;
     SUCURSALES[clave] = nombre;
     return true;
 }
