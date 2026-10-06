@@ -12,6 +12,162 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
+    <!-- Campos de fecha en día/mes/año (dd/mm/aaaa), sin importar el idioma del navegador -->
+    <script>
+    (function () {
+        const valorNativo = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        const leer = (input) => valorNativo.get.call(input);
+        const escribir = (input, valor) => valorNativo.set.call(input, valor);
+
+        function isoATexto(iso) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '';
+        }
+
+        function textoAIso(texto) {
+            const m = (texto || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!m) return null;
+            const [, dia, mes, anio] = m.map(Number);
+            const fecha = new Date(anio, mes - 1, dia);
+            if (anio < 1900 || fecha.getFullYear() !== anio || fecha.getMonth() !== mes - 1 || fecha.getDate() !== dia) return null;
+            return `${m[3]}-${m[2]}-${m[1]}`;
+        }
+
+        function conDiagonales(texto) {
+            const d = texto.replace(/\D/g, '').slice(0, 8);
+            if (d.length <= 2) return d;
+            if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+            return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+        }
+
+        function avisar(input) {
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function mejorar(nativo) {
+            if (nativo.dataset.fechaMx) return;
+            nativo.dataset.fechaMx = '1';
+
+            const caja = document.createElement('span');
+            caja.className = 'fecha-mx';
+            const texto = document.createElement('input');
+            texto.type = 'text';
+            texto.inputMode = 'numeric';
+            texto.autocomplete = 'off';
+            texto.maxLength = 10;
+            texto.placeholder = 'dd/mm/aaaa';
+            texto.className = nativo.className;
+            texto.style.cssText = nativo.getAttribute('style') || '';
+            texto.classList.add('fecha-mx__texto');
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'fecha-mx__boton';
+            boton.textContent = '📅';
+            boton.title = 'Abrir calendario';
+            boton.setAttribute('aria-label', 'Abrir calendario');
+            boton.tabIndex = -1;
+
+            nativo.parentNode.insertBefore(caja, nativo);
+            caja.append(texto, nativo, boton);
+            nativo.classList.add('fecha-mx__nativo');
+            nativo.tabIndex = -1;
+            nativo.setAttribute('aria-hidden', 'true');
+
+            const mostrar = () => {
+                texto.value = isoATexto(leer(nativo));
+                texto.classList.remove('fecha-mx--error');
+            };
+
+            Object.defineProperty(nativo, 'value', {
+                configurable: true,
+                get() { return leer(this); },
+                set(valor) { escribir(this, valor); mostrar(); }
+            });
+
+            nativo.addEventListener('focus', () => texto.focus());
+            nativo.addEventListener('change', mostrar);
+
+            texto.addEventListener('input', () => {
+                const borrando = texto.value.length < (texto.dataset.antes || '').length;
+                if (!borrando) texto.value = conDiagonales(texto.value);
+                texto.dataset.antes = texto.value;
+                const iso = textoAIso(texto.value);
+                if (iso && iso !== leer(nativo)) {
+                    escribir(nativo, iso);
+                    texto.classList.remove('fecha-mx--error');
+                    avisar(nativo);
+                } else if (!texto.value && leer(nativo)) {
+                    escribir(nativo, '');
+                    avisar(nativo);
+                }
+            });
+
+            texto.addEventListener('blur', () => {
+                if (!texto.value) return;
+                const iso = textoAIso(texto.value);
+                if (iso) { texto.value = isoATexto(iso); return; }
+                texto.classList.add('fecha-mx--error');
+                texto.title = 'Escribe la fecha como día/mes/año, por ejemplo 05/10/2026';
+                if (leer(nativo)) { escribir(nativo, ''); avisar(nativo); }
+            });
+
+            boton.addEventListener('click', () => {
+                if (nativo.disabled || nativo.readOnly) return;
+                try { nativo.showPicker(); } catch (error) { texto.focus(); }
+            });
+
+            const copiarEstado = () => {
+                texto.disabled = nativo.disabled;
+                texto.readOnly = nativo.readOnly;
+                texto.required = nativo.required;
+                boton.disabled = nativo.disabled || nativo.readOnly;
+                const clases = [...nativo.classList].filter((c) => c !== 'fecha-mx__nativo');
+                const error = texto.classList.contains('fecha-mx--error');
+                texto.className = ['fecha-mx__texto', ...clases, error ? 'fecha-mx--error' : ''].join(' ').trim();
+                caja.classList.toggle('hidden', nativo.classList.contains('hidden') || nativo.hidden);
+            };
+            new MutationObserver(copiarEstado).observe(nativo, { attributes: true, attributeFilter: ['class', 'disabled', 'readonly', 'required', 'hidden'] });
+            copiarEstado();
+
+            if (nativo.form) nativo.form.addEventListener('reset', () => setTimeout(mostrar));
+            mostrar();
+        }
+
+        function mejorarTodos(raiz) {
+            if (raiz.matches && raiz.matches('input[type="date"]')) mejorar(raiz);
+            if (raiz.querySelectorAll) raiz.querySelectorAll('input[type="date"]').forEach(mejorar);
+        }
+
+        const estilos = document.createElement('style');
+        estilos.textContent = `
+            .fecha-mx { position: relative; display: inline-block; vertical-align: middle; min-width: 150px; }
+            .fecha-mx.hidden { display: none !important; }
+            .fecha-mx > .fecha-mx__texto { width: 100% !important; box-sizing: border-box; padding-right: 36px !important; }
+            .fecha-mx > .fecha-mx__texto.fecha-mx--error { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, .12); }
+            .fecha-mx > .fecha-mx__nativo {
+                position: absolute !important; left: 0 !important; bottom: 0 !important;
+                width: 100% !important; height: 1px !important; min-height: 0 !important;
+                padding: 0 !important; margin: 0 !important; border: 0 !important;
+                opacity: 0 !important; pointer-events: none !important;
+            }
+            .fecha-mx > .fecha-mx__boton {
+                position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+                width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px;
+                background: transparent; cursor: pointer; font-size: 15px; line-height: 1;
+            }
+            .fecha-mx > .fecha-mx__boton:hover:not(:disabled) { background: rgba(15, 23, 42, .06); }
+            .fecha-mx > .fecha-mx__boton:disabled { cursor: default; opacity: .4; }
+        `;
+        document.head.appendChild(estilos);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            mejorarTodos(document.body);
+            new MutationObserver((cambios) => {
+                cambios.forEach((c) => c.addedNodes.forEach((nodo) => { if (nodo.nodeType === 1) mejorarTodos(nodo); }));
+            }).observe(document.body, { childList: true, subtree: true });
+        });
+    })();
+    </script>
 </head>
 
 <body class="page-empleados">
@@ -499,7 +655,7 @@
                             <div class="field field--half">
                                 <label for="newBirthDate">Fecha de Nacimiento *</label>
                                 <input id="newBirthDate" type="date">
-                                <small class="field-hint">Día, mes y año.</small>
+                                <small class="field-hint">Día, mes y año (dd/mm/aaaa).</small>
                                 <small class="field-error" data-error-for="newBirthDate"></small>
                             </div>
                             <div class="field field--half">
@@ -1920,6 +2076,7 @@
         let empleadoEditando = null; // null = alta nueva; si no, el trabajador que se está editando
         let vectorCaptureSuccess = false;
         let precisionCaptura = null;
+        let capturaRostro = null; // captura temporal, solo en memoria, para sacar los vectores en el servidor
         const phoneCameraPattern = /\b(phone|honor|android|iphone|ipad|mobile|m[oó]vil)\b|link to windows|enlace a windows|droidcam|epoccam|camo|continuity camera|virtual camera|c[aá]mara virtual/i;
         const integratedCameraPattern = /integrated|built.?in|internal|webcam|laptop|hd camera|c[aá]mara integrada/i;
 
@@ -2107,6 +2264,7 @@
             await stopFaceCamera();
             vectorCaptureSuccess = false;
             precisionCaptura = null;
+            capturaRostro = null;
             faceCaptureCanvas.width = 0;
             faceCaptureCanvas.height = 0;
             faceCaptureCanvas.classList.add('hidden');
@@ -2291,6 +2449,7 @@
             faceCaptureCanvas.width = faceCameraVideo.videoWidth;
             faceCaptureCanvas.height = faceCameraVideo.videoHeight;
             faceCaptureCanvas.getContext('2d').drawImage(faceCameraVideo, 0, 0);
+            capturaRostro = faceCaptureCanvas.toDataURL('image/jpeg', 0.92);
 
             await stopFaceCamera();
             faceCameraVideo.classList.add('hidden');
@@ -2341,15 +2500,15 @@
                 : '<option value="">Primero elige el departamento</option>';
         }
 
-        // El sueldo se propone con el salario mínimo; se puede subir según el puesto, nunca bajar.
+        // El sueldo lo captura RH libremente (no está limitado al salario mínimo).
         // El admin de sucursal no ve sueldos: el campo se oculta y RH asigna el definitivo.
         function prepararSueldo() {
-            newSalary.min = SALARIO_MINIMO_SEMANAL;
-            newSalary.value = SALARIO_MINIMO_SEMANAL.toFixed(2);
+            newSalary.min = '0';
+            // Si el usuario no ve sueldos se deja uno provisional para que RH lo ajuste
+            newSalary.value = puede('verSueldos') ? '' : SALARIO_MINIMO_SEMANAL.toFixed(2);
             newSalary.closest('.field').classList.toggle('hidden', !puede('verSueldos'));
             document.querySelectorAll('.solo-sueldos').forEach((el) => el.classList.toggle('hidden', !puede('verSueldos')));
-            campo('newSalaryHint').textContent =
-                `Calculado con el salario mínimo 2026: ${formatoDinero(SALARIO_MINIMO_DIARIO)} diarios × 7 días = ${formatoDinero(SALARIO_MINIMO_SEMANAL)}. Súbelo si el puesto gana más.`;
+            campo('newSalaryHint').textContent = 'Sueldo por semana (de sábado a viernes).';
         }
 
         function edadEnAnios(iso) {
@@ -2396,7 +2555,6 @@
             if (!datos.depto) errores.depto = 'Elige el departamento.';
             if (!datos.puesto) errores.puesto = 'Elige el puesto.';
             if (!(datos.sueldo > 0)) errores.sueldo = 'Captura el sueldo semanal.';
-            else if (datos.sueldo < SALARIO_MINIMO_SEMANAL) errores.sueldo = `No puede ser menor al salario mínimo semanal (${formatoDinero(SALARIO_MINIMO_SEMANAL)}).`;
             return errores;
         }
 
@@ -2703,8 +2861,8 @@
                 progreso: 'Guardando nuevo ingreso…',
                 pasos: () => [
                     { texto: 'Validando la información', accion: () => validarAntesDeGuardar(d) },
-                    { texto: 'Guardando datos personales y laborales', accion: () => guardarTrabajador(d) },
-                    { texto: 'Registrando el rostro en las checadoras', accion: () => wait(600) }
+                    { texto: 'Revisando que el rostro no esté repetido y cifrándolo', accion: async () => { d.rostro = await registrarRostro(); } },
+                    { texto: 'Guardando datos personales y laborales', accion: () => guardarTrabajador(d) }
                 ],
                 listo: 'Guardado completado',
                 exito: `✅ <strong>${escaparHtml(d.nombre)}</strong> se guardó correctamente con ID <strong>${d.id}</strong>.`,
@@ -2750,6 +2908,27 @@
             });
         }
 
+        // Manda la captura al servidor local: él saca los vectores con InsightFace, revisa que esa cara
+        // no esté registrada con otro trabajador y los cifra con su llave. La foto no se guarda en ningún
+        // lado; a la base de datos solo llega el texto cifrado.
+        async function registrarRostro() {
+            if (!capturaRostro) throw new Error('Falta registrar el rostro del trabajador.');
+            const existentes = TODOS_EMPLEADOS.filter((e) => e.rostro).map((e) => ({ id: e.id, rostro: e.rostro }));
+            let respuesta;
+            try {
+                respuesta = await fetch('/api/rostro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagen: capturaRostro, existentes })
+                });
+            } catch (error) {
+                throw new Error('No hay conexión con el servidor local. Abre el sistema con iniciar.bat.');
+            }
+            const datos = await respuesta.json().catch(() => ({}));
+            if (!respuesta.ok || !datos.rostro) throw new Error(datos.error || 'No se pudo registrar el rostro.');
+            return datos.rostro;
+        }
+
         async function validarAntesDeGuardar(datos) {
             await wait(500);
             const errores = { ...validarDatosPersonales(datos), ...validarDatosLaborales(datos) };
@@ -2766,6 +2945,7 @@
             }
             EMPLEADOS.push({
                 id: datos.id,
+                rostro: datos.rostro, // vectores del rostro cifrados (solo el servidor tiene la llave)
                 nombre: datos.nombre,
                 apellidoPaterno: datos.apellidoPaterno,
                 apellidoMaterno: datos.apellidoMaterno,
@@ -3014,7 +3194,7 @@
         });
 
         function parsearCSV(texto) {
-            texto = texto.replace(/^﻿/, '');
+            texto = texto.replace(/^\uFEFF/, '');
             const primeraLinea = texto.split(/\r?\n/)[0];
             const separador = primeraLinea.split(';').length > primeraLinea.split(',').length ? ';' : ',';
             const filas = [];

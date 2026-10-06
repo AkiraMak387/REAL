@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
 </head>
 
 <body>
@@ -149,11 +150,14 @@
                 <div class="filter-tabs">
                     <button class="filter-tab active" type="button" data-periodo="hoy">Hoy</button>
                     <button class="filter-tab" type="button" data-periodo="semana">Esta Semana</button>
-                    <button class="filter-tab" type="button" data-periodo="mes">Este Mes</button>
+                    <button class="filter-tab" type="button" data-periodo="mes">Por Mes</button>
                 </div>
 
                 <div class="filter-selects">
                     <span class="last-sync" id="periodLabel"></span>
+                    <!-- Mes y año a consultar (solo se ven en "Por Mes") -->
+                    <select id="mesFilter" aria-label="Mes" style="display:none"></select>
+                    <select id="anioFilter" aria-label="Año" style="display:none"></select>
                     <select id="branchFilter" aria-label="Sucursal"></select>
                     <select id="departmentFilter" aria-label="Departamento"></select>
                 </div>
@@ -871,6 +875,9 @@
         const COLUMNAS_NUMERICAS = ['Días trabajados', 'Retardos', 'Faltas', 'Permisos', 'Incap.', 'Horas', 'Horas extra', 'Días'];
 
         let periodoActual = 'hoy';
+        // Mes que se consulta en "Por Mes" (empieza en el mes actual)
+        let mesElegido = HOY.getMonth();
+        let anioElegido = HOY.getFullYear();
         let pestanaActual = 'todos';
         let seleccionado = null;
 
@@ -896,9 +903,9 @@
             }
             if (periodoActual === 'mes') {
                 return {
-                    inicio: new Date(HOY.getFullYear(), HOY.getMonth(), 1, 12),
-                    fin: new Date(HOY.getFullYear(), HOY.getMonth() + 1, 0, 12),
-                    etiqueta: `${MESES[HOY.getMonth()]} ${HOY.getFullYear()}`
+                    inicio: new Date(anioElegido, mesElegido, 1, 12),
+                    fin: new Date(anioElegido, mesElegido + 1, 0, 12),
+                    etiqueta: `${MESES[mesElegido]} ${anioElegido}`
                 };
             }
             return { inicio: HOY, fin: HOY, etiqueta: 'Hoy' };
@@ -1191,8 +1198,11 @@
             // Los retardos no descuentan: RH habla con el trabajador
             setTexto('detailWeekSummary', resumenTexto(semana));
 
-            const mes = resumenRango(emp, new Date(HOY.getFullYear(), HOY.getMonth(), 1, 12), new Date(HOY.getFullYear(), HOY.getMonth() + 1, 0, 12));
-            setTexto('detailMonthLabel', `Mes (${MESES[HOY.getMonth()]} ${HOY.getFullYear()})`);
+            // En "Por Mes" la ficha muestra el mes que se está consultando; si no, el mes actual
+            const mesFicha = periodoActual === 'mes' ? mesElegido : HOY.getMonth();
+            const anioFicha = periodoActual === 'mes' ? anioElegido : HOY.getFullYear();
+            const mes = resumenRango(emp, new Date(anioFicha, mesFicha, 1, 12), new Date(anioFicha, mesFicha + 1, 0, 12));
+            setTexto('detailMonthLabel', `Mes (${MESES[mesFicha]} ${anioFicha})`);
             setTexto('detailMonthHours', formatoHoras(mes.horas));
             setTexto('detailMonthSummary', resumenTexto(mes));
 
@@ -1531,6 +1541,37 @@
             fijarSucursalUnica(branchFilter);
             departmentFilter.innerHTML = '<option value="todos">Todos los departamentos</option>' +
                 DEPARTAMENTOS.map((d) => `<option value="${escaparHtml(d.nombre)}">${escaparHtml(d.nombre)}</option>`).join('');
+            llenarMesesYAnios();
+        }
+
+        // =====================================================================
+        //  CONSULTAR MESES ANTERIORES
+        // =====================================================================
+        const mesFilter = document.getElementById('mesFilter');
+        const anioFilter = document.getElementById('anioFilter');
+
+        // Años desde el primer ingreso registrado hasta hoy; en el año actual solo hasta el mes actual
+        function llenarMesesYAnios() {
+            const ingresos = EMPLEADOS.map((e) => Number(String(e.ingreso).slice(0, 4))).filter(Boolean);
+            const primerAnio = Math.min(HOY.getFullYear(), ...ingresos);
+            let anios = '';
+            for (let a = HOY.getFullYear(); a >= primerAnio; a--) anios += `<option value="${a}">${a}</option>`;
+            anioFilter.innerHTML = anios;
+            anioFilter.value = String(anioElegido);
+            llenarMeses();
+        }
+
+        function llenarMeses() {
+            const ultimoMes = anioElegido === HOY.getFullYear() ? HOY.getMonth() : 11;
+            mesElegido = Math.min(mesElegido, ultimoMes);
+            mesFilter.innerHTML = MESES.slice(0, ultimoMes + 1).map((m, i) => `<option value="${i}">${m}</option>`).join('');
+            mesFilter.value = String(mesElegido);
+        }
+
+        function mostrarSelectoresMes() {
+            const visible = periodoActual === 'mes';
+            mesFilter.style.display = visible ? '' : 'none';
+            anioFilter.style.display = visible ? '' : 'none';
         }
 
         function abrirFila(tr) {
@@ -1552,8 +1593,19 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.filter-tab').forEach((t) => t.classList.toggle('active', t === tab));
                     periodoActual = tab.dataset.periodo;
+                    mostrarSelectoresMes();
                     renderizarTabla();
                 });
+            });
+
+            mesFilter.addEventListener('change', () => {
+                mesElegido = Number(mesFilter.value);
+                renderizarTabla();
+            });
+            anioFilter.addEventListener('change', () => {
+                anioElegido = Number(anioFilter.value);
+                llenarMeses();
+                renderizarTabla();
             });
 
             document.getElementById('tableTabs').addEventListener('click', (event) => {

@@ -1,0 +1,75 @@
+﻿nombre,fecha,hora,tipo,estado
+Bryan Gonzalez,12/30/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez,12/30/2026,6:40:00,salida,Salida fuera de horario
+Bryan Gonzalez,11/30/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez,11/30/2026,6:40:00,salida,Salida fuera de horario
+Bryan Gonzalez,12/1/2026,8:40:00,entrada,Asistencia con retardo
+Bryan Gonzalez,12/1/2026,6:50:00,salida,Salida fuera de horario
+Bryan Gonzalez,12/3/2026,8:50:00,entrada,Asistencia con retardo
+Bryan Gonzalez,12/3/2026,6:32:00,salida,Salida fuera de horario
+Bryan Gonzalez,12/4/2026,7:45:00,entrada,Asistencia puntual
+Bryan Gonzalez,12/4/2026,6:00:00,salida,Salida fuera de horario
+Bryan Gonzalez,12/5/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez,12/5/2026,6:34:00,salida,Salida fuera de horario
+Bryan Gonzalez\,12/19/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/19/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/21/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/21/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/22/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/22/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/23/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/23/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/24/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/24/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/25/2026,8:00:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/25/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/12/2026,8:30:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,12/12/2026,14:00:00,salida,Salida normal
+Bryan Gonzalez\,12/15/2026,8:25:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,12/15/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/16/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/16/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/17/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/17/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,12/18/2026,8:01:00,entrada,Asistencia puntual
+Bryan Gonzalez\,12/18/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/12/2026,8:30:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/12/2026,14:00:00,salida,Salida normal
+Bryan Gonzalez\,9/15/2026,8:25:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/15/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/16/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/16/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/17/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/17/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/18/2026,8:01:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/18/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/12/2026,8:30:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/12/2026,14:00:00,salida,Salida normal
+Bryan Gonzalez\,9/15/2026,8:25:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/15/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/16/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/16/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/17/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/17/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/18/2026,8:01:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/18/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/12/2026,8:30:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/12/2026,14:00:00,salida,Salida normal
+Bryan Gonzalez\,9/15/2026,8:25:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/15/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/16/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/16/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/17/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/17/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/18/2026,8:01:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/18/2026,18:00:00,salida,Salida normal
+Bryan Gonzalez\,9/12/2026,8:30:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/12/2026,14:00:00,salida,Salida normal
+Bryan Gonzalez\,9/15/2026,8:25:00,entrada,Asistencia con retardo
+Bryan Gonzalez\,9/15/2026,18:16:00,salida,Salida normal
+Bryan Gonzalez\,9/16/2026,8:10:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/16/2026,18:23:00,salida,Salida normal
+Bryan Gonzalez\,9/17/2026,7:50:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/17/2026,18:53:00,salida,Salida normal
+Bryan Gonzalez\,9/18/2026,8:01:00,entrada,Asistencia puntual
+Bryan Gonzalez\,9/18/2026,18:34:00,salida,Salida normal

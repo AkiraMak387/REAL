@@ -77,9 +77,27 @@ const SUCURSALES = {
     '13': 'Santiago Tianguistenco'
 };
 
-// Sucursales agregadas desde Información (se guardan en el navegador)
-const CLAVE_SUCURSALES = 'elnevado.sucursales.v1';
-Object.assign(SUCURSALES, ALMACEN.leer(CLAVE_SUCURSALES) || {});
+// Bodegas (sucursales). Cada una se guarda como un registro propio: en Firebase es el documento
+// bodegas/{clave}, y adentro quedan sus trabajadores, solicitudes y reportes.
+const CLAVE_BODEGAS = 'elnevado.bodegas.v1';
+const CLAVE_SUCURSALES = 'elnevado.sucursales.v1'; // formato anterior: solo las agregadas, todas juntas
+const BODEGAS = ALMACEN.leer(CLAVE_BODEGAS) || [];
+
+function guardarBodegas() {
+    return ALMACEN.escribir(CLAVE_BODEGAS, [...BODEGAS].sort((a, b) => a.clave.localeCompare(b.clave)));
+}
+
+(function cargarBodegas() {
+    const anteriores = ALMACEN.leer(CLAVE_SUCURSALES) || {};
+    Object.assign(SUCURSALES, anteriores);
+    BODEGAS.forEach((b) => { SUCURSALES[b.clave] = b.nombre; });
+    // Las bodegas de base (y las del formato anterior) que aún no tienen su registro se crean una vez
+    const faltantes = Object.keys(SUCURSALES).filter((clave) => !BODEGAS.some((b) => b.clave === clave));
+    if (!faltantes.length || !puede('editarSucursales')) return;
+    faltantes.forEach((clave) => BODEGAS.push({ clave, nombre: SUCURSALES[clave] }));
+    if (!guardarBodegas()) BODEGAS.splice(BODEGAS.length - faltantes.length, faltantes.length);
+    else if (Object.keys(anteriores).length) ALMACEN.borrar(CLAVE_SUCURSALES);
+})();
 
 // Lista ordenada por clave. Ojo: Object.entries pondría "10"-"13" antes que "00"-"08"
 // El admin de sucursal solo ve la suya
@@ -90,9 +108,38 @@ function listaSucursales() {
         .sort((a, b) => a.clave.localeCompare(b.clave));
 }
 
+// Crea la bodega con su registro propio. Sus colecciones (empleados, solicitudes, reportes)
+// se van llenando dentro de ella conforme se registran datos.
 function agregarSucursal(clave, nombre) {
-    const guardadas = { ...(ALMACEN.leer(CLAVE_SUCURSALES) || {}), [clave]: nombre };
-    if (!ALMACEN.escribir(CLAVE_SUCURSALES, guardadas)) return false;
+    BODEGAS.push({ clave, nombre, creada: new Date().toISOString(), creadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
+    if (!guardarBodegas()) {
+        BODEGAS.pop();
+        return false;
+    }
+    SUCURSALES[clave] = nombre;
+    return true;
+}
+
+// Cambia solo el nombre de la bodega. La clave no cambia: de ella dependen los ID de sus trabajadores
+// y en qué bodega se guardan sus datos. Regresa true solo si quedó guardado.
+function renombrarSucursal(clave, nombre) {
+    let bodega = BODEGAS.find((b) => b.clave === clave);
+    const esNueva = !bodega;
+    if (esNueva) {
+        bodega = { clave, nombre: SUCURSALES[clave] };
+        BODEGAS.push(bodega);
+    }
+    const anterior = { ...bodega };
+    Object.assign(bodega, { nombre, modificada: new Date().toISOString(), modificadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
+    if (!guardarBodegas()) {
+        // No se pudo guardar: se regresa como estaba
+        if (esNueva) BODEGAS.pop();
+        else {
+            Object.keys(bodega).forEach((campo) => delete bodega[campo]);
+            Object.assign(bodega, anterior);
+        }
+        return false;
+    }
     SUCURSALES[clave] = nombre;
     return true;
 }
@@ -182,9 +229,53 @@ function guardarCambios() {
     return ALMACEN.escribir(CLAVE_ALMACEN, TODOS_EMPLEADOS);
 }
 
+// ---------------------------------------------------------------------
+//  ID DEL TRABAJADOR: 8 dígitos = sucursal (2) + departamento (2) + número (4)
+//  Ej. 01 13 0001 = Colón · Almacenista · trabajador 1.
+//  El número es consecutivo dentro de la misma sucursal + departamento y NUNCA se
+//  repite, aunque el trabajador se borre: se guarda el último número usado de cada
+//  combinación (en Firebase: ajustes/elnevado.ids-usados.v1).
+// ---------------------------------------------------------------------
+const CLAVE_IDS_USADOS = 'elnevado.ids-usados.v1';
+const LARGO_NUMERO_ID = 4;
+
+function prefijoId(suc, deptoNombre) {
+    const depto = DEPARTAMENTOS.find((d) => d.nombre === deptoNombre);
+    return suc && depto ? String(suc) + depto.clave : '';
+}
+
+function ultimoNumeroUsado(prefijo, usados) {
+    const enPlantilla = [...TODOS_EMPLEADOS, ...EMPLEADOS]
+        .map((e) => String(e.id))
+        .filter((id) => id.length === prefijo.length + LARGO_NUMERO_ID && id.startsWith(prefijo) && /^\d+$/.test(id))
+        .map((id) => Number(id.slice(prefijo.length)));
+    return Math.max(0, Number(usados[prefijo]) || 0, ...enPlantilla);
+}
+
+const armarId = (prefijo, numero) => prefijo + String(numero).padStart(LARGO_NUMERO_ID, '0');
+
+// El ID que le tocaría a la siguiente alta (solo para mostrarlo; no lo aparta). '' si falta sucursal o departamento.
+function siguienteIdTrabajador(suc, deptoNombre) {
+    const prefijo = prefijoId(suc, deptoNombre);
+    if (!prefijo) return '';
+    return armarId(prefijo, ultimoNumeroUsado(prefijo, ALMACEN.leer(CLAVE_IDS_USADOS) || {}) + 1);
+}
+
+// Aparta el siguiente ID al momento de guardar el alta: queda anotado para que no se vuelva a dar
+function reservarIdTrabajador(suc, deptoNombre) {
+    const prefijo = prefijoId(suc, deptoNombre);
+    if (!prefijo) throw new Error('Elige la sucursal y el departamento para asignar el ID.');
+    const usados = ALMACEN.leer(CLAVE_IDS_USADOS) || {};
+    const numero = ultimoNumeroUsado(prefijo, usados) + 1;
+    if (numero >= 10 ** LARGO_NUMERO_ID) throw new Error('Ya no hay números de trabajador libres para esta sucursal y departamento.');
+    usados[prefijo] = numero;
+    if (!ALMACEN.escribir(CLAVE_IDS_USADOS, usados)) throw new Error('No se pudo apartar el ID en la base de datos. Revisa la conexión e inténtalo de nuevo.');
+    return armarId(prefijo, numero);
+}
+
 // Borra todo lo registrado: trabajadores, reglas y sucursales agregadas (deja la plantilla vacía)
 function restablecerDatosDemo() {
-    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES].forEach((clave) => ALMACEN.borrar(clave));
+    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES, CLAVE_BODEGAS].forEach((clave) => ALMACEN.borrar(clave));
     location.reload();
 }
 
@@ -455,6 +546,19 @@ function asistenciaManualEn(emp, iso) {
     return (emp.asistenciasManuales || []).find((a) => a.fecha === iso) || null;
 }
 
+// Checadas que registró la tableta ese día: la primera entrada y la última salida.
+// Cada checada es { fecha: '2026-10-05', tipo: 'entrada' | 'salida', hora: '08:02', ... }
+function checadaDelDia(emp, iso) {
+    let entrada = null;
+    let salida = null;
+    (emp.checadas || []).forEach((c) => {
+        if (c.fecha !== iso) return;
+        if (c.tipo === 'entrada' && (!entrada || c.hora < entrada)) entrada = c.hora;
+        if (c.tipo === 'salida' && (!salida || c.hora > salida)) salida = c.hora;
+    });
+    return entrada || salida ? { entrada, salida } : null;
+}
+
 // Devuelve el registro de un día o null si no aplica (antes del ingreso, después de la baja o día futuro)
 function registroDia(emp, fecha) {
     const iso = aISO(fecha);
@@ -475,8 +579,20 @@ function registroDia(emp, fecha) {
 
     if ((emp.incidencias || []).some((i) => i.fecha === iso && i.tipo === 'falta')) return { estado: 'falta', horas: 0, extras: 0 };
 
-    // Las checadas reales llegarán de las checadoras. Mientras tanto no se inventa
-    // asistencia: sin checada ni captura de RH, el día queda "sin registro".
+    // Checadas de la tableta (checador.html)
+    const checada = checadaDelDia(emp, iso);
+    if (checada && checada.entrada) {
+        const entrada = aMinutosDelDia(checada.entrada);
+        if (checada.salida) {
+            return conRetardoJustificado(emp, iso, registroChecada(fecha, entrada, Math.max(entrada, aMinutosDelDia(checada.salida)), { checadora: true }));
+        }
+        // Hoy todavía puede checar su salida: se muestra "en turno" con la salida oficial
+        if (iso === HOY_ISO) return conRetardoJustificado(emp, iso, registroChecada(fecha, entrada, Math.max(entrada, salidaOficial(fecha)), { checadora: true, sinSalida: true }));
+        // Un día pasado sin salida: cuenta que asistió, pero sin horas hasta que RH capture la salida
+        return conRetardoJustificado(emp, iso, { ...registroChecada(fecha, entrada, entrada, { checadora: true, sinSalida: true }), salida: '—', horas: 0, extras: 0 });
+    }
+
+    // Sin checada ni captura de RH no se inventa asistencia: el día queda "sin registro".
     return null;
 }
 

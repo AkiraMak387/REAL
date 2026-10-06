@@ -14,6 +14,7 @@ Uso:
     python servidor.py
     -> abre http://127.0.0.1:8000/  (o usa iniciar.bat)
 """
+import base64
 import json
 import os
 import re
@@ -41,6 +42,66 @@ RUTA_CLAVE = os.path.join(CARPETA_BASE, "clave_datos.key")
 PATRON_CLAVE = re.compile(r"^elnevado\.[a-z0-9_.-]{1,60}$")
 
 candado = threading.Lock()
+
+
+# ---------------- Rostros (InsightFace) ----------------
+# Usa los mismos ajustes del Prototipo (Prototipo/config.py). La foto llega, se sacan los
+# vectores en memoria y se descarta: a la base de datos solo regresa el vector CIFRADO con
+# la llave de este servidor (clave_datos.key), que nunca sale de esta computadora.
+sys.path.append(os.path.join(CARPETA_BASE, "Prototipo"))
+try:
+        import config as config_rostros  # type: ignore
+except ImportError:
+    config_rostros = None
+NOMBRE_MODELO = getattr(config_rostros, "NOMBRE_MODELO", "buffalo_l")
+TAMANO_DETECCION = tuple(getattr(config_rostros, "TAMANO_DETECCION", (320, 320)))
+UMBRAL_DUPLICADO = getattr(config_rostros, "UMBRAL_DUPLICADO", 0.45)
+
+analizador_rostros = None
+candado_rostros = threading.Lock()
+
+
+def cargar_analizador():
+    """Carga InsightFace la primera vez que se registra un rostro (tarda unos segundos)."""
+    global analizador_rostros
+    with candado_rostros:
+        if analizador_rostros is None:
+            from insightface.app import FaceAnalysis
+            analizador = FaceAnalysis(name=NOMBRE_MODELO, providers=["CPUExecutionProvider"])
+            analizador.prepare(ctx_id=-1, det_size=TAMANO_DETECCION)
+            analizador_rostros = analizador
+    return analizador_rostros
+
+
+def vector_de_imagen(imagen_base64):
+    """Recibe la captura (JPG en base64) y regresa el vector del único rostro que debe aparecer."""
+    import cv2
+    import numpy as np
+    datos = base64.b64decode(imagen_base64.split(",")[-1])
+    imagen = cv2.imdecode(np.frombuffer(datos, np.uint8), cv2.IMREAD_COLOR)
+    if imagen is None:
+        raise ValueError("La imagen no se pudo leer. Vuelve a escanear el rostro.")
+    caras = cargar_analizador().get(imagen)
+    if not caras:
+        raise ValueError("No se detectó ningún rostro. Vuelve a escanear de frente y con buena luz.")
+    if len(caras) > 1:
+        raise ValueError("Se detectó más de un rostro. Solo debe aparecer una persona.")
+    return caras[0].normed_embedding.astype("float32")
+
+
+def rostro_duplicado(cifrador, vector, existentes):
+    """Compara contra los rostros ya registrados (llegan cifrados y se descifran aquí)."""
+    import numpy as np
+    for item in existentes or []:
+        try:
+            guardado = np.frombuffer(cifrador.decrypt(item["rostro"].encode("ascii")), dtype="float32")
+        except (InvalidToken, KeyError, TypeError, ValueError, AttributeError):
+            continue
+        if guardado.shape != vector.shape:
+            continue
+        if float(np.dot(vector, guardado)) >= UMBRAL_DUPLICADO:
+            return item.get("id")
+    return None
 
 
 # ---------------- Cifrado ----------------
@@ -165,6 +226,38 @@ class Manejador(SimpleHTTPRequestHandler):
                 return self._responder_json(500, {"error": f"No se pudo escribir el archivo: {error}"})
             Manejador.almacen = nuevo
         return self._responder_json(200, {"ok": True})
+
+    def do_POST(self):
+        if not self._host_valido():
+            return self._responder_json(403, {"error": "Acceso no permitido"})
+        if self.path.split("?")[0] != "/api/rostro":
+            return self._responder_json(404, {"error": "No existe"})
+
+        largo = int(self.headers.get("Content-Length") or 0)
+        if largo <= 0 or largo > MAX_TAMANO_PETICION:
+            return self._responder_json(413, {"error": "Tamaño no válido"})
+        try:
+            cuerpo = json.loads(self.rfile.read(largo).decode("utf-8"))
+            imagen = cuerpo["imagen"]
+        except (ValueError, UnicodeDecodeError, KeyError, TypeError):
+            return self._responder_json(400, {"error": "Petición no válida"})
+
+        try:
+            vector = vector_de_imagen(imagen)
+        except ImportError as error:
+            return self._responder_json(503, {"error": f"Falta una librería del reconocimiento facial en el Python del servidor: {error}"})
+        except ValueError as error:
+            return self._responder_json(422, {"error": str(error)})
+        except Exception as error:
+            return self._responder_json(500, {"error": f"No se pudo procesar el rostro: {error}"})
+
+        repetido = rostro_duplicado(Manejador.cifrador, vector, cuerpo.get("existentes"))
+        if repetido:
+            return self._responder_json(409, {"error": f"Este rostro ya está registrado con el trabajador {repetido}."})
+
+        # Solo se regresa el vector cifrado; la foto ya no existe en ningún lado
+        rostro = Manejador.cifrador.encrypt(vector.tobytes()).decode("ascii")
+        return self._responder_json(200, {"rostro": rostro})
 
     def do_DELETE(self):
         if not self._host_valido():

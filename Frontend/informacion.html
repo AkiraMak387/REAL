@@ -147,13 +147,13 @@
                             <button class="btn btn--primary btn--small config-card__action" type="button" id="addBranchBtn">+ Agregar sucursal</button>
                         </div>
 
-                        <!-- Formulario para agregar una sucursal (solo Super usuario y RH) -->
+                        <!-- Formulario para agregar una sucursal o cambiarle el nombre (solo Super usuario y RH) -->
                         <div class="branch-form hidden" id="branchForm">
                             <div class="config-form-grid">
                                 <div class="form-field">
                                     <label for="branchKey">Clave</label>
                                     <input id="branchKey" type="text" maxlength="2" inputmode="numeric" placeholder="Ej. 14">
-                                    <small class="field-hint">Dos dígitos. Es el inicio del ID de sus trabajadores.</small>
+                                    <small class="field-hint" id="branchKeyHint">Dos dígitos. Es el inicio del ID de sus trabajadores.</small>
                                 </div>
                                 <div class="form-field">
                                     <label for="branchName">Nombre de la sucursal</label>
@@ -173,6 +173,7 @@
                                     <th>Clave</th>
                                     <th>Sucursal</th>
                                     <th class="num">Trabajadores</th>
+                                    <th class="num" id="branchActionsHead">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="branchTableBody"></tbody>
@@ -189,6 +190,9 @@
     <script>
         const campo = (id) => document.getElementById(id);
         const activos = () => EMPLEADOS.filter((e) => !e.baja);
+        const PUEDE_EDITAR_SUCURSALES = puede('editarSucursales');
+        const PUEDE_RENOMBRAR_SUCURSALES = puede('renombrarSucursales'); // solo el Super usuario
+        let claveEditando = null; // null = sucursal nueva; si no, la clave de la que se le cambia el nombre
 
         function mostrarToast(texto) {
             const toast = campo('toast');
@@ -265,7 +269,10 @@
             campo('branchTableBody').innerHTML = sucursales.map(({ clave, nombre }) => {
                 const trabajadores = activos().filter((e) => e.suc === clave).length;
                 const principal = clave === EMPRESA.sucursalPrincipal ? ' <span class="config-badge config-badge--inline">Matriz</span>' : '';
-                return `<tr><td class="branch-key">${clave}</td><td>${escaparHtml(nombre)}${principal}</td><td class="num">${trabajadores}</td></tr>`;
+                const editar = PUEDE_RENOMBRAR_SUCURSALES
+                    ? `<td class="num"><button class="btn btn--outline btn--small" type="button" data-editar="${clave}">✏️ Editar</button></td>`
+                    : '';
+                return `<tr><td class="branch-key">${clave}</td><td>${escaparHtml(nombre)}${principal}</td><td class="num">${trabajadores}</td>${editar}</tr>`;
             }).join('');
         }
 
@@ -276,45 +283,64 @@
             return mayor < 99 ? String(mayor + 1).padStart(2, '0') : '';
         }
 
-        function abrirFormulario() {
-            campo('branchKey').value = siguienteClaveLibre();
-            campo('branchName').value = '';
+        // Sin clave abre el alta de una sucursal; con clave, el cambio de nombre de esa sucursal
+        function abrirFormulario(clave = null) {
+            claveEditando = clave;
+            campo('branchKey').value = clave || siguienteClaveLibre();
+            // La clave no se cambia al editar: de ella dependen los ID de los trabajadores
+            campo('branchKey').readOnly = Boolean(clave);
+            campo('branchKeyHint').textContent = clave
+                ? 'La clave no se puede cambiar: es el inicio del ID de sus trabajadores.'
+                : 'Dos dígitos. Es el inicio del ID de sus trabajadores.';
+            campo('branchName').value = clave ? SUCURSALES[clave] : '';
+            campo('saveBranchBtn').textContent = clave ? 'Guardar cambios' : 'Guardar sucursal';
             campo('branchError').classList.add('hidden');
             document.querySelectorAll('#branchForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
             campo('branchForm').classList.remove('hidden');
             campo('addBranchBtn').classList.add('hidden');
+            campo('branchForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             campo('branchName').focus();
+            if (clave) campo('branchName').select();
         }
 
         function cerrarFormulario() {
             campo('branchForm').classList.add('hidden');
-            campo('addBranchBtn').classList.remove('hidden');
+            campo('addBranchBtn').classList.toggle('hidden', !PUEDE_EDITAR_SUCURSALES);
+            claveEditando = null;
+        }
+
+        function errorSucursal(texto, invalido) {
+            document.querySelectorAll('#branchForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+            if (invalido) campo(invalido).classList.add('is-invalid');
+            campo('branchError').textContent = texto;
+            campo('branchError').classList.remove('hidden');
         }
 
         function guardarSucursal() {
-            const clave = campo('branchKey').value.trim();
+            const editando = claveEditando;
+            if (!(editando ? PUEDE_RENOMBRAR_SUCURSALES : PUEDE_EDITAR_SUCURSALES)) return;
+            const clave = editando || campo('branchKey').value.trim();
             const nombre = campo('branchName').value.trim().replace(/\s+/g, ' ');
-            let error = '';
-            let invalido = null;
-            if (!/^\d{2}$/.test(clave)) { error = 'La clave debe tener dos dígitos (ej. 14).'; invalido = 'branchKey'; }
-            else if (SUCURSALES[clave]) { error = `La clave ${clave} ya es de "${SUCURSALES[clave]}".`; invalido = 'branchKey'; }
-            else if (nombre.length < 3) { error = 'Escribe el nombre de la sucursal.'; invalido = 'branchName'; }
-            else if (listaSucursales().some((s) => normalizar(s.nombre) === normalizar(nombre))) { error = `Ya existe una sucursal llamada "${nombre}".`; invalido = 'branchName'; }
+            const anterior = editando ? SUCURSALES[editando] : '';
+            // Todas las sucursales (no solo las que ve el usuario), sin contar la que se está editando
+            const repetida = Object.keys(SUCURSALES).some((k) => k !== editando && normalizar(SUCURSALES[k]) === normalizar(nombre));
 
-            document.querySelectorAll('#branchForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
-            if (error) {
-                campo(invalido).classList.add('is-invalid');
-                campo('branchError').textContent = error;
-                campo('branchError').classList.remove('hidden');
-                return;
-            }
+            if (!editando && !/^\d{2}$/.test(clave)) return errorSucursal('La clave debe tener dos dígitos (ej. 14).', 'branchKey');
+            if (!editando && SUCURSALES[clave]) return errorSucursal(`La clave ${clave} ya es de "${SUCURSALES[clave]}".`, 'branchKey');
+            if (nombre.length < 3) return errorSucursal('Escribe el nombre de la sucursal.', 'branchName');
+            if (repetida) return errorSucursal(`Ya existe una sucursal llamada "${nombre}".`, 'branchName');
+            if (editando && nombre === anterior) return errorSucursal('El nombre es el mismo que ya tiene: no hay nada que cambiar.', 'branchName');
 
-            // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
-            agregarSucursal(clave, nombre);
-            registrarBitacora('Sucursal agregada', `${clave} - ${nombre}`);
+            // Se guarda en la base de datos (Firebase) o, si no está configurada, en el navegador
+            const guardado = editando ? renombrarSucursal(clave, nombre) : agregarSucursal(clave, nombre);
+            if (!guardado) return errorSucursal('No se pudo guardar. Revisa la conexión con la base de datos e inténtalo de nuevo.');
+
+            registrarBitacora(editando ? 'Sucursal modificada' : 'Sucursal agregada', editando ? `${clave} - ${anterior} → ${nombre}` : `${clave} - ${nombre}`);
             cerrarFormulario();
             renderTodo();
-            mostrarToast(`✅ Sucursal ${clave} - ${nombre} agregada. Ya aparece en los filtros y en el alta de trabajadores.`);
+            mostrarToast(editando
+                ? `✅ La sucursal ${clave} ahora se llama "${nombre}". Ya aparece así en todo el sistema.`
+                : `✅ Sucursal ${clave} - ${nombre} agregada. Ya aparece en los filtros y en el alta de trabajadores.`);
         }
 
         function renderTodo() {
@@ -325,9 +351,14 @@
         }
 
         campo('headerDate').textContent = fechaLarga(HOY);
-        // Solo Super usuario y RH pueden agregar sucursales
-        campo('addBranchBtn').classList.toggle('hidden', !puede('editarSucursales'));
-        campo('addBranchBtn').addEventListener('click', abrirFormulario);
+        // Super usuario y RH agregan sucursales; solo el Super usuario les cambia el nombre
+        campo('addBranchBtn').classList.toggle('hidden', !PUEDE_EDITAR_SUCURSALES);
+        campo('branchActionsHead').classList.toggle('hidden', !PUEDE_RENOMBRAR_SUCURSALES);
+        campo('addBranchBtn').addEventListener('click', () => abrirFormulario());
+        campo('branchTableBody').addEventListener('click', (e) => {
+            const boton = e.target.closest('[data-editar]');
+            if (boton && PUEDE_RENOMBRAR_SUCURSALES) abrirFormulario(boton.dataset.editar);
+        });
         campo('cancelBranchBtn').addEventListener('click', cerrarFormulario);
         campo('saveBranchBtn').addEventListener('click', guardarSucursal);
         campo('branchKey').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); });

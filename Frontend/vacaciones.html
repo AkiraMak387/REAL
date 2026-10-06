@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
+    <script src="recursos/fechas.js"></script>
 </head>
 
 <body class="page-vacaciones">
@@ -225,6 +226,7 @@
                             <th>Días</th>
                             <th>Regresa</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="expedienteTabla"></tbody>
@@ -232,6 +234,20 @@
             </div>
             <div class="expediente-modal__acciones">
                 <button class="btn btn--primary" type="button" id="expedienteAceptar">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmación para borrar unas vacaciones -->
+    <div id="borrarVacModal" role="alertdialog" aria-modal="true" aria-labelledby="borrarVacTitulo"
+        style="display:none;position:fixed;inset:0;z-index:400;place-items:center;padding:20px;background:rgba(15,23,42,.55)">
+        <div style="width:min(440px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 24px 60px rgba(15,23,42,.3);text-align:center">
+            <div style="width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:grid;place-items:center;font-size:24px">🗑</div>
+            <h3 id="borrarVacTitulo" style="margin:0 0 8px;font-size:1.2rem;color:#0f172a">¿Estás seguro que deseas borrarlo permanentemente?</h3>
+            <p id="borrarVacTexto" style="margin:0;font-size:.92rem;color:#475569"></p>
+            <div style="display:flex;justify-content:center;gap:10px;margin-top:20px">
+                <button type="button" id="borrarVacNo" style="padding:10px 18px;border:1px solid #dfe7ef;border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer">No, cancelar</button>
+                <button type="button" id="borrarVacSi" style="padding:10px 18px;border:0;border-radius:10px;background:#b91c1c;color:#fff;font:inherit;font-weight:600;cursor:pointer">Sí, borrar</button>
             </div>
         </div>
     </div>
@@ -561,7 +577,10 @@
             nota.textContent = notas.join(' ');
             nota.classList.toggle('hidden', !notas.length);
 
-            const vacaciones = [...(emp.vacaciones || [])].sort((a, b) => b.inicio.localeCompare(a.inicio));
+            empExpediente = emp;
+            const puedeEditar = puede('registrarIncidencias') && !emp.baja;
+            // Se guarda la posición original de cada periodo para poder editarlo o borrarlo
+            const vacaciones = (emp.vacaciones || []).map((v, indice) => ({ ...v, indice })).sort((a, b) => b.inicio.localeCompare(a.inicio));
             const estado = (v) => v.fin < HOY_ISO
                 ? '<span class="exp-tag exp-tag--muted">Disfrutadas</span>'
                 : v.inicio <= HOY_ISO ? '<span class="exp-tag exp-tag--ok">En curso</span>' : '<span class="exp-tag exp-tag--info">Programadas</span>';
@@ -571,8 +590,12 @@
                     <td>${textoDias(diasHabiles(v.inicio, v.fin))}</td>
                     <td>${formatoFecha(fechaRegreso(v.fin))}</td>
                     <td>${estado(v)}</td>
+                    <td style="white-space:nowrap">${puedeEditar
+                        ? `<button type="button" style="${ESTILO_BOTON_VAC}" data-vac-editar="${v.indice}">✏️ Editar</button>
+                           <button type="button" style="${ESTILO_BOTON_VAC};color:#b91c1c;border-color:#fecaca" data-vac-borrar="${v.indice}">🗑 Borrar</button>`
+                        : '—'}</td>
                 </tr>`).join('')
-                : '<tr><td colspan="4" class="expediente-vacio">Sin vacaciones registradas.</td></tr>';
+                : '<tr><td colspan="5" class="expediente-vacio">Sin vacaciones registradas.</td></tr>';
 
             elementoAnterior = document.activeElement;
             expedienteModal.classList.remove('hidden');
@@ -595,7 +618,136 @@
         document.getElementById('expedienteAceptar').addEventListener('click', cerrarExpediente);
         expedienteModal.addEventListener('click', (event) => { if (event.target === expedienteModal) cerrarExpediente(); });
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && !expedienteModal.classList.contains('hidden')) cerrarExpediente();
+            if (event.key !== 'Escape') return;
+            // Si está abierta la confirmación de borrar, Escape solo cierra esa ventana
+            if (vacacionPorBorrar !== null) return cerrarConfirmacionBorrar();
+            if (!expedienteModal.classList.contains('hidden')) cerrarExpediente();
+        });
+
+        // =====================================================================
+        //  EDITAR Y BORRAR VACACIONES (solo RH y Super usuario)
+        // =====================================================================
+        const ESTILO_BOTON_VAC = 'padding:4px 10px;margin:2px;border:1px solid #dfe7ef;border-radius:8px;background:#fff;font:inherit;font-size:12px;cursor:pointer';
+        let empExpediente = null;
+
+        // Vuelve a pintar la ventana y la página sin perder a dónde regresa el foco al cerrar
+        function refrescarExpediente() {
+            const anterior = elementoAnterior;
+            abrirExpediente(empExpediente.id);
+            elementoAnterior = anterior;
+            renderTodo();
+        }
+
+        function validarVacacion(emp, indice, inicio, fin) {
+            if (!inicio || !fin) return 'Captura el primer y el último día.';
+            if (inicio < emp.ingreso) return `No puede ser antes de su ingreso (${formatoFecha(emp.ingreso)}).`;
+            if (fin < inicio) return 'El último día no puede ser antes del primero.';
+            const dias = diasHabiles(inicio, fin);
+            if (dias < 1) return 'El periodo no tiene días laborables.';
+            // Días del año sin contar el periodo que se está editando
+            const anio = Number(inicio.slice(0, 4));
+            const otras = emp.vacaciones.filter((_, i) => i !== indice);
+            const tomados = otras.filter((v) => Number(v.inicio.slice(0, 4)) === anio).reduce((t, v) => t + diasHabiles(v.inicio, v.fin), 0);
+            const derecho = getVacationDaysForYear(antiguedadAnios(emp));
+            if (tomados + dias > derecho) return `Solo tiene ${Math.max(0, derecho - tomados)} días disponibles en ${anio} y el periodo suma ${dias}.`;
+            const ocupados = [
+                ...otras.map((v) => ({ inicio: v.inicio, fin: v.fin, nombre: 'otras vacaciones' })),
+                ...(emp.permisos || []).map((p) => ({ inicio: p.inicio, fin: p.fin, nombre: 'un permiso' })),
+                ...(emp.incapacidades || []).map((i) => ({ inicio: i.inicio, fin: finIncapacidad(i), nombre: 'una incapacidad' }))
+            ];
+            const choque = ocupados.find((o) => o.inicio <= fin && o.fin >= inicio);
+            if (choque) return `Se cruza con ${choque.nombre} (${formatoFecha(choque.inicio)} – ${formatoFecha(choque.fin)}).`;
+            return '';
+        }
+
+        // Cambia el renglón por dos campos de fecha para corregir el periodo
+        function editarVacacion(fila, indice) {
+            const v = empExpediente.vacaciones[indice];
+            fila.innerHTML = `<td colspan="5">
+                <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
+                    <label style="display:grid;gap:4px;font-size:12px;font-weight:600">Primer día
+                        <input type="date" data-vac-inicio value="${v.inicio}" min="${empExpediente.ingreso}" style="min-height:36px;padding:0 8px;border:1px solid #dfe7ef;border-radius:8px;font:inherit">
+                    </label>
+                    <label style="display:grid;gap:4px;font-size:12px;font-weight:600">Último día
+                        <input type="date" data-vac-fin value="${v.fin}" min="${empExpediente.ingreso}" style="min-height:36px;padding:0 8px;border:1px solid #dfe7ef;border-radius:8px;font:inherit">
+                    </label>
+                    <button type="button" class="btn btn--primary" data-vac-guardar="${indice}">Guardar</button>
+                    <button type="button" style="${ESTILO_BOTON_VAC};padding:8px 14px" data-vac-cancelar>Cancelar</button>
+                </div>
+                <small data-vac-error style="display:block;margin-top:6px;color:#b91c1c"></small>
+            </td>`;
+        }
+
+        function guardarVacacion(fila, indice) {
+            const emp = empExpediente;
+            const anterior = emp.vacaciones[indice];
+            const inicio = fila.querySelector('[data-vac-inicio]').value;
+            const fin = fila.querySelector('[data-vac-fin]').value;
+            const error = validarVacacion(emp, indice, inicio, fin);
+            if (error) {
+                fila.querySelector('[data-vac-error]').textContent = error;
+                return;
+            }
+            emp.vacaciones[indice] = { ...anterior, inicio, fin };
+            if (guardarCambios() === false) {
+                emp.vacaciones[indice] = anterior; // no se pudo guardar: se regresa como estaba
+                fila.querySelector('[data-vac-error]').textContent = 'No se pudo guardar. Revisa la conexión e intenta de nuevo.';
+                return;
+            }
+            registrarBitacora('Vacaciones modificadas', `${emp.id} · ${emp.nombre} · ${periodoTexto(anterior.inicio, anterior.fin)} → ${periodoTexto(inicio, fin)}`);
+            refrescarExpediente();
+            showToast('Vacaciones actualizadas.');
+        }
+
+        // Ventana de confirmación antes de borrar
+        const borrarVacModal = document.getElementById('borrarVacModal');
+        let vacacionPorBorrar = null;
+
+        function pedirConfirmacionBorrar(indice) {
+            const v = empExpediente.vacaciones[indice];
+            vacacionPorBorrar = indice;
+            document.getElementById('borrarVacTexto').textContent =
+                `Se borrarán las vacaciones de ${empExpediente.nombre} del ${periodoTexto(v.inicio, v.fin)} (${textoDias(diasHabiles(v.inicio, v.fin))}). Los días regresan a sus disponibles y esto no se puede deshacer.`;
+            borrarVacModal.style.display = 'grid';
+            document.getElementById('borrarVacNo').focus();
+        }
+
+        function cerrarConfirmacionBorrar() {
+            borrarVacModal.style.display = 'none';
+            vacacionPorBorrar = null;
+        }
+
+        document.getElementById('borrarVacNo').addEventListener('click', cerrarConfirmacionBorrar);
+        document.getElementById('borrarVacSi').addEventListener('click', () => {
+            const indice = vacacionPorBorrar;
+            cerrarConfirmacionBorrar();
+            if (indice !== null) borrarVacacion(indice);
+        });
+        borrarVacModal.addEventListener('click', (event) => { if (event.target === borrarVacModal) cerrarConfirmacionBorrar(); });
+
+        function borrarVacacion(indice) {
+            const emp = empExpediente;
+            const v = emp.vacaciones[indice];
+            emp.vacaciones.splice(indice, 1);
+            if (guardarCambios() === false) {
+                emp.vacaciones.splice(indice, 0, v); // no se pudo guardar: se regresa como estaba
+                showToast('No se pudo borrar. Revisa la conexión e intenta de nuevo.');
+                return;
+            }
+            registrarBitacora('Vacaciones borradas', `${emp.id} · ${emp.nombre} · ${periodoTexto(v.inicio, v.fin)}`);
+            refrescarExpediente();
+            showToast('Vacaciones borradas.');
+        }
+
+        document.getElementById('expedienteTabla').addEventListener('click', (event) => {
+            const boton = event.target.closest('button');
+            if (!boton || !empExpediente || !puede('registrarIncidencias')) return;
+            const fila = boton.closest('tr');
+            const { vacEditar, vacBorrar, vacGuardar } = boton.dataset;
+            if (vacEditar !== undefined) editarVacacion(fila, Number(vacEditar));
+            if (vacBorrar !== undefined) pedirConfirmacionBorrar(Number(vacBorrar));
+            if (vacGuardar !== undefined) guardarVacacion(fila, Number(vacGuardar));
+            if (boton.hasAttribute('data-vac-cancelar')) refrescarExpediente();
         });
 
         // La tarjeta lleva a la lista de vacaciones

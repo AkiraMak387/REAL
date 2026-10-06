@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "211847801101",
+    "project_id": "checador00nevado",
+    "storage_bucket": "checador00nevado.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211847801101:android:32c250125858b79f636844",
+        "android_client_info": {
+          "package_name": "com.elnevado.checador_tablet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmBi--JGdiMMVkZ_EE_OvQ9HqoYCxHz-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
