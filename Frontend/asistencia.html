@@ -114,7 +114,7 @@
                         <span class="kpi-icon warning">⏰</span>
                     </div>
                     <div class="kpi-card__value retardo" id="kpiRetardos">0</div>
-                    <div class="kpi-card__footer"><span id="kpiRetardosNota">Llegaron después de las 08:15</span></div>
+                    <div class="kpi-card__footer"><span id="kpiRetardosNota">Llegaron de las 08:15 a las 10:00</span></div>
                 </div>
 
                 <div class="kpi-card" data-estado="falta">
@@ -123,7 +123,7 @@
                         <span class="kpi-icon danger">✗</span>
                     </div>
                     <div class="kpi-card__value falta" id="kpiFaltas">0</div>
-                    <div class="kpi-card__footer"><span>Sin checada y sin justificación</span></div>
+                    <div class="kpi-card__footer"><span>Sin checada o después de las 10:00</span></div>
                 </div>
 
                 <div class="kpi-card" data-estado="vacaciones">
@@ -251,6 +251,7 @@
                             <p class="checada-status" id="checadaStatus"></p>
                             <p class="checada-error hidden" id="checadaError" role="alert"></p>
                             <div class="checada-actions">
+                                <button class="btn btn--outline hidden" id="checadaCancelBtn" type="button">Cancelar</button>
                                 <button class="btn btn--primary" id="checadaBtn" type="button"></button>
                             </div>
                         </section>
@@ -320,9 +321,10 @@
             </div>
             <div class="lista-modal__vista" id="listaVista"></div>
             <div class="lista-modal__acciones">
-                <p>En la ventana que se abre elige "Guardar como PDF". La hoja sale en horizontal, tamaño carta.</p>
+                <p>PDF: en la ventana que se abre elige "Guardar como PDF" (horizontal, tamaño carta). Excel: se descarga el archivo con el mismo formato. <span id="listaAviso" role="status"></span></p>
                 <div>
                     <button class="btn btn--outline" type="button" id="listaCerrar">Cerrar</button>
+                    <button class="btn btn--outline" type="button" id="listaExcel">↓ Descargar Excel</button>
                     <button class="btn btn--primary" type="button" id="listaPdf">⎙ Generar PDF</button>
                 </div>
             </div>
@@ -687,6 +689,7 @@
         .checada-actions {
             display: flex;
             justify-content: flex-end;
+            gap: 10px;
             margin-top: 12px;
         }
 
@@ -846,6 +849,48 @@
     </style>
 
     <script src="recursos/datos.js"></script>
+    <script src="recursos/datos-prueba.js"></script>
+    <script>
+        // Regla de entrada: antes de 8:15 = a tiempo, de 8:15 a 10:00 = retardo, después de 10:00 = falta.
+        // Hoy, sin checada y pasadas las 10:00 = falta (salvo incapacidad, vacaciones, permiso, domingo, feriado
+        // o que el trabajador siga sin presentar su alta del seguro).
+        const MIN_INICIO_RETARDO = 8 * 60 + 15;
+        const MIN_LIMITE_FALTA = 10 * 60;
+
+        (function () {
+            if (!Object.getOwnPropertyDescriptor(window, 'registroDia')) {
+                console.warn('Regla de falta: registroDia no se puede reemplazar (¿const en datos.js?)');
+                return;
+            }
+            const registroDiaOriginal = window.registroDia;
+            const minutosDe = (hora) => { const [h, m] = hora.split(':').map(Number); return h * 60 + m; };
+            const sinChecada = ['descanso', 'vacaciones', 'incapacidad', 'permiso'];
+
+            window.registroDia = function (emp, fecha) {
+                const reg = registroDiaOriginal(emp, fecha);
+
+                // Hay checada de entrada: se clasifica por hora
+                if (reg && reg.entrada && ['asistencia', 'retardo', 'falta'].includes(reg.estado)) {
+                    const min = minutosDe(reg.entrada);
+                    const estado = min > MIN_LIMITE_FALTA ? 'falta' : (min >= MIN_INICIO_RETARDO ? 'retardo' : 'asistencia');
+                    return Object.assign({}, reg, { estado });
+                }
+
+                // Hoy, sin checada, pasadas las 10:00 = falta
+                if (aISO(fecha) === HOY_ISO && (!reg || !sinChecada.includes(reg.estado))) {
+                    const ahora = new Date();
+                    const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+                    const activo = emp.ingreso <= HOY_ISO && !emp.baja;
+                    if (activo && ahora.getDay() !== 0 && !feriadoEn(HOY_ISO)
+                        && !incapacidadEn(emp, HOY_ISO) && !vacacionEn(emp, HOY_ISO)
+                        && !incapacidadSinAlta(emp) // sin alta del seguro no puede trabajar: no es falta
+                        && minutosAhora > MIN_LIMITE_FALTA) {
+                return { estado: 'falta', entrada: null, salida: null, horas: 0, extras: 0 };                    }
+                }
+                return reg;
+            };
+        })();
+    </script>
     <script>
         // =====================================================================
         //  ESTADO DE LA PANTALLA
@@ -1061,7 +1106,7 @@
             const manual = reg.manual ? ' <span class="tag tag--info" title="Capturada a mano">Manual</span>' : '';
             const salida = turnoAbierto ? '<td class="time-missing">En turno</td>' : `<td>${reg.salida}${extras}${manual}</td>`;
             const claseEntrada = reg.estado === 'retardo' ? 'time-late' : 'time-ok';
-            const minutosTarde = aMinutos(reg.entrada) - 8 * 60;
+            const minutosTarde = aMinutos(reg.entrada) - MIN_INICIO_RETARDO;
             const extra = reg.estado === 'retardo' ? ` <small>(+${minutosTarde} min)</small>`
                 : reg.retardoJustificado ? ' <span class="tag tag--ok">Retardo justificado</span>' : '';
             return `<tr data-id="${emp.id}" tabindex="0">${celdasBase(emp)}<td class="col-hora">${horario}</td><td class="${claseEntrada}">${reg.entrada}${extra}</td>${salida}${estado}</tr>`;
@@ -1077,7 +1122,6 @@
                 ${valor(res.incapacidades, 'time-info')}
                 <td class="col-num"><strong>${formatoHoras(res.horas)}</strong></td>
                 ${valor(res.extras, 'time-late')}
-                ${periodoActual === 'semana' ? `<td>${res.asistencias > 0 && !res.retardos && !res.faltas ? '<span class="tag tag--ok">Elegible</span>' : '<span class="tag">No</span>'}</td>` : ''}
             </tr>`;
         }
 
@@ -1125,7 +1169,7 @@
                 return { columnas: base.concat(['Horario', 'Entrada', 'Salida', 'Estado']), filas: vista.grupos[pestanaActual], fila: filaHoy };
             }
             return {
-                columnas: base.concat(['Días trabajados', 'Retardos', 'Faltas', 'Permisos', 'Incap.', 'Horas', 'Horas extra'], periodoActual === 'semana' ? ['Bono puntualidad'] : []),
+                columnas: base.concat(['Días trabajados', 'Retardos', 'Faltas', 'Permisos', 'Incap.', 'Horas', 'Horas extra']),
                 filas: vista.grupos[pestanaActual],
                 fila: filaResumen
             };
@@ -1277,7 +1321,7 @@
 
             if (!pendientes.length && !porSucursal.length) { caja.classList.add('hidden'); return; }
             caja.classList.remove('hidden', 'checadas-alert--ok');
-            let html = '<h3>🕒 Checadas de hoy</h3><p>Quien no checó y no tiene reporte de su admin queda como falta. Los retardos no descuentan: habla con el trabajador.</p>';
+            let html = '<h3>🕒 Checadas de hoy</h3><p></p>';
             if (porSucursal.length) {
                 html += `<table><thead><tr><th>Sucursal</th><th class="col-num">Sin checar hoy</th><th class="col-num">Reportados por el admin</th><th class="col-num">Sin reporte</th></tr></thead><tbody>
                     ${porSucursal.map((s) => `<tr><td>${s.clave} - ${escaparHtml(s.nombre)}</td><td class="col-num">${s.faltan}</td><td class="col-num">${s.reportados}</td>
@@ -1301,10 +1345,12 @@
             salida: document.getElementById('checadaSalida'),
             motivo: document.getElementById('checadaMotivo'),
             boton: document.getElementById('checadaBtn'),
+            cancelar: document.getElementById('checadaCancelBtn'),
             estado: document.getElementById('checadaStatus'),
             error: document.getElementById('checadaError')
         };
         let accionChecada = null; // 'reportar' | 'capturar' | 'corregir' | null
+        let editandoChecada = false; // al corregir: false = bloqueada con "Editar"; true = se puede cambiar y "Guardar cambios"
 
         function prepararChecada(emp, fecha = HOY_ISO) {
             const reporta = puede('reportarFallaChecadora');
@@ -1360,10 +1406,18 @@
                 checada.salida.value = reg.salida || horaTexto(salidaOficial(fechaDesdeISO(iso)));
             }
             checada.estado.innerHTML = estado;
-            [checada.entrada, checada.salida, checada.motivo].forEach((el) => { el.disabled = !accionChecada; });
+            editandoChecada = false;
+            aplicarModoChecada();
+        }
+
+        // Una checada que ya existe se muestra bloqueada: primero "Editar" y, ya con los campos abiertos, "Guardar cambios"
+        function aplicarModoChecada() {
+            const bloqueada = !accionChecada || (accionChecada === 'corregir' && !editandoChecada);
+            [checada.entrada, checada.salida, checada.motivo].forEach((el) => { el.disabled = bloqueada; });
             checada.boton.disabled = !accionChecada;
-            checada.boton.textContent = { reportar: 'Reportar a RH', capturar: 'Registrar asistencia', corregir: 'Corregir checada' }[accionChecada]
+            checada.boton.textContent = { reportar: 'Reportar a RH', capturar: 'Registrar asistencia', corregir: editandoChecada ? 'Guardar cambios' : '✏️ Editar' }[accionChecada]
                 || (puede('reportarFallaChecadora') ? 'Reportar a RH' : 'Registrar asistencia');
+            checada.cancelar.classList.toggle('hidden', !editandoChecada);
         }
 
         function errorChecada(texto) {
@@ -1374,6 +1428,12 @@
         function guardarChecada() {
             const emp = seleccionado;
             if (!emp || !accionChecada) return;
+            if (accionChecada === 'corregir' && !editandoChecada) {
+                editandoChecada = true;
+                aplicarModoChecada();
+                checada.entrada.focus();
+                return;
+            }
             const iso = checada.fecha.value;
             const motivo = checada.motivo.value.trim();
             if (motivo.length < 5) return errorChecada('Escribe el motivo (mínimo 5 caracteres).');
@@ -1581,8 +1641,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             setTexto('headerDate', fechaLarga(HOY));
-            // La hora límite depende de la tolerancia definida en Configuración
-            setTexto('kpiRetardosNota', `Llegaron después de las 08:${String(TOLERANCIA_MINUTOS).padStart(2, '0')}`);
+            setTexto('kpiRetardosNota', 'Llegaron de las 08:15 a las 10:00');
             llenarFiltros();
 
             searchInput.addEventListener('input', renderizarTabla);
@@ -1645,6 +1704,8 @@
             });
             checada.fecha.addEventListener('change', actualizarChecada);
             checada.boton.addEventListener('click', guardarChecada);
+            // Cancelar deja la checada como estaba y la vuelve a bloquear
+            checada.cancelar.addEventListener('click', () => { checada.motivo.value = ''; actualizarChecada(); });
             document.getElementById('confirmChecadaSi').addEventListener('click', aplicarChecada);
             document.getElementById('confirmChecadaNo').addEventListener('click', cerrarConfirmacion);
             confirmModal.addEventListener('click', (event) => { if (event.target === confirmModal) cerrarConfirmacion(); });

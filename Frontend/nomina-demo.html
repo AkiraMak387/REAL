@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nómina (DEMO) | Distribuidora El Nevado</title>
+</head>
+<body>
+    <p style="font-family:sans-serif;padding:24px;color:#475569">Cargando nómina demo…</p>
+    <!--
+        PÁGINA DE DEMO (aislada)
+        - Lee tu nomina.html tal cual está hoy y le agrega los registros de Bryan (22 sep - 8 oct).
+        - No modifica nomina.html ni ningún otro archivo.
+        - Para borrarla después: elimina nomina-demo.html y recursos/datos-prueba-bryan.js. Nada más.
+        - Debe abrirse desde el servidor (http://...), no con doble clic en el archivo.
+    -->
+    <script>
+        fetch('nomina.html', { cache: 'no-store' })
+            .then(function (respuesta) {
+                if (!respuesta.ok) throw new Error('No se pudo leer nomina.html (' + respuesta.status + ')');
+                return respuesta.text();
+            })
+            .then(function (html) {
+                var extra =
+                    '<script src="recursos/datos-prueba-bryan.js"><\/script>' +
+                    '<script>(function(){var s=document.getElementById("reciboSemana");' +
+                    'if(s){s.value="2026-10-03";s.dispatchEvent(new Event("change"));}})();<\/script>';
+                var i = html.lastIndexOf('</body>');
+                html = i === -1 ? html + extra : html.slice(0, i) + extra + html.slice(i);
+                document.open();
+                document.write(html);
+                document.close();
+            })
+            .catch(function (error) {
+                document.body.innerHTML = '<p style="font-family:sans-serif;padding:24px;color:#b91c1c">' +
+                    'No pude cargar la demo: ' + error.message +
+                    '. Ábrela desde el servidor (no con doble clic) y verifica que nomina.html esté en la misma carpeta.</p>';
+            });
+    </script>
+</body>
+</html>

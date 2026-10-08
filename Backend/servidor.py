@@ -1,19 +1,4 @@
-"""Servidor local del sistema El Nevado.
 
-Hace dos cosas:
-  1. Entrega las páginas de la carpeta Frontend (ya no se abren como archivo).
-  2. Guarda todo lo que el sistema registra en UN solo archivo cifrado:
-     datos/almacen.dat  (cifrado con Fernet: AES-128 + HMAC).
-
-Sin la llave (clave_datos.key) el archivo no se puede leer, así que:
-  - NUNCA subas clave_datos.key ni la carpeta datos/ a GitHub.
-  - Si pierdes la llave, se pierden los datos. Guárdala en un lugar seguro aparte.
-
-Uso:
-    pip install cryptography
-    python servidor.py
-    -> abre http://127.0.0.1:8000/  (o usa iniciar.bat)
-"""
 import base64
 import json
 import os
@@ -26,7 +11,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from cryptography.fernet import Fernet, InvalidToken
 
 # ---------------- Ajustes ----------------
-HOST = "127.0.0.1"          # solo esta computadora; nadie de la red puede entrar
+HOST = "0.0.0.0"            # escucha en la red local, pero SOLO /api/identificar (la tableta) se atiende desde fuera;
+                            # las páginas y los datos siguen siendo solo para esta computadora (ver _host_valido)
 PUERTO = 8000
 MAX_RESPALDOS = 30          # copias anteriores (también cifradas) que se conservan
 MAX_TAMANO_PETICION = 10 * 1024 * 1024  # 10 MB
@@ -56,6 +42,7 @@ except ImportError:
 NOMBRE_MODELO = getattr(config_rostros, "NOMBRE_MODELO", "buffalo_l")
 TAMANO_DETECCION = tuple(getattr(config_rostros, "TAMANO_DETECCION", (320, 320)))
 UMBRAL_DUPLICADO = getattr(config_rostros, "UMBRAL_DUPLICADO", 0.45)
+UMBRAL_RECONOCIMIENTO = getattr(config_rostros, "UMBRAL_RECONOCIMIENTO", 0.45)
 
 analizador_rostros = None
 candado_rostros = threading.Lock()
@@ -89,9 +76,11 @@ def vector_de_imagen(imagen_base64):
     return caras[0].normed_embedding.astype("float32")
 
 
-def rostro_duplicado(cifrador, vector, existentes):
-    """Compara contra los rostros ya registrados (llegan cifrados y se descifran aquí)."""
+def mejor_coincidencia(cifrador, vector, existentes, umbral):
+    """Compara contra los rostros ya registrados (llegan cifrados y se descifran aquí).
+    Regresa (id, similitud) del más parecido si llega al umbral; si no, (None, similitud)."""
     import numpy as np
+    mejor_id, mejor = None, 0.0
     for item in existentes or []:
         try:
             guardado = np.frombuffer(cifrador.decrypt(item["rostro"].encode("ascii")), dtype="float32")
@@ -99,9 +88,14 @@ def rostro_duplicado(cifrador, vector, existentes):
             continue
         if guardado.shape != vector.shape:
             continue
-        if float(np.dot(vector, guardado)) >= UMBRAL_DUPLICADO:
-            return item.get("id")
-    return None
+        similitud = float(np.dot(vector, guardado))
+        if similitud > mejor:
+            mejor_id, mejor = item.get("id"), similitud
+    return (mejor_id if mejor >= umbral else None), mejor
+
+
+def rostro_duplicado(cifrador, vector, existentes):
+    return mejor_coincidencia(cifrador, vector, existentes, UMBRAL_DUPLICADO)[0]
 
 
 # ---------------- Cifrado ----------------
@@ -169,8 +163,33 @@ class Manejador(SimpleHTTPRequestHandler):
     # Evita que otra página web abierta en el navegador use este servidor
     # (protección contra "DNS rebinding"): solo se atiende a localhost.
     def _host_valido(self):
+        # Además del encabezado Host se revisa de dónde viene la conexión: el encabezado lo puede
+        # falsificar cualquier equipo de la red, la dirección de origen no.
         host = (self.headers.get("Host") or "").split(":")[0]
-        return host in ("localhost", "127.0.0.1")
+        return host in ("localhost", "127.0.0.1") and self.client_address[0] in ("127.0.0.1", "::1")
+
+    def _identificar(self):
+        """Tableta checadora: recibe la foto y los rostros cifrados de la bodega (la tableta los lee
+        de Firestore) y dice de quién es. La llave nunca sale de esta computadora."""
+        largo = int(self.headers.get("Content-Length") or 0)
+        if largo <= 0 or largo > MAX_TAMANO_PETICION:
+            return self._responder_json(413, {"error": "Tamaño no válido"})
+        try:
+            cuerpo = json.loads(self.rfile.read(largo).decode("utf-8"))
+            imagen = cuerpo["imagen"]
+        except (ValueError, UnicodeDecodeError, KeyError, TypeError):
+            return self._responder_json(400, {"error": "Petición no válida"})
+        try:
+            vector = vector_de_imagen(imagen)
+        except ValueError:
+            return self._responder_json(200, {"resultado": "sin_rostro"})  # nadie enfrente, o más de una persona
+        except Exception as error:
+            print(f"ERROR al procesar el rostro: {error!r}")
+            return self._responder_json(500, {"error": f"No se pudo procesar el rostro: {error}"})
+        quien, similitud = mejor_coincidencia(Manejador.cifrador, vector, cuerpo.get("existentes"), UMBRAL_RECONOCIMIENTO)
+        if not quien:
+            return self._responder_json(200, {"resultado": "no_reconocido", "similitud": round(similitud, 3)})
+        return self._responder_json(200, {"resultado": "reconocido", "id": quien, "similitud": round(similitud, 3)})
 
     def _responder_json(self, codigo, cuerpo):
         datos = json.dumps(cuerpo, ensure_ascii=False).encode("utf-8")
@@ -186,11 +205,11 @@ class Manejador(SimpleHTTPRequestHandler):
         return clave if PATRON_CLAVE.match(clave) else None
 
     def do_GET(self):
-        if not self._host_valido():
-            return self._responder_json(403, {"error": "Acceso no permitido"})
         ruta = self.path.split("?")[0]
         if ruta == "/api/salud":
             return self._responder_json(200, {"ok": True})
+        if not self._host_valido():
+            return self._responder_json(403, {"error": "Acceso no permitido"})
         if ruta == "/api/datos":
             with candado:
                 return self._responder_json(200, Manejador.almacen)
@@ -228,6 +247,8 @@ class Manejador(SimpleHTTPRequestHandler):
         return self._responder_json(200, {"ok": True})
 
     def do_POST(self):
+        if self.path.split("?")[0] == "/api/identificar":
+            return self._identificar()
         if not self._host_valido():
             return self._responder_json(403, {"error": "Acceso no permitido"})
         if self.path.split("?")[0] != "/api/rostro":
@@ -275,14 +296,16 @@ class Manejador(SimpleHTTPRequestHandler):
     def log_message(self, formato, *args):
         # Solo se muestran en consola las peticiones a la API (no cada CSS o imagen)
         if self.path.startswith("/api/") and not self.path.startswith("/api/salud"):
-            print(f"[{datetime.now():%H:%M:%S}] {self.command} {self.path.split('?')[0]}")
+            codigo = args[1] if len(args) > 1 else ""
+            print(f"[{datetime.now():%H:%M:%S}] {self.command} {self.path.split('?')[0]} -> {codigo}")
 
 
 def main():
     Manejador.cifrador = obtener_cifrador()
     Manejador.almacen = leer_almacen(Manejador.cifrador)
     print(f"Datos cargados: {', '.join(Manejador.almacen) or 'ninguno todavía'}")
-
+    threading.Thread(target=cargar_analizador, daemon=True).start()  # el modelo queda listo antes de la primera checada
+    
     servidor = ThreadingHTTPServer((HOST, PUERTO), Manejador)
     print(f"Servidor listo en http://127.0.0.1:{PUERTO}/  (no cierres esta ventana; Ctrl+C para detener)")
     try:

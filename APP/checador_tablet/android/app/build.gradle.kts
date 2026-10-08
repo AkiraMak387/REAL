@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.elnevado.checador_tablet"
-    compileSdk = flutter.compileSdkVersionf
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

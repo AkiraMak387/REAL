@@ -103,16 +103,11 @@
                 </article>
             </div>
 
-            <!-- Lista: vacaciones e incapacidades activas y programadas -->
+            <!-- Lista: vacaciones activas y programadas -->
             <section class="vacation-section card-section" id="activeSection">
                 <div class="section-heading">
                     <h2>Vacaciones Activas y Programadas</h2>
                     <div class="section-heading__tools">
-                        <div class="list-filter" id="listFilter">
-                            <button class="list-filter__btn is-active" type="button" data-tipo="todos">Todos</button>
-                            <button class="list-filter__btn" type="button" data-tipo="vacaciones">Vacaciones</button>
-                            <button class="list-filter__btn" type="button" data-tipo="incapacidad">Incapacidades</button>
-                        </div>
                         <span class="count-pill" id="activeCountPill">0 vigentes</span>
                     </div>
                 </div>
@@ -124,7 +119,6 @@
                                 <th>Empleado</th>
                                 <th>Sucursal</th>
                                 <th>Departamento</th>
-                                <th>Motivo</th>
                                 <th>Periodo</th>
                                 <th>Días</th>
                             </tr>
@@ -263,7 +257,6 @@
         const departmentFilter = document.getElementById('vacationDepartmentFilter');
         const activeListBody = document.getElementById('activeListBody');
         const vacationTableBody = document.getElementById('vacationTableBody');
-        let tipoLista = 'todos';
         let paginaActual = 1;
 
         function showToast(mensaje) {
@@ -294,22 +287,12 @@
 
         const activos = () => EMPLEADOS.filter((e) => !e.baja);
 
-        // ---------- Lista de vacaciones e incapacidades vigentes ----------
-        function ausenciasVigentes() {
-            return activos().flatMap((emp) => [
-                ...(emp.vacaciones || [])
-                    .filter((v) => v.fin >= HOY_ISO)
-                    .map((v) => ({ emp, tipo: 'vacaciones', inicio: v.inicio, fin: v.fin, dias: diasHabiles(v.inicio, v.fin) })),
-                ...(emp.incapacidades || [])
-                    .filter((i) => finIncapacidad(i) >= HOY_ISO)
-                    .map((i) => ({ emp, tipo: 'incapacidad', inicio: i.inicio, fin: finIncapacidad(i), dias: i.dias, incapacidad: i }))
-            ]).sort((a, b) => a.inicio.localeCompare(b.inicio));
-        }
-
-        function motivo(a) {
-            if (a.tipo === 'vacaciones') return '<span class="reason-pill reason-pill--vacation">Vacaciones</span>';
-            return `<span class="reason-pill reason-pill--incapacity">Incapacidad · ${escaparHtml(a.incapacidad.tipo)}</span>
-                    <small class="reason-note">Folio IMSS ${escaparHtml(a.incapacidad.folio)}</small>`;
+        // ---------- Lista de vacaciones vigentes (las incapacidades van en su propia pantalla) ----------
+        function vacacionesVigentes() {
+            return activos().flatMap((emp) => (emp.vacaciones || [])
+                .filter((v) => v.fin >= HOY_ISO)
+                .map((v) => ({ emp, inicio: v.inicio, fin: v.fin, dias: diasHabiles(v.inicio, v.fin) }))
+            ).sort((a, b) => a.inicio.localeCompare(b.inicio));
         }
 
         function celdaEmpleado(emp) {
@@ -317,8 +300,7 @@
         }
 
         function renderLista() {
-            const lista = ausenciasVigentes()
-                .filter((a) => tipoLista === 'todos' || a.tipo === tipoLista)
+            const lista = vacacionesVigentes()
                 .filter((a) => coincideBusqueda(a.emp, vacationSearch));
 
             document.getElementById('activeCountPill').textContent = `${lista.length} ${lista.length === 1 ? 'vigente' : 'vigentes'}`;
@@ -330,12 +312,11 @@
                             ${celdaEmpleado(a.emp)}
                             <td>${escaparHtml(SUCURSALES[a.emp.suc])}</td>
                             <td>${escaparHtml(a.emp.depto)}</td>
-                            <td>${motivo(a)}</td>
                             <td class="nowrap">${formatoFecha(a.inicio)}${a.inicio === a.fin ? '' : '<br>' + formatoFecha(a.fin)}<small class="reason-note">${enCurso ? 'En curso · ' : ''}Regresa el ${formatoFecha(fechaRegreso(a.fin))}</small></td>
                             <td class="nowrap">${textoDias(a.dias)}</td>
                         </tr>`;
                 }).join('')
-                : '<tr><td colspan="6" class="table-empty">No hay vacaciones ni incapacidades vigentes con estos filtros.</td></tr>';
+                : '<tr><td colspan="5" class="table-empty">No hay vacaciones vigentes con estos filtros.</td></tr>';
         }
 
         // ---------- Saldo vacacional por trabajador ----------
@@ -390,23 +371,16 @@
 
             // Anticipación de los avisos: se define en Configuración → Alertas (0 = sin aviso)
             const diasVacaciones = CONFIGURACION.avisoVacacionesDias;
-            const diasIncapacidad = CONFIGURACION.avisoIncapacidadDias;
             const limiteVacaciones = aISO(sumarDias(HOY, diasVacaciones));
-            const limiteIncapacidad = aISO(sumarDias(HOY, diasIncapacidad));
-            const avisos = ausenciasVigentes()
+            const avisos = (diasVacaciones > 0 ? vacacionesVigentes() : [])
                 .flatMap((a) => {
                     const items = [];
                     const regreso = fechaRegreso(a.fin);
-                    if (a.tipo === 'vacaciones' && diasVacaciones > 0) {
-                        if (a.inicio > HOY_ISO && a.inicio <= limiteVacaciones) {
-                            items.push({ fecha: a.inicio, icono: '🏖️', titulo: `${a.emp.nombre} sale de vacaciones`, texto: `${periodoTexto(a.inicio, a.fin)} · ${textoDias(a.dias)}` });
-                        }
-                        if (a.inicio <= HOY_ISO && regreso <= limiteVacaciones) {
-                            items.push({ fecha: regreso, icono: '↩️', titulo: `${a.emp.nombre} regresa de vacaciones`, texto: `Se reincorpora el ${formatoFecha(regreso)}` });
-                        }
+                    if (a.inicio > HOY_ISO && a.inicio <= limiteVacaciones) {
+                        items.push({ fecha: a.inicio, icono: '🏖️', titulo: `${a.emp.nombre} sale de vacaciones`, texto: `${periodoTexto(a.inicio, a.fin)} · ${textoDias(a.dias)}` });
                     }
-                    if (a.tipo === 'incapacidad' && diasIncapacidad > 0 && a.fin <= limiteIncapacidad) {
-                        items.push({ fecha: a.fin, icono: '🏥', titulo: `${a.emp.nombre} termina su incapacidad`, texto: `Último día ${formatoFecha(a.fin)} · se reincorpora el ${formatoFecha(regreso)}` });
+                    if (a.inicio <= HOY_ISO && regreso <= limiteVacaciones) {
+                        items.push({ fecha: regreso, icono: '↩️', titulo: `${a.emp.nombre} regresa de vacaciones`, texto: `Se reincorpora el ${formatoFecha(regreso)}` });
                     }
                     return items;
                 })
@@ -422,7 +396,7 @@
                             <span>${a.texto}</span>
                         </div>
                     </div>`).join('')
-                : '<div class="notif-item"><div class="notif-content"><span>Sin salidas, regresos ni fin de incapacidades próximos.</span></div></div>';
+                : '<div class="notif-item"><div class="notif-content"><span>Sin salidas ni regresos de vacaciones próximos.</span></div></div>';
         }
 
         // ---------- Calendario de descansos obligatorios ----------
@@ -499,11 +473,9 @@
                 .concat(saldos().map(({ emp, total, tomados, disponibles }) => [
                     emp.id, emp.nombre, nombreSucursal(emp.suc), emp.depto, formatoFecha(emp.ingreso), total, tomados, disponibles
                 ]));
-            const vigentesHoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Motivo', 'Tipo de incapacidad', 'Folio IMSS', 'Inicio', 'Fin', 'Días', 'Regresa']]
-                .concat(ausenciasVigentes().map((a) => [
+            const vigentesHoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Inicio', 'Fin', 'Días', 'Regresa']]
+                .concat(vacacionesVigentes().map((a) => [
                     a.emp.id, a.emp.nombre, nombreSucursal(a.emp.suc), a.emp.depto,
-                    a.tipo === 'vacaciones' ? 'Vacaciones' : 'Incapacidad',
-                    a.incapacidad ? a.incapacidad.tipo : '', a.incapacidad ? a.incapacidad.folio : '',
                     formatoFecha(a.inicio), formatoFecha(a.fin), a.dias, formatoFecha(fechaRegreso(a.fin))
                 ]));
             const formato = descargarExcel(`vacaciones_${HOY_ISO}`, [
@@ -523,14 +495,6 @@
         vacationSearch.addEventListener('input', () => { paginaActual = 1; renderLista(); renderSaldos(); });
         tableSearch.addEventListener('input', () => { paginaActual = 1; renderSaldos(); });
         departmentFilter.addEventListener('change', () => { paginaActual = 1; renderSaldos(); });
-
-        document.getElementById('listFilter').addEventListener('click', (event) => {
-            const boton = event.target.closest('.list-filter__btn');
-            if (!boton) return;
-            tipoLista = boton.dataset.tipo;
-            document.querySelectorAll('.list-filter__btn').forEach((b) => b.classList.toggle('is-active', b === boton));
-            renderLista();
-        });
 
         document.getElementById('pager').addEventListener('click', (event) => {
             const boton = event.target.closest('button[data-page]');
@@ -753,7 +717,6 @@
         // La tarjeta lleva a la lista de vacaciones
         const cardActiveToday = document.getElementById('cardActiveToday');
         const irALista = () => {
-            document.querySelector('.list-filter__btn[data-tipo="vacaciones"]').click();
             document.getElementById('activeSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
         cardActiveToday.addEventListener('click', irALista);

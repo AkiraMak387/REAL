@@ -1,240 +1,426 @@
 /* ===============================
    PÁGINA DE LOGIN
+   Toda la pantalla en azul marino con el paisaje del nevado al fondo;
+   a la izquierda el mensaje en grande y a la derecha la tarjeta blanca con el formulario.
+   Colores sobrios: azul marino, grises y el rojo del logo solo como acento.
 ================================ */
 .login-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(145deg, #3b4a8c 0%, #6b7bbd 40%, #dce3f5 100%);
-    padding: 20px;
-    font-family: 'Inter', system-ui, sans-serif;
-}
+    --marino: #12213f;
+    --marino-oscuro: #0a152b;
+    --rojo: #be1d2c;
+    --texto: #111827;
+    --texto-suave: #5b6472;
+    --borde: #d5dae1;
+    --fondo-campo: #f7f8fa;
 
-.login-container {
-    width: 100%;
-    max-width: 400px;
-}
-
-/* ===============================
-   CARD
-================================ */
-.login-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 40px 36px 32px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    text-align: center;
-}
-
-/* Logo */
-.login-card__logo {
-    margin-bottom: 20px;
-}
-
-.login-card__logo img {
-    height: 100px;
-    margin: 0 auto;
-}
-
-/* Título */
-.login-card__title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #1e1b4b;
-    margin-bottom: 6px;
-}
-
-.login-card__subtitle {
-    font-size: 14px;
-    color: #64748b;
-    margin-bottom: 28px;
-}
-
-/* Formulario */
-.login-form {
-    text-align: left;
-}
-
-/* Labels */
-.label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.label-row label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #334155;
-}
-
-.label-tag {
-    font-size: 11px;
-    color: #94a3b8;
-    background: #f1f5f9;
-    padding: 2px 8px;
-    border-radius: 20px;
-}
-
-/* Inputs con icono */
-.input-icon {
     position: relative;
-}
-
-.input-icon input {
-    width: 100%;
-    padding: 12px 42px 12px 14px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    background: #f8fafc;
-    transition: all 0.2s ease;
-}
-
-.input-icon input:focus {
-    outline: none;
-    border-color: #252060;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(37, 32, 96, 0.1);
-}
-
-.input-icon .icon,
-.input-icon .toggle-password {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    color: #94a3b8;
-}
-
-/* Recordarme + En línea */
-.form-row {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 18px 0 24px;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    background:
+        radial-gradient(1100px 620px at 78% -8%, rgba(54, 92, 160, 0.55) 0%, rgba(54, 92, 160, 0) 62%),
+        linear-gradient(180deg, #14264a 0%, #0b1730 58%, #070f20 100%);
+    color: #ffffff;
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #475569;
-    cursor: pointer;
-}
-
-.status-online {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: #16a34a;
-    font-weight: 500;
-}
-
-.status-online .dot {
-    width: 8px;
-    height: 8px;
-    background: #22c55e;
-    border-radius: 50%;
-}
-
-/* Botón */
-.btn--primary {
-    background: #1e1b4b;
-    color: white;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn--primary:hover {
-    background: #312e81;
-}
-
-.btn--full {
-    width: 100%;
-}
-
-/* Footer del form */
-.login-form__footer {
-    margin-top: 18px;
-    text-align: center;
-}
-
-.login-form__footer a {
-    font-size: 13px;
-    color: #64748b;
-}
-
-.login-form__footer a:hover {
-    color: #BE1D2C;
-}
-
-/* Texto inferior */
-.login-card__bottom {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid #f1f5f9;
-}
-
-.login-card__bottom p {
-    font-size: 13px;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-
-.login-card__bottom span {
-    font-size: 12px;
-    color: #94a3b8;
-}
-/* ===============================
-   ERROR Y CUENTAS DE PRUEBA
-================================ */
 .hidden {
-    display: none;
+    display: none !important;
+}
+
+/* ===============================
+   PAISAJE DEL FONDO
+================================ */
+.acceso__paisaje {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 56vh;
+    pointer-events: none;
+}
+
+.paisaje__lejos { fill: #1b3158; opacity: 0.55; }
+.paisaje__medio { fill: #152849; }
+.paisaje__cerca { fill: #0a1529; }
+.paisaje__nieve { fill: #eef2f8; opacity: 0.92; }
+
+/* ===============================
+   DISTRIBUCIÓN
+================================ */
+.acceso {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: center;
+    gap: clamp(24px, 5vw, 80px);
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: clamp(24px, 5vh, 56px) clamp(24px, 5vw, 72px);
+}
+
+/* ===============================
+   MENSAJE DE MARCA
+================================ */
+.acceso__empresa {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 22px;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #c9d3e4;
+}
+
+.acceso__empresa span {
+    flex: none;
+    width: 48px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--rojo);
+}
+
+.acceso__marca h2 {
+    margin: 0 0 22px;
+    font-size: clamp(40px, 5.4vw, 76px);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.35);
+}
+
+.acceso__lema {
+    max-width: 460px;
+    margin: 0 0 30px;
+    font-size: clamp(15px, 1.25vw, 18px);
+    line-height: 1.6;
+    color: #c3ccdb;
+}
+
+.acceso__puntos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.acceso__puntos li {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 14px 9px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(10, 21, 43, 0.55);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #e6eaf1;
+}
+
+.acceso__puntos svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #ffffff;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ===============================
+   TARJETA DEL FORMULARIO
+================================ */
+.acceso__panel {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.acceso__caja {
+    width: 100%;
+    max-width: 440px;
+    padding: clamp(24px, 4vh, 40px) clamp(24px, 3vw, 40px) clamp(24px, 4vh, 36px);
+    border-top: 5px solid var(--rojo);
+    border-radius: 14px;
+    background: #ffffff;
+    color: var(--texto);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 2px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* El archivo del logo trae mucho espacio vacío alrededor: se recorta con márgenes negativos */
+.acceso__logo {
+    display: block;
+    width: clamp(170px, 15vw, 210px);
+    height: auto;
+    margin: -14px auto -18px;
+}
+
+.acceso__caja h1 {
+    margin: 0 0 4px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-align: center;
+    color: var(--marino);
+}
+
+.acceso__subtitulo {
+    margin: 0 0 clamp(16px, 3vh, 26px);
+    font-size: 14.5px;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.campo {
+    margin-bottom: 16px;
+}
+
+.campo label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #2c3545;
+}
+
+.campo__caja {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: var(--fondo-campo);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.campo__caja:focus-within {
+    border-color: var(--marino);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(18, 33, 63, 0.14);
+}
+
+.campo__caja svg {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-left: 14px;
+    fill: none;
+    stroke: #7b8494;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.campo__caja:focus-within svg {
+    stroke: var(--marino);
+}
+
+.campo__caja input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px 12px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: inherit;
+    font-size: 15px;
+    color: var(--texto);
+}
+
+.campo__caja input::placeholder {
+    color: #9aa2af;
+}
+
+.campo__ver {
+    flex: none;
+    margin-right: 6px;
+    padding: 7px 10px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--marino);
+    cursor: pointer;
+}
+
+.campo__ver:hover,
+.campo__ver:focus-visible {
+    background: #e9edf3;
+    outline: none;
+}
+
+.campo__aviso {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #9a5b00;
+}
+
+.acceso__recordar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 20px;
+    font-size: 14px;
+    color: #3b4453;
+    cursor: pointer;
+}
+
+.acceso__recordar input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--marino);
+    cursor: pointer;
 }
 
 .login-error {
-    margin: -8px 0 16px;
-    padding: 10px 12px;
+    margin: -6px 0 16px;
+    padding: 11px 14px;
+    border: 1px solid #f1c4c8;
+    border-left: 4px solid var(--rojo);
     border-radius: 8px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
-    font-size: 13px;
+    background: #fdf3f4;
+    font-size: 13.5px;
+    color: #8f1622;
 }
 
-.login-form__footer span {
-    font-size: 13px;
-    color: #64748b;
-}
-
-.login-demo {
-    margin-top: 16px;
-    font-size: 12px;
-    color: #64748b;
-    text-align: left;
-}
-
-.login-demo summary {
+.acceso__boton {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    background: var(--marino);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #ffffff;
     cursor: pointer;
-    text-align: center;
+    box-shadow: 0 8px 20px rgba(18, 33, 63, 0.28);
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.login-demo ul {
-    margin: 10px 0 0;
-    padding-left: 18px;
-    line-height: 1.8;
+.acceso__boton:hover {
+    background: var(--marino-oscuro);
+    box-shadow: 0 10px 24px rgba(18, 33, 63, 0.38);
+    transform: translateY(-1px);
+}
+
+.acceso__boton:active {
+    transform: translateY(0);
+}
+
+.acceso__boton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(18, 33, 63, 0.35);
+}
+
+.acceso__ayuda {
+    margin: 14px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+/* ===============================
+   PIE DE PÁGINA
+================================ */
+.acceso__pie {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px 24px;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 clamp(24px, 5vw, 72px) 18px;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    color: #8f9bb0;
+}
+
+/* ===============================
+   PANTALLAS ANGOSTAS: el mensaje arriba, compacto, y la tarjeta debajo
+================================ */
+@media (max-width: 900px) {
+    .acceso {
+        grid-template-columns: 1fr;
+        align-content: center;
+        gap: 22px;
+    }
+
+    .acceso__marca {
+        text-align: center;
+    }
+
+    .acceso__empresa {
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: 12px;
+    }
+
+    .acceso__marca h2 {
+        margin-bottom: 0;
+        font-size: clamp(26px, 6.5vw, 38px);
+    }
+
+    .acceso__marca h2 br,
+    .acceso__lema,
+    .acceso__puntos {
+        display: none;
+    }
+
+    .acceso__panel {
+        justify-content: center;
+    }
+
+    .acceso__pie {
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* Pantallas bajas (laptops chicas): se compacta para que todo quepa sin desplazarse */
+@media (max-height: 700px) and (min-width: 901px) {
+    .acceso__marca h2 {
+        font-size: clamp(36px, 4.4vw, 56px);
+    }
+
+    .acceso__puntos {
+        display: none;
+    }
+
+    .acceso__lema {
+        margin-bottom: 0;
+    }
+
+    .acceso__logo {
+        width: 150px;
+    }
+
+    .campo__caja input {
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .acceso__boton {
+        transition: none;
+    }
 }

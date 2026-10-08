@@ -152,141 +152,127 @@
     print-color-adjust: exact;
 }
 
-.la-encabezado {
-    display: grid;
-    grid-template-columns: auto 1fr 1.4fr;
-    align-items: center;
-    gap: 16px;
-    padding: 7px 14px;
-    border-radius: 10px;
-    background: #252060;
-    color: #fff;
+/* La tabla lleva el diseño de la plantilla que usaban las bodegas: azul marino en títulos y rojo
+   en los días. Lo que pasó cada día (asistió, retardo, falta, incapacidad…) va con los colores
+   del sistema, los de main.css, iguales en todas las páginas. */
+.lista-hoja {
+    --la-azul: #1f3864;
+    --la-rojo: #c00000;
 }
 
-.la-encabezado img {
-    width: 62px;
-    padding: 5px;
-    border-radius: 8px;
+/* Encabezado: logo · "Lista de asistencia / Semana del:" · sucursal y semana */
+.la-encabezado {
+    display: grid;
+    grid-template-columns: 74px 1fr 2.1fr;
+    margin-bottom: 5px;
+    border: 1px solid #000;
+    background: var(--la-azul);
+    color: #fff;
+    font-family: Cambria, Georgia, 'Times New Roman', serif;
+}
+
+.la-logo {
+    display: grid;
+    place-items: center;
+    padding: 4px;
     background: #fff;
 }
 
-.la-encabezado h2 {
-    margin: 0;
-    font-size: 19px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+.la-logo img {
+    display: block;
+    max-width: 100%;
+    max-height: 46px;
 }
 
-.la-encabezado p {
-    margin: 2px 0 0;
-    font-size: 11px;
-    color: #c7d2fe;
+.la-titulo,
+.la-semana {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    text-align: center;
 }
 
 .la-semana {
-    text-align: right;
+    border-left: 1px solid #000;
 }
 
-.la-semana p {
-    font-size: 12.5px;
+.la-encabezado h2,
+.la-encabezado p {
+    margin: 0;
+    padding: 5px 8px;
+    font-size: 14px;
     font-weight: 700;
+    letter-spacing: 0.03em;
     color: #fff;
 }
 
-.la-tarjetas {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 8px;
-    margin: 8px 0;
+.la-titulo h2,
+.la-titulo p {
+    text-transform: uppercase;
 }
 
-.la-tarjeta {
-    padding: 5px 10px;
-    border: 1px solid #e2e8f0;
-    border-left: 4px solid #cbd5e1;
-    border-radius: 8px;
-    background: #f8fafc;
+.la-encabezado h2 {
+    border-bottom: 1px solid #000;
 }
-
-.la-tarjeta {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.la-tarjeta strong {
-    font-size: 15px;
-}
-
-.la-tarjeta span {
-    font-size: 9.5px;
-    line-height: 1.15;
-    color: #475569;
-}
-
-.la-tarjeta--asistencia { border-left-color: var(--asistencia-pt); }
-.la-tarjeta--asistencia strong { color: var(--asistencia-tx); }
-.la-tarjeta--retardo { border-left-color: var(--retardo-pt); }
-.la-tarjeta--retardo strong { color: var(--retardo-tx); }
-.la-tarjeta--falta { border-left-color: var(--falta-pt); }
-.la-tarjeta--falta strong { color: var(--falta-tx); }
-.la-tarjeta--incapacidad { border-left-color: var(--incapacidad-pt); }
-.la-tarjeta--incapacidad strong { color: var(--incapacidad-tx); }
-.la-tarjeta--vacaciones { border-left-color: var(--vacaciones-pt); }
-.la-tarjeta--vacaciones strong { color: var(--vacaciones-tx); }
-.la-tarjeta--permiso { border-left-color: var(--permiso-pt); }
-.la-tarjeta--permiso strong { color: var(--permiso-tx); }
 
 .la-tabla {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    border: 2px solid #000;
 }
 
 .la-tabla th,
 .la-tabla td {
-    border: 1px solid #94a3b8;
+    border: 1px solid #000;
     padding: 2px 4px;
     text-align: center;
     vertical-align: middle;
 }
 
 .la-tabla thead th {
-    background: #252060;
+    background: var(--la-azul);
     color: #fff;
     font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
 
-.la-tabla thead .la-th-fecha,
-.la-tabla thead .la-th-total {
-    background: #e0e7ff;
-    color: #1e1b4b;
+/* Días y "Horas trabajadas" en rojo; el renglón de fechas en gris */
+.la-tabla thead .la-th-dia {
+    background: var(--la-rojo);
+}
+
+.la-tabla thead .la-th-fecha {
+    background: #d9d9d9;
+    color: #000;
     text-transform: none;
 }
 
-.la-tabla thead .la-th-hoy {
-    background: #fde68a;
+.la-tabla td.la-num {
+    font-size: 8px;
+    font-weight: 700;
 }
 
-.la-tabla td.la-num { color: #475569; }
-
+/* Renglón del departamento: rojo del lado de los nombres y gris claro del lado de los días */
 .la-grupo td {
-    background: #f1f5f9;
+    background: #f2f2f2;
+    height: 14px;
+}
+
+.la-grupo td:first-child {
+    background: var(--la-rojo);
     font-weight: 800;
-    font-size: 11px;
-    letter-spacing: 0.05em;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #252060;
+    color: #fff;
 }
 
 .la-tabla td.la-nombre {
     text-align: left;
     font-weight: 700;
     text-transform: uppercase;
-    color: #1e3a8a;
+    color: #000;
 }
 
 .la-nombre span {
@@ -305,15 +291,17 @@
 }
 
 .la-ingreso {
-    font-weight: 600;
-    color: #1e3a8a;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #0070c0;
 }
 
 .la-puesto {
-    font-size: 9px;
+    font-size: 8.5px;
     line-height: 1.15;
     font-weight: 700;
     text-transform: uppercase;
+    color: var(--la-azul);
 }
 
 .la-dia {
@@ -327,50 +315,40 @@
 }
 
 .la-dia strong {
+    font-size: 9.5px;
     white-space: nowrap;
 }
 
-.la-dia strong {
-    font-size: 9.5px;
-}
-
 .la-dia small {
-    font-size: 8.5px;
+    font-size: 8px;
     font-weight: 600;
-    opacity: 0.9;
+    color: #595959;
 }
 
-.la-dia--asistencia { color: var(--asistencia-tx); }
-.la-dia--retardo { background: var(--retardo-bg); color: var(--retardo-tx); }
+/* Entrada y salida en verde (asistió); en ámbar lo que se sale del horario (llegó tarde o salió antes) */
+.la-dia--asistencia,
+.la-dia--retardo { color: var(--asistencia-tx); }
+.la-dia--retardo { background: var(--retardo-bg); }
+.la-hora--roja { color: var(--retardo-tx); }
+
+/* Motivos: los mismos colores que en Asistencia, Incapacidades y Vacaciones */
 .la-dia--falta { background: var(--falta-bg); color: var(--falta-tx); }
 .la-dia--incapacidad { background: var(--incapacidad-bg); color: var(--incapacidad-tx); }
 .la-dia--vacaciones { background: var(--vacaciones-bg); color: var(--vacaciones-tx); }
 .la-dia--permiso { background: var(--permiso-bg); color: var(--permiso-tx); }
 .la-dia--descanso { background: var(--descanso-bg); color: var(--descanso-tx); }
+/* Terminó su incapacidad y no ha presentado el alta del seguro: no puede trabajar */
+.la-dia--sinalta { background: #fee2e2; color: #991b1b; }
 
 .la-dia--fuera {
-    background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 5px, #e2e8f0 5px, #e2e8f0 6px);
-    color: #64748b;
+    background: var(--descanso-bg);
+    color: var(--descanso-tx);
     font-size: 9px;
 }
 
-.la-total {
+.la-horas {
+    font-size: 10.5px;
     font-weight: 700;
-}
-
-.la-total--retardo { color: var(--retardo-tx); }
-.la-total--falta { color: var(--falta-tx); }
-
-.la-pie td {
-    background: #eef2ff;
-    font-weight: 800;
-    color: #1e1b4b;
-}
-
-.la-pie td:first-child {
-    text-align: right;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
 }
 
 .la-vacia {
@@ -446,6 +424,7 @@
 }
 
 .la-aviso--falta::before { background: var(--falta-pt) !important; }
+.la-aviso--sinalta::before { background: #b91c1c !important; }
 .la-aviso--retardo::before { background: var(--retardo-pt) !important; }
 .la-aviso--asistencia::before { background: var(--asistencia-pt) !important; }
 .la-aviso--incapacidad::before { background: var(--incapacidad-pt) !important; }

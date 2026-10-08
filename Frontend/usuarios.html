@@ -99,9 +99,9 @@
                             <h4 class="user-form__title" id="userFormTitle">Nuevo usuario</h4>
                             <div class="config-form-grid">
                                 <div class="form-field">
-                                    <label for="userName">Usuario</label>
-                                    <input id="userName" type="text" maxlength="30" autocomplete="off" placeholder="Ej. admin02">
-                                    <small class="field-hint">Sin espacios. Con él se inicia sesión.</small>
+                                    <label for="userName">Correo</label>
+                                    <input id="userName" type="email" maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Ej. admin02@nevado.com">
+                                    <small class="field-hint" id="userNameHint">Con él se inicia sesión.</small>
                                 </div>
                                 <div class="form-field">
                                     <label for="userFullName">Nombre completo</label>
@@ -116,12 +116,18 @@
                                     <select id="userBranch"></select>
                                     <small class="field-hint" id="userBranchHint"></small>
                                 </div>
-                                <div class="form-field field-full">
-                                    <label for="userPassword">Contraseña</label>
+                                <div class="form-field hidden" id="userCurrentPasswordField">
+                                    <label for="userCurrentPassword">Tu contraseña actual</label>
+                                    <input id="userCurrentPassword" type="password" maxlength="40" autocomplete="current-password">
+                                    <small class="field-hint">Solo si vas a cambiar tu contraseña.</small>
+                                </div>
+                                <div class="form-field field-full" id="userPasswordField">
+                                    <label for="userPassword" id="userPasswordLabel">Contraseña inicial</label>
                                     <input id="userPassword" type="text" maxlength="40" autocomplete="off">
                                     <small class="field-hint" id="userPasswordHint"></small>
                                 </div>
                             </div>
+                            <p class="field-hint hidden" id="userPasswordNote">La contraseña de otra persona no se puede cambiar desde aquí con el plan actual de Firebase. Si la perdió hay dos caminos: cambiarle el correo aquí mismo (se le crea una cuenta nueva con la contraseña que escribas) o, en la consola de Firebase (Authentication → Usuarios), borrar su cuenta y crearla de nuevo con el mismo correo; su rol y sucursal se conservan.</p>
                             <p class="form-error hidden" id="userError" role="alert"></p>
                             <div class="branch-form__actions">
                                 <button class="btn btn--ghost" type="button" id="cancelUserBtn">Cancelar</button>
@@ -133,7 +139,7 @@
                             <table class="branch-table">
                                 <thead>
                                     <tr>
-                                        <th>Usuario</th>
+                                        <th>Correo</th>
                                         <th>Nombre</th>
                                         <th>Rol</th>
                                         <th>Sucursal</th>
@@ -143,30 +149,6 @@
                                 </thead>
                                 <tbody id="userTableBody"></tbody>
                             </table>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="config-column">
-                    <!-- ========== ESTADO DEL SISTEMA (Sistemas y Super usuario) ========== -->
-                    <div class="config-card hidden" id="systemCard">
-                        <div class="config-card__title">
-                            <span class="config-icon">🖥️</span>
-                            <div>
-                                <h3>Estado del sistema</h3>
-                                <p>Para verificar que el sistema funciona en cada sucursal</p>
-                            </div>
-                            <button class="btn btn--ghost btn--small config-card__action" type="button" id="checkSystemBtn">↻ Revisar</button>
-                        </div>
-                        <div class="system-filter">
-                            <label for="systemBranch">Revisar</label>
-                            <select id="systemBranch"></select>
-                        </div>
-                        <ul class="info-list" id="systemInfo"></ul>
-                        <div class="hint-box">Mientras no exista el servidor, los datos se guardan en este navegador. Cuando exista, aquí se mostrará el estado de la base de datos y de las checadoras.</div>
-                        <div class="branch-form__actions">
-                            <button class="btn btn--ghost btn--small" type="button" id="resetDemoBtn">Restablecer datos de prueba</button>
                         </div>
                     </div>
 
@@ -196,6 +178,30 @@
                         <div class="hint-box">Los admins reportan a quien no pudo checar. Confirma si la checadora falló ese día; con eso RH captura la asistencia a mano.</div>
                     </div>
 
+                </div>
+
+                <div class="config-column">
+                    <!-- ========== ESTADO DEL SISTEMA (Sistemas y Super usuario) ========== -->
+                    <div class="config-card hidden" id="systemCard">
+                        <div class="config-card__title">
+                            <span class="config-icon">🖥️</span>
+                            <div>
+                                <h3>Estado del sistema</h3>
+                                <p>Para verificar que el sistema funciona en cada sucursal</p>
+                            </div>
+                            <button class="btn btn--ghost btn--small config-card__action" type="button" id="checkSystemBtn">↻ Revisar</button>
+                        </div>
+                        <div class="system-filter">
+                            <label for="systemBranch">Revisar</label>
+                            <select id="systemBranch"></select>
+                        </div>
+                        <ul class="info-list" id="systemInfo"></ul>
+                        <div class="hint-box">Mientras no exista el servidor, los datos se guardan en este navegador. Cuando exista, aquí se mostrará el estado de la base de datos y de las checadoras.</div>
+                        <div class="branch-form__actions">
+                            <button class="btn btn--ghost btn--small" type="button" id="resetDemoBtn">Restablecer datos de prueba</button>
+                        </div>
+                    </div>
+
                     <div class="config-card">
                         <div class="config-card__title">
                             <span class="config-icon">📋</span>
@@ -210,7 +216,7 @@
                             <li><span>Admin de sucursal</span><strong>Solo su sucursal. Da altas sin ver sueldos. No ve nómina.</strong></li>
                             <li><span>Sistemas</span><strong>Cuentas de usuario y estado del sistema. No ve datos personales ni sueldos.</strong></li>
                         </ul>
-                        <div class="hint-box">Solo un Super usuario puede crear o editar cuentas de Super usuario. Nadie puede desactivar su propia cuenta ni cambiarse el rol.</div>
+                        <div class="hint-box">Solo un Super usuario puede crear o editar cuentas de Super usuario. Nadie puede desactivar su propia cuenta ni cambiarse el rol. Las contraseñas las guarda Firebase cifradas: nadie puede verlas, ni desde aquí.</div>
                     </div>
                 </div>
             </div>
@@ -222,7 +228,7 @@
     <script src="recursos/datos.js"></script>
     <script>
         const campo = (id) => document.getElementById(id);
-        const REGEX_USUARIO = /^[a-z0-9._-]{3,30}$/;
+        const REGEX_CORREO = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
         let usuarioEditando = null; // null = cuenta nueva
 
         function mostrarToast(texto) {
@@ -293,16 +299,14 @@
 
             campo('userFormTitle').textContent = usuario ? `Editar ${usuario.usuario}` : 'Nuevo usuario';
             campo('userName').value = usuario ? usuario.usuario : '';
-            campo('userName').readOnly = Boolean(usuario);
             campo('userFullName').value = usuario ? usuario.nombre : '';
             campo('userRole').value = usuario ? usuario.rol : 'admin';
             campo('userBranch').value = usuario && usuario.rol === 'admin' ? usuario.sucursal : '01';
             // Nadie se cambia su propio rol (evita quedarse sin acceso a esta página)
             campo('userRole').disabled = Boolean(usuario && usuario.usuario === USUARIO_ACTUAL.usuario);
             campo('userPassword').value = '';
-            campo('userPasswordHint').textContent = usuario
-                ? 'Déjala vacía para conservar la actual. Escribe una nueva para restablecerla.'
-                : 'Mínimo 6 caracteres. Entrégala al usuario en persona.';
+            campo('userCurrentPassword').value = '';
+            ajustarCamposContrasena();
 
             campo('userError').classList.add('hidden');
             document.querySelectorAll('#userForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
@@ -310,6 +314,32 @@
             campo('userForm').classList.remove('hidden');
             campo('newUserBtn').classList.add('hidden');
             (usuario ? campo('userFullName') : campo('userName')).focus();
+        }
+
+        // Qué se pide de contraseña según el caso. Firebase solo deja que cada quien cambie la suya;
+        // cambiar el correo de una cuenta equivale a darla de alta de nuevo con el correo corregido.
+        function casoContrasena() {
+            const anterior = usuarioEditando ? String(usuarioEditando.usuario).toLowerCase() : '';
+            const cambiaCorreo = Boolean(usuarioEditando) && campo('userName').value.trim().toLowerCase() !== anterior;
+            const esMiCuenta = Boolean(usuarioEditando) && anterior === USUARIO_ACTUAL.usuario.toLowerCase();
+            return { anterior, cambiaCorreo, esMiCuenta, cuentaNueva: !usuarioEditando || cambiaCorreo };
+        }
+
+        function ajustarCamposContrasena() {
+            const { cambiaCorreo, esMiCuenta, cuentaNueva } = casoContrasena();
+            const cambioPropio = esMiCuenta && !cambiaCorreo;
+            campo('userPasswordField').classList.toggle('hidden', !cuentaNueva && !cambioPropio);
+            campo('userPasswordField').classList.toggle('field-full', !cambioPropio);
+            campo('userCurrentPasswordField').classList.toggle('hidden', !cambioPropio);
+            campo('userPasswordNote').classList.toggle('hidden', cuentaNueva || cambioPropio);
+            campo('userPasswordLabel').textContent = cambioPropio ? 'Contraseña nueva'
+                : cambiaCorreo ? 'Contraseña para el correo nuevo' : 'Contraseña inicial';
+            campo('userPasswordHint').textContent = cambioPropio ? 'Déjala vacía para conservar la que tienes. Mínimo 6 caracteres.'
+                : cambiaCorreo ? 'Mínimo 6 caracteres. Con el correo nuevo se entra con esta contraseña.'
+                    : 'Mínimo 6 caracteres. Entrégala al usuario en persona.';
+            campo('userNameHint').textContent = !usuarioEditando ? 'Con él se inicia sesión.'
+                : cambiaCorreo ? 'Al guardar se crea la cuenta con el correo nuevo y el correo anterior deja de tener acceso.'
+                    : 'Con él se inicia sesión. Puedes corregirlo aquí.';
         }
 
         function cerrarFormulario() {
@@ -326,49 +356,90 @@
         }
 
         function guardarUsuario() {
+            if (!puede('administrarUsuarios')) return;
             const usuarios = listaUsuarios();
             const datos = {
                 usuario: campo('userName').value.trim().toLowerCase(),
                 nombre: campo('userFullName').value.trim().replace(/\s+/g, ' '),
                 rol: campo('userRole').value,
-                sucursal: campo('userRole').value === 'admin' ? campo('userBranch').value : '00',
-                contrasena: campo('userPassword').value
+                sucursal: campo('userRole').value === 'admin' ? campo('userBranch').value : '00'
             };
+            const contrasena = campo('userPassword').value;
+            const actual = campo('userCurrentPassword').value;
+            const { anterior, cambiaCorreo, esMiCuenta, cuentaNueva } = casoContrasena();
+            const cambiaMiContrasena = esMiCuenta && !cambiaCorreo && Boolean(contrasena || actual);
 
-            if (!usuarioEditando) {
-                if (!REGEX_USUARIO.test(datos.usuario)) return mostrarError('El usuario debe tener de 3 a 30 caracteres: letras minúsculas, números, punto, guion o guion bajo.', 'userName');
-                if (usuarios.some((u) => u.usuario === datos.usuario)) return mostrarError(`Ya existe el usuario "${datos.usuario}".`, 'userName');
+            if (!REGEX_CORREO.test(datos.usuario)) return mostrarError('Escribe un correo válido, por ejemplo admin02@nevado.com.', 'userName');
+            if (cuentaNueva && usuarios.some((u) => String(u.usuario).toLowerCase() === datos.usuario)) {
+                return mostrarError(`Ya existe una cuenta con el correo "${datos.usuario}".`, 'userName');
             }
             if (datos.nombre.split(' ').length < 2) return mostrarError('Escribe el nombre y al menos un apellido.', 'userFullName');
             if (datos.rol === 'super' && !puede('crearSuperUsuario')) return mostrarError('Solo un Super usuario puede asignar ese rol.', 'userRole');
-            if ((!usuarioEditando || datos.contrasena) && datos.contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.', 'userPassword');
+            if ((cuentaNueva || cambiaMiContrasena) && contrasena.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.', 'userPassword');
+            if (cambiaMiContrasena && !actual) return mostrarError('Escribe tu contraseña actual para poder cambiarla.', 'userCurrentPassword');
+            if (cambiaMiContrasena && actual === contrasena) return mostrarError('La contraseña nueva debe ser distinta a la actual.', 'userPassword');
 
-            // Aquí irá la petición al servidor; por ahora se guarda en el navegador
+            // La cuenta (correo y contraseña) vive en Firebase Authentication; el perfil
+            // (nombre, rol y sucursal) se guarda aparte, en Firestore, sin la contraseña.
+            let yaExistia = false;
+            if (cuentaNueva) {
+                const alta = AUTENTICACION.crearCuenta(datos.usuario, contrasena);
+                if (alta.error) return mostrarError(alta.error, 'userName');
+                yaExistia = Boolean(alta.existe);
+            }
+            if (cambiaMiContrasena) {
+                const cambio = AUTENTICACION.cambiarMiContrasena(actual, contrasena);
+                if (cambio.error) return mostrarError(cambio.error, 'userCurrentPassword');
+            }
+
             let detalle;
             if (usuarioEditando) {
-                const cuenta = usuarios.find((u) => u.usuario === usuarioEditando.usuario);
+                const cuenta = usuarios.find((u) => String(u.usuario).toLowerCase() === anterior);
                 const cambios = [];
+                if (cambiaCorreo) {
+                    cambios.push(`correo ${anterior} → ${datos.usuario}`);
+                    cuenta.usuario = datos.usuario;
+                }
                 if (cuenta.nombre !== datos.nombre) cambios.push('nombre');
                 cuenta.nombre = datos.nombre;
-                if (cuenta.usuario !== USUARIO_ACTUAL.usuario) {
+                // Nadie se cambia su propio rol
+                if (!esMiCuenta) {
                     if (cuenta.rol !== datos.rol) cambios.push(`rol ${ROLES[cuenta.rol].nombre} → ${ROLES[datos.rol].nombre}`);
                     if (datos.rol === 'admin' && cuenta.sucursal !== datos.sucursal) cambios.push(`sucursal ${cuenta.sucursal} → ${datos.sucursal}`);
                     cuenta.rol = datos.rol;
                     cuenta.sucursal = datos.sucursal;
                 }
-                if (datos.contrasena) {
-                    cuenta.contrasena = datos.contrasena;
-                    cambios.push('contraseña restablecida');
-                }
-                detalle = `${cuenta.usuario}: ${cambios.join(', ') || 'sin cambios'}`;
+                if (cambiaMiContrasena) cambios.push('contraseña cambiada');
+                detalle = `${anterior}: ${cambios.join(', ') || 'sin cambios'}`;
             } else {
                 usuarios.push({ ...datos, activo: true });
                 detalle = `${datos.usuario} · ${ROLES[datos.rol].nombre}${datos.rol === 'admin' ? ` · Suc. ${datos.sucursal}` : ''}`;
             }
 
-            if (!guardarUsuarios(usuarios)) return mostrarError('Este navegador no permite guardar los usuarios.');
+            if (!guardarUsuarios(usuarios)) {
+                return mostrarError('No se pudo guardar el perfil en la base de datos. Revisa la conexión y que las reglas de Firestore permitan escribir en "usuarios"; después vuelve a dar clic en Guardar.');
+            }
             registrarBitacora(usuarioEditando ? 'Usuario modificado' : 'Usuario creado', detalle);
-            mostrarToast(usuarioEditando ? `✅ Se actualizó la cuenta ${usuarioEditando.usuario}.` : `✅ Se creó la cuenta ${datos.usuario}.`);
+
+            // Si cambié MI correo, la sesión tiene que pasar al correo nuevo
+            if (esMiCuenta && cambiaCorreo) {
+                const entrada = AUTENTICACION.entrar(datos.usuario, contrasena);
+                if (entrada.error) {
+                    AUTENTICACION.salir();
+                    alert(`Tu correo cambió a ${datos.usuario}. Vuelve a iniciar sesión con ese correo.`);
+                    location.href = 'index.html';
+                } else {
+                    alert(`Tu correo cambió a ${datos.usuario}. A partir de ahora entras con ese correo.`);
+                    location.reload();
+                }
+                return;
+            }
+
+            const cuentaAviso = yaExistia ? ' Ese correo ya existía en Firebase: conserva la contraseña que ya tenía.' : '';
+            mostrarToast(!usuarioEditando ? `✅ Se creó la cuenta ${datos.usuario}. Entrégale su contraseña.${cuentaAviso}`
+                : cambiaCorreo ? `✅ El correo cambió a ${datos.usuario}. El anterior ya no tiene acceso.${cuentaAviso}`
+                    : cambiaMiContrasena ? '✅ Se actualizó tu cuenta y tu contraseña.'
+                        : `✅ Se actualizó la cuenta ${datos.usuario}.`);
             cerrarFormulario();
             renderTodo();
         }
@@ -383,7 +454,7 @@
             }
             cuenta.activo = !cuenta.activo;
             if (!guardarUsuarios(usuarios)) {
-                mostrarToast('⚠️ Este navegador no permite guardar los usuarios.');
+                mostrarToast('⚠️ No se pudo guardar en la base de datos. Revisa la conexión y las reglas de Firestore.');
                 return;
             }
             registrarBitacora(cuenta.activo ? 'Usuario activado' : 'Usuario desactivado', cuenta.usuario);
@@ -540,6 +611,7 @@
             if (activar) cambiarEstado(activar.dataset.activar);
         });
         campo('userRole').addEventListener('change', actualizarCampoSucursal);
+        campo('userName').addEventListener('input', ajustarCamposContrasena);
         campo('newUserBtn').addEventListener('click', () => abrirFormulario());
         campo('cancelUserBtn').addEventListener('click', cerrarFormulario);
         campo('saveUserBtn').addEventListener('click', guardarUsuario);

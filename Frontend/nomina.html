@@ -11,6 +11,79 @@
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
     <script src="recursos/fechas.js"></script>
+    <style>
+        /* ===== Recibo: los 7 días de la semana con su estado ===== */
+        .recibo__tabla .recibo__horas {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .recibo__tabla td small {
+            display: block;
+            color: #64748b;
+            font-size: 0.72rem;
+            font-weight: 400;
+        }
+
+        .recibo__dia--falta td { background: #fef2f2; }
+        .recibo__dia--falta .recibo__horas { color: #b91c1c; }
+        .recibo__dia--incapacidad td { background: #fdf2f8; }
+        .recibo__dia--incapacidad .recibo__horas { color: #be185d; }
+        .recibo__dia--vacaciones td { background: #f5f3ff; }
+        .recibo__dia--vacaciones .recibo__horas { color: #6d28d9; }
+        .recibo__dia--permiso td { background: #f0f9ff; }
+        .recibo__dia--permiso .recibo__horas { color: #0369a1; }
+        .recibo__dia--descanso td { background: #f8fafc; color: #64748b; }
+        .recibo__dia--turno .recibo__horas { color: #047857; }
+        .recibo__dia--sin .recibo__horas { color: #94a3b8; }
+        .recibo__dia--retardo .recibo__horas { color: #b45309; }
+
+        .recibo__tabla tfoot td {
+            border-top: 2px solid #e2e8f0;
+            font-weight: 700;
+        }
+
+        /* Renglones de descuento en el recibo */
+        .recibo__descuento td { color: #b91c1c; }
+
+        /* Para que los colores salgan también en el PDF */
+        .recibo__tabla tr td {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* Campos de horas extra y pago extra (solo Super usuario) */
+        .extra-editor__fila {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        /* Separación entre bonos y descuentos dentro del editor */
+        .bono-editor h4 + .bono-editor__ayuda {
+            margin-top: 2px;
+        }
+
+        .bono-editor .descuento-titulo {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px dashed #e2e8f0;
+            color: #b91c1c;
+        }
+
+        .bono-editor__lista--descuentos strong {
+            color: #b91c1c;
+        }
+
+        .recibos-tabla .cero {
+            color: #94a3b8;
+        }
+
+        .recibos-tabla .resta {
+            color: #b91c1c;
+        }
+    </style>
 </head>
 
 <body class="page-nomina">
@@ -76,12 +149,12 @@
                         <h1>Nómina y pagos</h1>
                         <span class="badge badge--live">ACTUALIZADO</span>
                     </div>
-                    <p class="page-subtitle">Pago semanal (sábado a viernes): días trabajados, horas extra y bonos.</p>
+                    <p class="page-subtitle">Pago semanal (sábado a viernes): horas trabajadas, horas extra, bonos y descuentos.</p>
                 </div>
 
                 <!-- Los dos botones trabajan sobre la semana y la sucursal elegidas abajo -->
                 <div class="page-actions">
-                    <button class="btn btn--outline" id="summaryBtn" type="button" title="Cuánto se paga esta semana, con horas extra, bonos y el desglose por sucursal">📊 Resumen de la semana</button>
+                    <button class="btn btn--outline" id="summaryBtn" type="button" title="Cuánto se paga esta semana, con horas extra, bonos, descuentos y el desglose por sucursal">📊 Resumen de la semana</button>
                     <button class="btn btn--primary" id="registerPayrollBtn" type="button" title="Marca como pagados los recibos de la semana elegida">💵 Registrar pago de la semana</button>
                 </div>
             </div>
@@ -91,7 +164,7 @@
                 <div class="recibos-header">
                     <div>
                         <h3>Recibos de la semana</h3>
-                        <p>Días trabajados, horas extra y bonos. Abre un recibo para revisarlo, dar bonos y guardarlo.</p>
+                        <p>Horas trabajadas, sueldo, horas extra, bonos y descuentos. Abre un recibo para ver la semana completa y guardarlo.</p>
                     </div>
                     <div class="recibos-controles">
                         <select id="reciboSemana" aria-label="Semana"></select>
@@ -105,11 +178,12 @@
                         <thead>
                             <tr>
                                 <th>Trabajador</th>
-                                <th class="num">Días</th>
+                                <th class="num">Hrs. totales</th>
                                 <th class="num">Hrs. extra</th>
                                 <th class="num">Sueldo</th>
                                 <th class="num">Pago extra</th>
-                                <th>Bonos</th>
+                                <th class="num">Bonos</th>
+                                <th class="num">Descuentos</th>
                                 <th class="num">Total</th>
                                 <th>Estado</th>
                                 <th></th>
@@ -118,7 +192,7 @@
                         <tbody id="recibosBody"></tbody>
                     </table>
                 </div>
-                <p class="recibos-nota">Horas extra: solo cuentan las horas completas después de la salida (19:01 a 20:00 = 1 h). Las primeras 9 de la semana se pagan al doble y las siguientes al triple. Las incapacidades las paga el IMSS.</p>
+                <p class="recibos-nota">Horas totales: las que trabajó según sus checadas. Las horas extra, el pago extra, los bonos y los descuentos los captura solo el Super usuario dentro de cada recibo. Las incapacidades las paga el IMSS.</p>
             </div>
 
             <div class="seccion-ejemplo">
@@ -215,8 +289,21 @@
             <p class="recibo-estado hidden" id="reciboEstado"></p>
             <div id="reciboContenido"></div>
 
-            <!-- Bonos: solo el Super usuario, y solo mientras el recibo no esté pagado -->
+            <!-- Horas extra, pago extra, bonos y descuentos: solo el Super usuario, y solo mientras el recibo no esté pagado -->
             <section class="bono-editor hidden" id="bonoEditor">
+                <h4>Horas extra</h4>
+                <p class="bono-editor__ayuda">Escribe cuántas horas extra hizo en la semana y cuánto se le paga por ellas. Se suma al total al guardar.</p>
+                <div class="extra-editor__fila">
+                    <div class="bono-editor__campo bono-editor__campo--monto">
+                        <label for="extraHoras">Horas extra</label>
+                        <input id="extraHoras" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0">
+                    </div>
+                    <div class="bono-editor__campo bono-editor__campo--monto">
+                        <label for="extraPago">Pago extra</label>
+                        <input id="extraPago" type="number" min="0" step="0.01" inputmode="decimal" placeholder="$0.00">
+                    </div>
+                </div>
+
                 <h4>Bonos de este recibo</h4>
                 <p class="bono-editor__ayuda">Tú decides el monto y el motivo. Se suman al total y quedan en el recibo al guardar.</p>
                 <div class="bono-editor__sugerencia hidden" id="bonoSugerencia"></div>
@@ -233,6 +320,23 @@
                     </div>
                     <button class="btn btn--outline" id="bonoAgregar" type="button">+ Agregar bono</button>
                 </div>
+
+                <h4 class="descuento-titulo">Descuentos</h4>
+                <p class="bono-editor__ayuda">Escribe el motivo y el monto. Se resta del total y queda en el recibo al guardar.</p>
+                <ul class="bono-editor__lista bono-editor__lista--descuentos" id="descuentoLista"></ul>
+                <div class="bono-editor__fila">
+                    <div class="bono-editor__campo">
+                        <label for="descuentoMotivo">Motivo del descuento</label>
+                        <input id="descuentoMotivo" type="text" maxlength="80" list="descuentoTipos" autocomplete="off" placeholder="Ej. préstamo, adelanto de sueldo, uniforme…">
+                        <datalist id="descuentoTipos"></datalist>
+                    </div>
+                    <div class="bono-editor__campo bono-editor__campo--monto">
+                        <label for="descuentoMonto">Monto</label>
+                        <input id="descuentoMonto" type="number" min="0" step="0.01" inputmode="decimal" placeholder="$0.00">
+                    </div>
+                    <button class="btn btn--outline" id="descuentoAgregar" type="button">− Agregar descuento</button>
+                </div>
+
                 <p class="bono-editor__error hidden" id="bonoError" role="alert"></p>
             </section>
 
@@ -287,22 +391,26 @@
     <div id="zonaImpresion" aria-hidden="true"></div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-    <script src="recursos/datos.js"></script>
-    <script>
-        // =====================================================================
+<script src="recursos/datos.js"></script>
+<script src="recursos/datos-prueba.js"></script>
+<script>        // =====================================================================
         //  RECIBOS DE LA SEMANA
         // =====================================================================
         (function () {
             const campo = (id) => document.getElementById(id);
             const selSemana = campo('reciboSemana');
             const selSucursal = campo('reciboSucursal');
-            const PUEDE_BONOS = puede('otorgarBono');
+            // Horas extra, pago extra, bonos y descuentos: solo los captura el Super usuario
+            const ES_SUPER = USUARIO_ACTUAL.rol === 'super';
             const PUEDE_GUARDAR = puede('generarRecibos');
             const pausa = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
             const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
-            const sumaBonos = (bonos) => redondear(bonos.reduce((total, b) => total + b.monto, 0));
+            const sumaMontos = (lista) => redondear(lista.reduce((total, b) => total + b.monto, 0));
+            const sumaBonos = sumaMontos;
             const estaPagado = (r) => Boolean(r.guardado && r.guardado.pagadoEl);
             const fechaHora = (iso) => formatoFecha(aISO(new Date(iso)));
+            // Motivos que se sugieren al escribir un descuento (se puede escribir cualquier otro)
+            const MOTIVOS_DESCUENTO = ['Préstamo', 'Adelanto de sueldo', 'Uniforme', 'Daño a material', 'Faltante de mercancía', 'Faltas'];
             let recibosActuales = [];
 
             function mostrarToast(texto) {
@@ -332,6 +440,95 @@
 
             const textoSucursal = () => (selSucursal.value === 'todas' ? 'Todas las sucursales' : nombreSucursal(selSucursal.value));
 
+            // ---------- Cálculo del recibo ----------
+            const NOMBRE_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+            // Un día de la semana: sin registro = 0, falta = "Falta", incapacidad = "Incapacidad"...
+            function diaDeLaSemana(emp, fecha) {
+                const iso = aISO(fecha);
+                const dia = {
+                    iso,
+                    nombre: `${NOMBRE_DIA[fecha.getDay()]} ${formatoFecha(iso)}`,
+                    entrada: '—',
+                    salida: '—',
+                    horas: 0,
+                    texto: formatoHoras(0),
+                    clase: 'sin',
+                    detalle: ''
+                };
+                const reg = registroDia(emp, fecha);
+                if (!reg) return dia;
+
+                if (reg.estado === 'asistencia' || reg.estado === 'retardo') {
+                    dia.entrada = reg.entrada || '—';
+                    if (reg.enTurno) {
+                        dia.salida = 'En turno';
+                        dia.texto = 'En turno';
+                        dia.clase = 'turno';
+                    } else {
+                        dia.salida = reg.salida ? `${reg.salida}${reg.salidaAutomatica ? ' (auto)' : ''}` : '—';
+                        dia.horas = Number(reg.horas) || 0;
+                        dia.texto = formatoHoras(dia.horas);
+                        dia.clase = reg.estado;
+                    }
+                    if (reg.estado === 'retardo') dia.detalle = 'Retardo';
+                    return dia;
+                }
+
+                const otros = {
+                    falta: ['Falta', 'falta'],
+                    incapacidad: ['Incapacidad', 'incapacidad'],
+                    vacaciones: ['Vacaciones', 'vacaciones'],
+                    permiso: [reg.permiso && !reg.permiso.goce ? 'Permiso sin goce' : 'Permiso con goce', 'permiso'],
+                    descanso: [reg.feriado ? 'Feriado' : 'Descanso', 'descanso']
+                };
+                if (otros[reg.estado]) [dia.texto, dia.clase] = otros[reg.estado];
+                if (reg.feriado) dia.detalle = reg.feriado.nombre;
+                return dia;
+            }
+
+            // Recibo de la semana: sueldo + pago extra + bonos − descuentos (los tres últimos los pone el Super usuario)
+            function reciboDe(emp, inicio) {
+                const semana = aISO(inicio);
+                const fin = sumarDias(inicio, 6);
+                const dias = Array.from({ length: 7 }, (_, i) => diaDeLaSemana(emp, sumarDias(inicio, i)));
+                const resumen = resumenRango(emp, inicio, fin);
+                const ajuste = (emp.extrasNomina || []).find((a) => a.semana === semana) || {};
+                const bonos = (emp.bonos || []).filter((b) => b.semana === semana).map((b) => ({ ...b }));
+                const descuentos = (emp.descuentos || []).filter((d) => d.semana === semana).map((d) => ({ ...d }));
+                let guardado = null;
+                try {
+                    guardado = reciboSemana(emp, inicio).guardado || null;
+                } catch (error) {
+                    guardado = null;
+                }
+                const sueldo = redondear(Number(emp.sueldo) || 0);
+                const extras = Number(ajuste.horas) || 0;
+                const pagoExtras = redondear(Number(ajuste.pago) || 0);
+                const totalBonos = sumaBonos(bonos);
+                const totalDescuentos = sumaMontos(descuentos);
+                return {
+                    emp,
+                    inicio,
+                    fin,
+                    semana,
+                    dias,
+                    horas: redondear(dias.reduce((t, d) => t + d.horas, 0)),
+                    faltas: resumen.faltas,
+                    retardos: resumen.retardos,
+                    sueldo,
+                    extras,
+                    pagoExtras,
+                    bonos,
+                    totalBonos,
+                    descuentos,
+                    totalDescuentos,
+                    total: redondear(sueldo + pagoExtras + totalBonos - totalDescuentos),
+                    guardado,
+                    elegibleBono: resumen.asistencias > 0 && !resumen.faltas && !resumen.retardos
+                };
+            }
+
             function calcular() {
                 const inicio = fechaDesdeISO(selSemana.value);
                 const inicioIso = selSemana.value;
@@ -340,15 +537,7 @@
                     .filter((e) => e.ingreso <= finIso && (!e.baja || e.baja.fecha >= inicioIso))
                     .filter((e) => selSucursal.value === 'todas' || e.suc === selSucursal.value)
                     .sort((a, b) => a.id.localeCompare(b.id))
-                    .map((emp) => reciboSemana(emp, inicio));
-            }
-
-            function celdaBono(r) {
-                if (r.bonos.length) {
-                    const conceptos = r.bonos.map((b) => b.concepto).join(', ');
-                    return `<span class="tag tag--ok" title="${escaparHtml(conceptos)}">✓ ${formatoDinero(r.totalBonos)}</span>`;
-                }
-                return '—';
+                    .map((emp) => reciboDe(emp, inicio));
             }
 
             function celdaEstado(r) {
@@ -357,52 +546,55 @@
                 return '<span class="tag tag--warn">Por revisar</span>';
             }
 
+            // Los ceros se ven en gris para que resalte lo que sí tiene valor
+            const celdaNumero = (valor, texto, claseExtra = '') => `<td class="num${valor ? claseExtra : ' cero'}">${texto}</td>`;
+
             function render() {
                 recibosActuales = calcular();
-                const suma = (fn) => recibosActuales.reduce((t, r) => t + fn(r), 0);
+                const suma = (fn) => redondear(recibosActuales.reduce((t, r) => t + fn(r), 0));
                 const tarjeta = (valor, texto) => `<div><strong>${valor}</strong><span>${texto}</span></div>`;
-                const conBono = recibosActuales.filter((r) => r.bonos.length).length;
+                const descuentosSemana = suma((r) => r.totalDescuentos);
                 campo('recibosResumen').innerHTML =
                     tarjeta(formatoDinero(suma((r) => r.total)), 'Total de la semana') +
-                    tarjeta(`${suma((r) => r.extras)} h`, `Horas extra · ${formatoDinero(suma((r) => r.pagoExtras))}`) +
-                    tarjeta(formatoDinero(suma((r) => r.totalBonos)), `Bonos · ${plural(conBono, 'trabajador', 'trabajadores')}`) +
-                    tarjeta(`${recibosActuales.filter(estaPagado).length} de ${recibosActuales.length}`, 'Recibos pagados');
+                    tarjeta(formatoHoras(suma((r) => r.horas)), 'Horas trabajadas') +
+                    tarjeta(formatoDinero(suma((r) => r.pagoExtras + r.totalBonos)), `Extra y bonos · ${suma((r) => r.extras)} h extra`) +
+                    tarjeta(`−${formatoDinero(descuentosSemana)}`, `Descuentos · ${recibosActuales.filter(estaPagado).length} de ${recibosActuales.length} pagados`);
 
                 campo('recibosBody').innerHTML = recibosActuales.length
                     ? recibosActuales.map((r) => `<tr>
                         <td><div class="employee-cell"><span class="employee-id">${r.emp.id}</span><strong>${escaparHtml(r.emp.nombre)}</strong></div></td>
-                        <td class="num">${r.dias.length}</td>
-                        <td class="num">${r.extras || '—'}</td>
-                        <td class="num">${formatoDinero(r.pagoDias)}</td>
-                        <td class="num">${r.pagoExtras ? formatoDinero(r.pagoExtras) : '—'}</td>
-                        <td>${celdaBono(r)}</td>
+                        ${celdaNumero(r.horas, formatoHoras(r.horas))}
+                        ${celdaNumero(r.extras, `${r.extras} h`)}
+                        <td class="num">${formatoDinero(r.sueldo)}</td>
+                        ${celdaNumero(r.pagoExtras, formatoDinero(r.pagoExtras))}
+                        ${celdaNumero(r.totalBonos, `<span title="${escaparHtml(r.bonos.map((b) => b.concepto).join(', '))}">${formatoDinero(r.totalBonos)}</span>`)}
+                        ${celdaNumero(r.totalDescuentos, `<span title="${escaparHtml(r.descuentos.map((d) => d.motivo).join(', '))}">−${formatoDinero(r.totalDescuentos)}</span>`, ' resta')}
                         <td class="num"><strong>${formatoDinero(r.total)}</strong></td>
                         <td>${celdaEstado(r)}</td>
-                        <td class="num"><button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">Abrir recibo</button></td>
+                        <td class="num"><button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">Ver recibo</button></td>
                     </tr>`).join('')
-                    : '<tr><td colspan="9" class="recibos-vacio">No hay trabajadores en esta semana con estos filtros.</td></tr>';
+                    : '<tr><td colspan="10" class="recibos-vacio">No hay trabajadores en esta semana con estos filtros.</td></tr>';
             }
 
             // ---------- Recibo ----------
-            const NOMBRE_DIA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-            // "bonos" permite pintar el recibo con los bonos que se están capturando, antes de guardarlos
-            function htmlRecibo(r, bonos = r.bonos) {
-                const nombreDia = (iso) => `${NOMBRE_DIA[fechaDesdeISO(iso).getDay()]} ${formatoFecha(iso)}`;
-                // Los días trabajados y los de descanso (domingo y feriados), en orden
-                const filas = r.dias.concat(r.descansos.map((d) => ({ ...d, descanso: true })))
-                    .sort((a, b) => a.fecha.localeCompare(b.fecha));
-                const filaDia = (d) => (d.descanso
-                    ? `<tr class="recibo__descanso"><td>${nombreDia(d.fecha)}${d.feriado ? `<small>${escaparHtml(d.feriado)}</small>` : ''}</td><td>Descanso</td><td>Descanso</td><td class="num">—</td></tr>`
-                    : `<tr><td>${nombreDia(d.fecha)}</td><td>${d.entrada}</td><td>${d.salida}</td><td class="num">${d.extras || '—'}</td></tr>`);
+            // "cambios" permite pintar el recibo con lo que se está capturando, antes de guardarlo
+            function htmlRecibo(r, cambios = {}) {
+                const bonos = cambios.bonos || r.bonos;
+                const descuentos = cambios.descuentos || r.descuentos;
+                const extras = cambios.extras ?? r.extras;
+                const pagoExtras = cambios.pagoExtras ?? r.pagoExtras;
+                const total = redondear(r.sueldo + pagoExtras + sumaBonos(bonos) - sumaMontos(descuentos));
+                const filas = r.dias.map((d) => `<tr class="recibo__dia recibo__dia--${d.clase}">
+                        <td>${d.nombre}${d.detalle ? `<small>${escaparHtml(d.detalle)}</small>` : ''}</td>
+                        <td>${d.entrada}</td>
+                        <td>${d.salida}</td>
+                        <td class="num recibo__horas">${d.texto}</td>
+                    </tr>`).join('');
+                const diasIncapacidad = r.dias.filter((d) => d.clase === 'incapacidad').length;
                 const notas = [];
-                if (r.faltas) notas.push(`${r.faltas} falta${r.faltas === 1 ? '' : 's'} (no se paga${r.faltas === 1 ? '' : 'n'})`);
-                if (r.permisosSinGoce) notas.push(`${r.permisosSinGoce} día${r.permisosSinGoce === 1 ? '' : 's'} de permiso sin goce`);
-                if (r.incapacidad) notas.push(`${r.incapacidad} día${r.incapacidad === 1 ? '' : 's'} de incapacidad (los paga el IMSS)`);
-                const extras = [];
-                if (r.extrasDobles) extras.push(`${r.extrasDobles} h al doble`);
-                if (r.extrasTriples) extras.push(`${r.extrasTriples} h al triple`);
-                const total = redondear(r.pagoDias + r.pagoExtras + sumaBonos(bonos));
+                if (r.faltas) notas.push(plural(r.faltas, 'falta', 'faltas'));
+                if (r.retardos) notas.push(plural(r.retardos, 'retardo', 'retardos'));
+                if (diasIncapacidad) notas.push(`${plural(diasIncapacidad, 'día', 'días')} de incapacidad (los paga el IMSS)`);
                 return `<article class="recibo">
                     <header class="recibo__encabezado">
                         <img src="recursos/logo.png" alt="El Nevado">
@@ -416,25 +608,29 @@
                         <div><span>Trabajador</span><strong>${r.emp.id} · ${escaparHtml(r.emp.nombre)}</strong></div>
                         <div><span>Puesto</span><strong>${escaparHtml(r.emp.puesto)}</strong></div>
                         <div><span>Sucursal</span><strong>${escaparHtml(nombreSucursal(r.emp.suc))}</strong></div>
-                        <div><span>Sueldo diario</span><strong>${formatoDinero(r.diario)}</strong></div>
+                        <div><span>Sueldo semanal</span><strong>${formatoDinero(r.sueldo)}</strong></div>
                     </section>
-                    <h3>Días de la semana (${plural(r.dias.length, 'trabajado', 'trabajados')})</h3>
+                    <h3>Semana completa (sábado a viernes)</h3>
                     <table class="recibo__tabla">
-                        <thead><tr><th>Día</th><th>Entrada</th><th>Salida</th><th class="num">Horas extra</th></tr></thead>
-                        <tbody>${filas.map(filaDia).join('') || '<tr><td colspan="4">Sin días trabajados en esta semana.</td></tr>'}</tbody>
+                        <thead><tr><th>Día</th><th>Entrada</th><th>Salida</th><th class="num">Horas trabajadas</th></tr></thead>
+                        <tbody>${filas}</tbody>
+                        <tfoot><tr><td colspan="3">Horas trabajadas en la semana</td><td class="num">${formatoHoras(r.horas)}</td></tr></tfoot>
                     </table>
-                    <h3>Lo que ganó</h3>
+                    <h3>Lo que gana</h3>
                     <table class="recibo__tabla recibo__importes">
                         <tbody>
-                            <tr><td>Sueldo: ${r.diasPagados} día${r.diasPagados === 1 ? '' : 's'} pagado${r.diasPagados === 1 ? '' : 's'} × ${formatoDinero(r.diario)}<small>Incluye el descanso semanal${r.diasConGoce ? ` y ${r.diasConGoce} día${r.diasConGoce === 1 ? '' : 's'} de vacaciones o permiso con goce` : ''}</small></td><td class="num">${formatoDinero(r.pagoDias)}</td></tr>
-                            <tr><td>Horas extra${extras.length ? `: ${extras.join(' + ')}` : ''}</td><td class="num">${formatoDinero(r.pagoExtras)}</td></tr>
+                            <tr><td>Sueldo semanal</td><td class="num">${formatoDinero(r.sueldo)}</td></tr>
+                            <tr><td>Horas extra: ${extras} h</td><td class="num">${formatoDinero(pagoExtras)}</td></tr>
                             ${bonos.length
                                 ? bonos.map((b) => `<tr><td>Bono: ${escaparHtml(b.concepto)}</td><td class="num">${formatoDinero(b.monto)}</td></tr>`).join('')
                                 : `<tr><td>Bonos</td><td class="num">${formatoDinero(0)}</td></tr>`}
+                            ${descuentos.length
+                                ? descuentos.map((d) => `<tr class="recibo__descuento"><td>Descuento: ${escaparHtml(d.motivo)}</td><td class="num">−${formatoDinero(d.monto)}</td></tr>`).join('')
+                                : `<tr><td>Descuentos</td><td class="num">${formatoDinero(0)}</td></tr>`}
                             <tr class="recibo__total"><td>Total a pagar</td><td class="num">${formatoDinero(total)}</td></tr>
                         </tbody>
                     </table>
-                    ${notas.length ? `<p class="recibo__nota">No incluye: ${notas.join(' · ')}.</p>` : ''}
+                    ${notas.length ? `<p class="recibo__nota">En esta semana: ${notas.join(' · ')}.</p>` : ''}
                 </article>`;
             }
 
@@ -498,7 +694,7 @@
                     console.error(error);
                     salioBien = false;
                     campo('avanceTitulo').textContent = '⚠️ No se pudo guardar';
-                    campo('avanceResultado').textContent = 'Ocurrió un error al guardar. Revisa los datos e inténtalo de nuevo.';
+                    campo('avanceResultado').textContent = error.message || 'Ocurrió un error al guardar. Revisa los datos e inténtalo de nuevo.';
                 }
                 campo('avanceResultado').classList.remove('hidden');
                 campo('avanceCerrar').classList.remove('hidden');
@@ -509,18 +705,34 @@
                 campo('avanceCerrar').focus();
             }
 
-            // ---------- Abrir el recibo y dar bonos ----------
-            let abierto = null; // { recibo, bonos (lo que se está capturando), original, editable }
+            // ---------- Abrir el recibo, capturar horas extra, bonos y descuentos ----------
+            let abierto = null; // { recibo, bonos, descuentos, extras, pagoExtras, original, editable }
 
-            const hayCambios = () => Boolean(abierto) && JSON.stringify(abierto.bonos) !== abierto.original;
+            const estadoCaptura = () => JSON.stringify({
+                bonos: abierto.bonos,
+                descuentos: abierto.descuentos,
+                extras: abierto.extras,
+                pagoExtras: abierto.pagoExtras
+            });
+            const hayCambios = () => Boolean(abierto) && estadoCaptura() !== abierto.original;
             const hayBonoSinAgregar = () => Boolean(abierto && abierto.editable) && Boolean(campo('bonoConcepto').value.trim() || campo('bonoMonto').value);
+            const hayDescuentoSinAgregar = () => Boolean(abierto && abierto.editable) && Boolean(campo('descuentoMotivo').value.trim() || campo('descuentoMonto').value);
+            // Lo que queda por pagar con lo capturado hasta ahora (el total nunca puede quedar negativo)
+            const totalCapturado = () => redondear(abierto.recibo.sueldo + abierto.pagoExtras + sumaBonos(abierto.bonos) - sumaMontos(abierto.descuentos));
 
             function abrirRecibo(empId) {
                 const recibo = recibosActuales.find((r) => r.emp.id === empId);
                 if (!recibo) return;
-                const bonos = recibo.bonos.map((b) => ({ ...b }));
                 const pagado = estaPagado(recibo);
-                abierto = { recibo, bonos, original: JSON.stringify(bonos), editable: PUEDE_BONOS && !pagado };
+                abierto = {
+                    recibo,
+                    bonos: recibo.bonos.map((b) => ({ ...b })),
+                    descuentos: recibo.descuentos.map((d) => ({ ...d })),
+                    extras: recibo.extras,
+                    pagoExtras: recibo.pagoExtras,
+                    editable: ES_SUPER && !pagado
+                };
+                abierto.original = estadoCaptura();
 
                 const estado = campo('reciboEstado');
                 estado.className = 'recibo-estado' + (pagado ? ' recibo-estado--pagado' : '');
@@ -530,25 +742,38 @@
 
                 campo('bonoEditor').classList.toggle('hidden', !abierto.editable);
                 campo('guardarRecibo').classList.toggle('hidden', !PUEDE_GUARDAR || pagado);
+                campo('extraHoras').value = recibo.extras || '';
+                campo('extraPago').value = recibo.pagoExtras || '';
                 campo('bonoConcepto').value = '';
                 campo('bonoMonto').value = '';
+                campo('descuentoMotivo').value = '';
+                campo('descuentoMonto').value = '';
                 campo('bonoError').classList.add('hidden');
-                // Sugerencias: los tipos de bono que ya se han dado antes
-                const usados = new Set(['Puntualidad']);
-                TODOS_EMPLEADOS.forEach((e) => (e.bonos || []).forEach((b) => b.concepto && usados.add(b.concepto)));
-                campo('bonoTipos').innerHTML = [...usados].map((c) => `<option value="${escaparHtml(c)}"></option>`).join('');
+                // Sugerencias: los tipos de bono y los motivos de descuento que ya se han usado antes
+                const bonosUsados = new Set(['Puntualidad']);
+                const motivosUsados = new Set(MOTIVOS_DESCUENTO);
+                TODOS_EMPLEADOS.forEach((e) => {
+                    (e.bonos || []).forEach((b) => b.concepto && bonosUsados.add(b.concepto));
+                    (e.descuentos || []).forEach((d) => d.motivo && motivosUsados.add(d.motivo));
+                });
+                campo('bonoTipos').innerHTML = [...bonosUsados].map((c) => `<option value="${escaparHtml(c)}"></option>`).join('');
+                campo('descuentoTipos').innerHTML = [...motivosUsados].map((m) => `<option value="${escaparHtml(m)}"></option>`).join('');
                 pintarRecibo();
                 campo('reciboModal').classList.remove('hidden');
             }
 
             function pintarRecibo() {
-                const { recibo, bonos, editable } = abierto;
-                campo('reciboContenido').innerHTML = htmlRecibo(recibo, bonos);
+                const { recibo, bonos, descuentos, extras, pagoExtras, editable } = abierto;
+                campo('reciboContenido').innerHTML = htmlRecibo(recibo, { bonos, descuentos, extras, pagoExtras });
                 if (!editable) return;
                 campo('bonoLista').innerHTML = bonos.length
                     ? bonos.map((b, i) => `<li><span>${escaparHtml(b.concepto)}</span><strong>${formatoDinero(b.monto)}</strong>
                         <button type="button" class="bono-editor__quitar" data-quitar="${i}" aria-label="Quitar bono ${escaparHtml(b.concepto)}">✕ Quitar</button></li>`).join('')
                     : '<li class="bono-editor__vacio">Este recibo todavía no tiene bonos.</li>';
+                campo('descuentoLista').innerHTML = descuentos.length
+                    ? descuentos.map((d, i) => `<li><span>${escaparHtml(d.motivo)}</span><strong>−${formatoDinero(d.monto)}</strong>
+                        <button type="button" class="bono-editor__quitar" data-quitar-descuento="${i}" aria-label="Quitar descuento ${escaparHtml(d.motivo)}">✕ Quitar</button></li>`).join('')
+                    : '<li class="bono-editor__vacio">Este recibo no tiene descuentos.</li>';
                 // Si no tuvo retardos ni faltas, se propone el bono de puntualidad (el Super usuario decide)
                 const yaTienePuntualidad = bonos.some((b) => normalizar(b.concepto) === 'puntualidad');
                 const sugerir = recibo.elegibleBono && !yaTienePuntualidad && CONFIGURACION.bonoPuntualidad > 0;
@@ -577,16 +802,44 @@
                 return true;
             }
 
+            function agregarDescuento() {
+                const motivo = campo('descuentoMotivo').value.trim().replace(/\s+/g, ' ');
+                const monto = redondear(Number(campo('descuentoMonto').value));
+                if (motivo.length < 3) return errorBono('Escribe el motivo del descuento (por ejemplo: Préstamo, Adelanto de sueldo, Uniforme).');
+                if (!(monto > 0)) return errorBono('Escribe el monto del descuento: debe ser mayor a cero.');
+                const disponible = totalCapturado();
+                if (monto > disponible) return errorBono(`El descuento no puede ser mayor a lo que le queda por cobrar (${formatoDinero(disponible)}).`);
+                abierto.descuentos.push({ motivo, monto });
+                campo('descuentoMotivo').value = '';
+                campo('descuentoMonto').value = '';
+                campo('bonoError').classList.add('hidden');
+                pintarRecibo();
+                campo('descuentoMotivo').focus();
+                return true;
+            }
+
+            // Lee los campos de horas extra y pago extra; devuelve false si algo está mal
+            function leerExtras() {
+                const horas = campo('extraHoras').value === '' ? 0 : Number(campo('extraHoras').value);
+                const pago = campo('extraPago').value === '' ? 0 : Number(campo('extraPago').value);
+                if (!Number.isFinite(horas) || horas < 0) return errorBono('Las horas extra deben ser 0 o más.');
+                if (!Number.isFinite(pago) || pago < 0) return errorBono('El pago extra debe ser $0 o más.');
+                abierto.extras = horas;
+                abierto.pagoExtras = redondear(pago);
+                campo('bonoError').classList.add('hidden');
+                return true;
+            }
+
             function cerrarRecibo() {
                 campo('reciboModal').classList.add('hidden');
                 abierto = null;
             }
 
             function intentarCerrarRecibo() {
-                if (!hayCambios() && !hayBonoSinAgregar()) return cerrarRecibo();
+                if (!hayCambios() && !hayBonoSinAgregar() && !hayDescuentoSinAgregar()) return cerrarRecibo();
                 preguntar({
                     titulo: '¿Salir sin guardar?',
-                    texto: `Cambiaste los bonos de ${abierto.recibo.emp.nombre} y todavía no guardas el recibo.`,
+                    texto: `Cambiaste el recibo de ${abierto.recibo.emp.nombre} y todavía no lo guardas.`,
                     nota: 'Si sales ahora, el recibo se queda como estaba.',
                     si: 'Sí, descartar cambios',
                     no: 'No, seguir editando',
@@ -599,15 +852,25 @@
 
             function pedirGuardarRecibo() {
                 if (!abierto || !PUEDE_GUARDAR || estaPagado(abierto.recibo)) return;
-                // Si dejó un bono escrito sin agregar, se agrega antes de preguntar
-                if (hayBonoSinAgregar() && !agregarBono()) return;
-                const { recibo, bonos } = abierto;
-                const total = redondear(recibo.pagoDias + recibo.pagoExtras + sumaBonos(bonos));
+                if (abierto.editable) {
+                    if (!leerExtras()) return;
+                    // Si dejó un bono o un descuento escrito sin agregar, se agrega antes de preguntar
+                    if (hayBonoSinAgregar() && !agregarBono()) return;
+                    if (hayDescuentoSinAgregar() && !agregarDescuento()) return;
+                    if (totalCapturado() < 0) return errorBono('Los descuentos son mayores a lo que cobra. Quita o ajusta algún descuento.');
+                }
+                const { recibo, bonos, descuentos, extras, pagoExtras } = abierto;
+                const total = totalCapturado();
                 preguntar({
                     titulo: '¿Estás seguro de guardar este recibo?',
                     texto: `${recibo.emp.id} · ${recibo.emp.nombre} · ${textoSemana()}`,
-                    filas: [['Sueldo', formatoDinero(recibo.pagoDias)], ['Horas extra', formatoDinero(recibo.pagoExtras)]]
-                        .concat(bonos.length ? bonos.map((b) => [`Bono: ${b.concepto}`, formatoDinero(b.monto)]) : [['Bonos', 'Sin bonos']])
+                    filas: [
+                        ['Horas trabajadas', formatoHoras(recibo.horas)],
+                        ['Sueldo', formatoDinero(recibo.sueldo)],
+                        [`Horas extra (${extras} h)`, formatoDinero(pagoExtras)]
+                    ]
+                        .concat(bonos.length ? bonos.map((b) => [`Bono: ${b.concepto}`, formatoDinero(b.monto)]) : [['Bonos', formatoDinero(0)]])
+                        .concat(descuentos.length ? descuentos.map((d) => [`Descuento: ${d.motivo}`, `−${formatoDinero(d.monto)}`]) : [['Descuentos', formatoDinero(0)]])
                         .concat([['Total a pagar', formatoDinero(total), true]]),
                     nota: 'Queda guardado con tu usuario en la bitácora. Lo puedes volver a cambiar mientras no se registre el pago de la semana.',
                     si: 'Sí, guardar',
@@ -618,38 +881,52 @@
             }
 
             function aplicarGuardado() {
-                const { recibo, bonos, editable } = abierto;
+                const { recibo, bonos, descuentos, extras, pagoExtras, editable } = abierto;
                 const emp = recibo.emp;
-                const semana = aISO(recibo.inicio);
+                const semana = recibo.semana;
                 const ahora = new Date().toISOString();
                 let nuevo = recibo;
                 avanzar({
                     titulo: 'Guardando el recibo…',
                     pasos: [
-                        ['Guardando los bonos', () => {
+                        ['Guardando horas extra, bonos y descuentos', () => {
                             if (!editable) return;
+                            emp.extrasNomina = (emp.extrasNomina || []).filter((a) => a.semana !== semana);
+                            if (extras || pagoExtras) {
+                                emp.extrasNomina.push({ semana, horas: extras, pago: pagoExtras, capturadoPor: USUARIO_ACTUAL.usuario, fecha: ahora });
+                            }
                             emp.bonos = (emp.bonos || []).filter((b) => b.semana !== semana).concat(bonos.map((b) => ({
                                 semana, concepto: b.concepto, monto: b.monto,
                                 otorgadoPor: b.otorgadoPor || USUARIO_ACTUAL.usuario, fecha: b.fecha || ahora
                             })));
+                            emp.descuentos = (emp.descuentos || []).filter((d) => d.semana !== semana).concat(descuentos.map((d) => ({
+                                semana, motivo: d.motivo, monto: d.monto,
+                                aplicadoPor: d.aplicadoPor || USUARIO_ACTUAL.usuario, fecha: d.fecha || ahora
+                            })));
                         }],
                         ['Recalculando el total a pagar', () => {
-                            nuevo = reciboSemana(emp, recibo.inicio);
+                            nuevo = reciboDe(emp, recibo.inicio);
                         }],
                         ['Guardando el recibo', () => {
                             marcarRecibo(emp, semana, { guardadoEl: ahora, guardadoPor: USUARIO_ACTUAL.usuario, total: nuevo.total });
                             // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
-                            guardarCambios();
+                            if (guardarCambios() === false) throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
                         }],
                         ['Actualizando los recibos de la semana', render],
                         ['Anotando el cambio en la bitácora', () => {
                             const detalleBonos = nuevo.bonos.length ? nuevo.bonos.map((b) => `${b.concepto} ${formatoDinero(b.monto)}`).join(', ') : 'sin bonos';
-                            registrarBitacora('Recibo guardado', `${emp.id} · ${emp.nombre} · semana ${semana} · bonos: ${detalleBonos} · total ${formatoDinero(nuevo.total)}`);
+                            const detalleDescuentos = nuevo.descuentos.length ? nuevo.descuentos.map((d) => `${d.motivo} −${formatoDinero(d.monto)}`).join(', ') : 'sin descuentos';
+                            registrarBitacora('Recibo guardado', `${emp.id} · ${emp.nombre} · semana ${semana} · horas extra: ${nuevo.extras} h (${formatoDinero(nuevo.pagoExtras)}) · bonos: ${detalleBonos} · descuentos: ${detalleDescuentos} · total ${formatoDinero(nuevo.total)}`);
                         }]
                     ],
                     listo: '✅ Recibo guardado',
-                    resultado: () => `${emp.nombre}: total a pagar ${formatoDinero(nuevo.total)}`
-                        + (nuevo.bonos.length ? `, con ${plural(nuevo.bonos.length, 'bono', 'bonos')} por ${formatoDinero(nuevo.totalBonos)}.` : ', sin bonos.'),
+                    resultado: () => {
+                        const partes = [];
+                        if (nuevo.pagoExtras) partes.push(`${nuevo.extras} h extra (${formatoDinero(nuevo.pagoExtras)})`);
+                        if (nuevo.bonos.length) partes.push(`${plural(nuevo.bonos.length, 'bono', 'bonos')} por ${formatoDinero(nuevo.totalBonos)}`);
+                        if (nuevo.descuentos.length) partes.push(`${plural(nuevo.descuentos.length, 'descuento', 'descuentos')} por −${formatoDinero(nuevo.totalDescuentos)}`);
+                        return `${emp.nombre}: total a pagar ${formatoDinero(nuevo.total)}${partes.length ? `, con ${partes.join(', ')}` : ''}.`;
+                    },
                     alTerminar: cerrarRecibo
                 });
             }
@@ -668,9 +945,11 @@
                 campo('resumenTexto').textContent = `${textoSemana()} · ${textoSucursal()}`;
                 campo('resumenDetalle').innerHTML =
                     fila('Trabajadores', todos.length) +
-                    fila('Sueldos', formatoDinero(suma(todos, (r) => r.pagoDias))) +
+                    fila('Horas trabajadas', formatoHoras(suma(todos, (r) => r.horas))) +
+                    fila('Sueldos', formatoDinero(suma(todos, (r) => r.sueldo))) +
                     fila(`Horas extra (${suma(todos, (r) => r.extras)} h)`, formatoDinero(suma(todos, (r) => r.pagoExtras))) +
                     fila(`Bonos (${plural(todos.filter((r) => r.bonos.length).length, 'trabajador', 'trabajadores')})`, formatoDinero(suma(todos, (r) => r.totalBonos))) +
+                    fila(`Descuentos (${plural(todos.filter((r) => r.descuentos.length).length, 'trabajador', 'trabajadores')})`, `−${formatoDinero(suma(todos, (r) => r.totalDescuentos))}`) +
                     fila('Total de la semana', formatoDinero(suma(todos, (r) => r.total)), 'es-total');
                 campo('resumenEstados').innerHTML =
                     `<span class="tag tag--ok">${pagados.length} pagados · ${formatoDinero(suma(pagados, (r) => r.total))}</span>
@@ -704,7 +983,7 @@
                     filas: [['Recibos por pagar', String(porPagar.length)]]
                         .concat(yaPagados ? [['Ya pagados (no cambian)', String(yaPagados)]] : [])
                         .concat([['Total a pagar', formatoDinero(total), true]]),
-                    nota: (sinGuardar ? `⚠️ ${plural(sinGuardar, 'recibo no se ha', 'recibos no se han')} guardado: se pagará${sinGuardar === 1 ? '' : 'n'} con lo calculado. Si quieres darles un bono, hazlo antes en su recibo. ` : '')
+                    nota: (sinGuardar ? `⚠️ ${plural(sinGuardar, 'recibo no se ha', 'recibos no se han')} revisado: se pagará${sinGuardar === 1 ? '' : 'n'} sin horas extra, bonos ni descuentos. Si quieres agregarlos, hazlo antes en su recibo. ` : '')
                         + 'Después de registrar el pago, estos recibos ya no se pueden modificar.',
                     si: 'Sí, registrar pago',
                     no: 'No, cancelar',
@@ -727,7 +1006,9 @@
                             }));
                         }],
                         // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
-                        ['Guardando el pago', guardarCambios],
+                        ['Guardando el pago', () => {
+                            if (guardarCambios() === false) throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                        }],
                         ['Actualizando los recibos de la semana', render],
                         ['Anotando el pago en la bitácora', () => {
                             registrarBitacora('Pago de nómina registrado', `semana ${semana} · ${textoSucursal()} · ${plural(porPagar.length, 'recibo', 'recibos')} · ${formatoDinero(total)}`);
@@ -747,16 +1028,32 @@
                 if (!recibosActuales.length) return mostrarToast('No hay recibos para descargar con estos filtros.');
                 imprimir(recibosActuales);
             });
+            // Al escribir horas extra o pago extra, el recibo se actualiza en vivo
+            ['extraHoras', 'extraPago'].forEach((id) => campo(id).addEventListener('input', () => {
+                if (!abierto || !abierto.editable) return;
+                if (leerExtras()) pintarRecibo();
+            }));
             campo('bonoAgregar').addEventListener('click', agregarBono);
+            campo('descuentoAgregar').addEventListener('click', agregarDescuento);
+            // Enter dentro de un campo agrega el bono o el descuento
             ['bonoConcepto', 'bonoMonto'].forEach((id) => campo(id).addEventListener('keydown', (evento) => {
                 if (evento.key !== 'Enter') return;
                 evento.preventDefault();
                 agregarBono();
             }));
+            ['descuentoMotivo', 'descuentoMonto'].forEach((id) => campo(id).addEventListener('keydown', (evento) => {
+                if (evento.key !== 'Enter') return;
+                evento.preventDefault();
+                agregarDescuento();
+            }));
             campo('bonoEditor').addEventListener('click', (evento) => {
-                const quitar = evento.target.closest('[data-quitar]');
-                if (quitar) {
-                    abierto.bonos.splice(Number(quitar.dataset.quitar), 1);
+                const quitarBono = evento.target.closest('[data-quitar]');
+                const quitarDescuento = evento.target.closest('[data-quitar-descuento]');
+                if (quitarBono) {
+                    abierto.bonos.splice(Number(quitarBono.dataset.quitar), 1);
+                    pintarRecibo();
+                } else if (quitarDescuento) {
+                    abierto.descuentos.splice(Number(quitarDescuento.dataset.quitarDescuento), 1);
                     pintarRecibo();
                 } else if (evento.target.closest('#bonoPuntualidadBtn')) {
                     abierto.bonos.push({ concepto: 'Puntualidad', monto: CONFIGURACION.bonoPuntualidad });

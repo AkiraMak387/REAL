@@ -13,7 +13,7 @@ class Ajustes {
   static const duracionExito = Duration(milliseconds: 4500);    // tiempo del mensaje verde
   static const duracionError = Duration(milliseconds: 4000);    // tiempo del mensaje rojo
   static const intentosAntesDeError = 2;                        // fallos seguidos antes de "No reconocido"
-  static const timeoutApi = Duration(seconds: 8);               // espera máxima al servidor
+  static const timeoutApi = Duration(seconds: 20);               // espera máxima al servidor
   static const regresoAutomatico = Duration(seconds: 30);       // si se permite cambio manual
 
   // ---------- Valores guardados en la tablet ----------

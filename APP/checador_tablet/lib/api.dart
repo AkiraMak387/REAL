@@ -18,7 +18,7 @@ class Horario {
     this.toleranciaMin = 15,
     this.salida = '18:00',
     this.inicioEntrada = '03:00',
-    this.cambioASalida = '16:00',
+    this.cambioASalida = '12:01',
   });
 
   factory Horario.fromJson(Map<String, dynamic> j) => Horario(
@@ -26,7 +26,7 @@ class Horario {
         toleranciaMin: (j['tolerancia_min'] ?? 15) as int,
         salida: (j['salida'] ?? '18:00') as String,
         inicioEntrada: (j['inicio_entrada'] ?? '03:00') as String,
-        cambioASalida: (j['cambio_a_salida'] ?? '16:00') as String,
+        cambioASalida: (j['cambio_a_salida'] ?? '12:01') as String,
       );
 
   static int aMinutos(String hhmm) {
@@ -43,8 +43,9 @@ class Horario {
   }
 
   /// Tipo que se preselecciona según la hora:
-  ///   03:00 a 15:59 → entrada
-  ///   16:00 a 02:59 → salida
+  ///   03:00 a 12:00 → entrada
+  ///   12:01 a 02:59 → salida
+  /// El trabajador puede cambiarlo tocando el botón Entrada o Salida.
   String tipoAutomatico(DateTime t) {
     final minutos = t.hour * 60 + t.minute;
     final esEntrada = minutos >= aMinutos(inicioEntrada) && minutos < aMinutos(cambioASalida);
@@ -66,13 +67,13 @@ class ConfigServidor {
 
   const ConfigServidor({
     this.modoDemo = false,
-    this.permitirCambioManual = false,
+    this.permitirCambioManual = true, // el trabajador puede tocar Entrada o Salida
     this.horario = const Horario(),
   });
 
   factory ConfigServidor.fromJson(Map<String, dynamic> j) => ConfigServidor(
         modoDemo: (j['modo_demo'] ?? false) as bool,
-        permitirCambioManual: (j['permitir_cambio_manual'] ?? false) as bool,
+        permitirCambioManual: (j['permitir_cambio_manual'] ?? true) as bool,
         horario: Horario.fromJson((j['horario'] ?? <String, dynamic>{}) as Map<String, dynamic>),
       );
 }
@@ -87,20 +88,21 @@ class ApiCliente {
             : servidor.trim();
 
   Future<ConfigServidor> obtenerConfig() async {
-    final resp = await http.get(Uri.parse('$base/api/config')).timeout(Ajustes.timeoutApi);
-    return ConfigServidor.fromJson(_leer(resp));
+   final resp = await http.get(Uri.parse('$base/api/salud')).timeout(Ajustes.timeoutApi);
+      return ConfigServidor.fromJson(_leer(resp));
   }
 
-  Future<Map<String, dynamic>> registrar({
+  /// Manda la foto y los rostros cifrados de la bodega; el servidor responde
+  /// {resultado: 'reconocido' | 'no_reconocido' | 'sin_rostro', id: '01020001'}.
+  Future<Map<String, dynamic>> identificar({
     required String imagenBase64,
-    required String tipo,
-    required String dispositivo,
+    required List<Map<String, String>> existentes,
   }) async {
     final resp = await http
         .post(
-          Uri.parse('$base/api/checador/registrar'),
+          Uri.parse('$base/api/identificar'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'imagen': imagenBase64, 'tipo': tipo, 'dispositivo': dispositivo}),
+          body: jsonEncode({'imagen': imagenBase64, 'existentes': existentes}),
         )
         .timeout(Ajustes.timeoutApi);
     return _leer(resp);

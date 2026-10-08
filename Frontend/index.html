@@ -4,99 +4,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión | Distribuidora El Nevado</title>
+    <title>Iniciar sesión | Distribuidora El Nevado</title>
     <link rel="stylesheet" href="recursos/main.css">
     <link rel="stylesheet" href="recursos/login.css">
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
-    <script src="recursos/fechas.js"></script>
 </head>
 
 <body class="login-page">
 
-    <div class="login-container">
-        <div class="login-card">
+    <!-- Paisaje del nevado al fondo de toda la pantalla: solo decoración -->
+    <svg class="acceso__paisaje" viewBox="0 0 1440 400" preserveAspectRatio="none" aria-hidden="true">
+        <path class="paisaje__lejos" d="M0,400 L0,250 L130,180 L250,240 L400,120 L540,230 L690,140 L850,250 L1000,130 L1150,230 L1300,160 L1440,240 L1440,400 Z" />
+        <path class="paisaje__medio" d="M0,400 L0,310 L160,240 L300,300 L470,190 L600,280 L740,50 L900,270 L1080,200 L1240,290 L1440,220 L1440,400 Z" />
+        <path class="paisaje__nieve" d="M740,50 L787,115 L768,106 L750,132 L734,104 L716,122 L703,110 Z" />
+        <path class="paisaje__cerca" d="M0,400 L0,350 L220,295 L400,345 L620,280 L820,350 L1040,305 L1250,355 L1440,300 L1440,400 Z" />
+    </svg>
 
-            <!-- Logo -->
-            <div class="login-card__logo">
-                <img src="recursos/logo.png" alt="El Nevado">
+    <main class="acceso">
+
+        <!-- ========== MENSAJE DE MARCA (izquierda) ========== -->
+        <section class="acceso__marca" aria-label="Distribuidora El Nevado">
+            <p class="acceso__empresa"><span aria-hidden="true"></span>Distribuidora El Nevado</p>
+            <h2>Control de <br>Asistencia <br>y Nómina</h2>
+            <p class="acceso__lema">Una sola plataforma para administrar al personal de todas las sucursales.</p>
+
+            <ul class="acceso__puntos">
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <span>Asistencia en tiempo real</span>
+                </li>
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>
+                    <span>Nómina semanal</span>
+                </li>
+                <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                    <span>Vacaciones e incapacidades</span>
+                </li>
+            </ul>
+        </section>
+
+        <!-- ========== FORMULARIO (derecha) ========== -->
+        <section class="acceso__panel">
+            <div class="acceso__caja">
+                <img class="acceso__logo" src="recursos/logo.png" alt="Distribuidora El Nevado" width="402" height="266">
+
+                <h1>Iniciar sesión</h1>
+                <p class="acceso__subtitulo">Ingresa con tu correo autorizado.</p>
+
+                <form class="acceso__form" id="loginForm" novalidate>
+
+                    <div class="campo">
+                        <label for="usuario">Correo</label>
+                        <div class="campo__caja">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg>
+                            <input type="email" id="usuario" name="usuario" placeholder="Correo electrónico de usuario" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus required>
+                        </div>
+                    </div>
+
+                    <div class="campo">
+                        <label for="password">Contraseña</label>
+                        <div class="campo__caja">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                            <input type="password" id="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
+                            <button type="button" class="campo__ver" id="togglePassword" aria-label="Mostrar contraseña">Mostrar</button>
+                        </div>
+                        <p class="campo__aviso hidden" id="avisoMayusculas">Bloq Mayús está activado.</p>
+                    </div>
+
+                    <p class="login-error hidden" id="loginError" role="alert"></p>
+
+                    <button type="submit" class="acceso__boton">Ingresar</button>
+
+                    <p class="acceso__ayuda">¿Olvidaste tu contraseña? Solicita al área de Sistemas que la restablezca.</p>
+                </form>
             </div>
+        </section>
 
-            <!-- Título -->
-            <h1 class="login-card__title">Iniciar Sesión</h1>
-            <p class="login-card__subtitle">Ingrese sus credenciales autorizadas</p>
+    </main>
 
-            <!-- Formulario -->
-            <form class="login-form" id="loginForm" novalidate>
-
-                <!-- Usuario -->
-                <div class="form-group">
-                    <div class="label-row">
-                        <label for="usuario">Usuario o correo</label>
-                        <span class="label-tag">Corporativo</span>
-                    </div>
-                    <div class="input-icon">
-                        <input type="text" id="usuario" name="usuario" placeholder="Tu usuario" autocomplete="username"
-                            required>
-                        <span class="icon">👤</span>
-                    </div>
-                </div>
-
-                <!-- Contraseña -->
-                <div class="form-group">
-                    <label for="password">Contraseña</label>
-                    <div class="input-icon">
-                        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
-                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar contraseña">👁</button>
-                    </div>
-                </div>
-
-                <!-- Recordarme -->
-                <div class="form-row">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="recordarme" id="recordarme">
-                        Recordarme
-                    </label>
-                </div>
-
-                <p class="login-error hidden" id="loginError" role="alert"></p>
-
-                <!-- Botón -->
-                <button type="submit" class="btn btn--primary btn--full">
-                    Ingresar →
-                </button>
-
-                <!-- Olvidé contraseña -->
-                <div class="login-form__footer">
-                    <span>¿Olvidaste tu contraseña? Pide al área de Sistemas que la restablezca.</span>
-                </div>
-            </form>
-
-            <!-- Texto inferior -->
-            <div class="login-card__bottom">
-                <p>Sistema de Control de Asistencia y Nómina</p>
-                <span>Acceso Restringido</span>
-            </div>
-
-            <!-- Cuentas de prueba: se quitan cuando exista el servidor -->
-            <details class="login-demo">
-                <summary>Cuentas de prueba</summary>
-                <ul>
-                    <li><strong>super</strong> / super123 · Super usuario</li>
-                    <li><strong>rh</strong> / rh123 · Recursos Humanos</li>
-                    <li><strong>admin01</strong> / admin123 · Admin sucursal 01</li>
-                    <li><strong>admin05</strong> / admin123 · Admin sucursal 05</li>
-                    <li><strong>sistemas</strong> / sistemas123 · Sistemas</li>
-                </ul>
-            </details>
-
-        </div>
-    </div>
+    <footer class="acceso__pie">
+        <span>Acceso restringido a personal autorizado</span>
+        <span>© <span id="anioActual"></span> Distribuidora El Nevado S.A. de C.V.</span>
+    </footer>
 
     <script>
         const formulario = document.getElementById('loginForm');
         const mensajeError = document.getElementById('loginError');
         const campoPassword = document.getElementById('password');
+        const avisoMayusculas = document.getElementById('avisoMayusculas');
+
+        document.getElementById('anioActual').textContent = new Date().getFullYear();
 
         function mostrarError(texto) {
             mensajeError.textContent = texto;
@@ -107,9 +106,10 @@
             evento.preventDefault();
             const usuario = document.getElementById('usuario').value.trim();
             const contrasena = campoPassword.value;
-            if (!usuario || !contrasena) return mostrarError('Escribe tu usuario y tu contraseña.');
+            if (!usuario || !contrasena) return mostrarError('Escribe tu correo y tu contraseña.');
 
-            const resultado = iniciarSesion(usuario, contrasena, document.getElementById('recordarme').checked);
+            // Firebase valida el correo y la contraseña. La sesión se cierra al cerrar el navegador.
+            const resultado = iniciarSesion(usuario, contrasena);
             if (resultado.error) {
                 mostrarError(resultado.error);
                 campoPassword.value = '';
@@ -119,11 +119,23 @@
             location.href = ROLES[resultado.usuario.rol].inicio;
         });
 
+        // Al corregir lo escrito se quita el mensaje de error anterior
+        formulario.addEventListener('input', () => mensajeError.classList.add('hidden'));
+
         document.getElementById('togglePassword').addEventListener('click', (evento) => {
             const mostrar = campoPassword.type === 'password';
             campoPassword.type = mostrar ? 'text' : 'password';
+            evento.currentTarget.textContent = mostrar ? 'Ocultar' : 'Mostrar';
             evento.currentTarget.setAttribute('aria-label', mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            campoPassword.focus();
         });
+
+        // Aviso de Bloq Mayús: la causa más común de "contraseña incorrecta"
+        ['keydown', 'keyup'].forEach((tipo) => campoPassword.addEventListener(tipo, (evento) => {
+            if (typeof evento.getModifierState !== 'function') return;
+            avisoMayusculas.classList.toggle('hidden', !evento.getModifierState('CapsLock'));
+        }));
+        campoPassword.addEventListener('blur', () => avisoMayusculas.classList.add('hidden'));
     </script>
 </body>
 

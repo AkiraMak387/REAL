@@ -28,7 +28,7 @@ rem Instala el reconocimiento facial si hace falta (en el mismo Python que corre
 )
 
 rem Abre el navegador en 2 segundos, cuando el servidor ya este listo
-start "" /b cmd /c "timeout /t 2 >nul & start http://127.0.0.1:8000/"
+start "" /b cmd /c "timeout /t 2 >nul & start http://127.0.0.1:8000"
 
 %PY% servidor.py
 pause

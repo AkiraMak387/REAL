@@ -64,19 +64,47 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
-    flex-wrap: wrap;
 }
 
+/* Pestañas y filtros van en un solo renglón: las pestañas son más compactas que en Configuración
+   y, si aun así no caben, son ellas las que se acomodan en dos renglones (los filtros no bajan) */
 .solicitudes-barra .settings-tabs {
+    flex: 0 1 auto;
+    min-width: 0;
     flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 8px;
+}
+
+.solicitudes-barra .settings-tab {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.solicitudes-filtros {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+    margin-top: 5px;
 }
 
 .solicitudes-barra select {
-    padding: 10px 12px;
+    padding: 8px;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     background: #fff;
-    font-size: 14px;
+    font-size: 13px;
+}
+
+#tipoFiltro {
+    width: 150px;
+}
+
+@media (max-width: 900px) {
+    .solicitudes-barra,
+    .solicitudes-filtros {
+        flex-wrap: wrap;
+    }
 }
 
 /* Tarjeta de solicitud */

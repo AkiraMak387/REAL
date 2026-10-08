@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="recursos/inicio.css">
     <!-- Sesión y permisos por rol (antes que cualquier otro script) -->
     <script src="recursos/sesion.js"></script>
-    <script src="recursos/fechas.js"></script>
 </head>
 
 <body>
@@ -72,6 +71,9 @@
         </header>
 
         <section class="content">
+
+            <!-- Trabajadores que terminaron su incapacidad y no han presentado el alta del seguro -->
+            <div id="avisoSinAlta" class="aviso-sin-alta hidden" role="status"></div>
 
             <div class="section-header">
                 <div>
@@ -157,8 +159,67 @@
         // Los datos salen de la misma fuente que Asistencia, Incapacidades y Vacaciones (recursos/datos.js),
         // así las cifras de hoy coinciden en todas las páginas.
         const etiqueta = (texto, concepto) => '<span class="badge color-' + concepto + '">' + texto + '</span>';
+
+        // Aviso de quienes no pueden trabajar por falta del alta del seguro (se ve antes que todo lo demás)
+        document.getElementById('avisoSinAlta').innerHTML = htmlAvisoSinAlta();
+        document.getElementById('avisoSinAlta').classList.toggle('hidden', !document.getElementById('avisoSinAlta').innerHTML);
         const aMinutos = (hora) => { const [h, m] = hora.split(':').map(Number); return h * 60 + m; };
         const periodo = (inicio, fin) => inicio === fin ? formatoFecha(inicio) : formatoFecha(inicio) + ' – ' + formatoFecha(fin);
+
+        // ---- Hora de salida ----
+        // Si el empleado todavía no checa su salida, se muestra --
+        const SALIDA_SIN_REGISTRO = '--';
+
+        function horaSalida(reg) {
+            if (!reg || !reg.salida) return SALIDA_SIN_REGISTRO;
+            // Una salida que todavía no llega hoy no puede ser una checada real
+            // (es la hora de fin del horario, no una checada)
+            const ahora = new Date();
+            const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+            if (aMinutos(reg.salida) > minutosAhora) return SALIDA_SIN_REGISTRO;
+            return reg.salida;
+        }
+
+        // Cada cuánto se vuelve a calcular la página (1 minuto)
+        const INTERVALO_ACTUALIZACION_MS = 60 * 1000;
+
+        // ---- Regla de entrada ----
+        // Antes de las 8:15 = a tiempo, de 8:15 en adelante = retardo.
+        // Sin checada de entrada = falta (igual que en Asistencia).
+        // (REGLA 10:00 desactivada: entrada después de las 10:00 = falta)
+        const MIN_INICIO_RETARDO = 8 * 60 + 15;
+        // REGLA 10:00 (1/2) — descomenta esta línea para reactivarla
+        // const MIN_LIMITE_FALTA = 10 * 60;
+
+        // Estados que cuentan para asistencia; cualquier otro (permiso, justificado, etc.) se respeta tal cual
+        const ESTADOS_ASISTENCIA = ['asistencia', 'retardo', 'falta'];
+
+        // Calcula el estado del día del empleado.
+        // Las faltas son actualizables: quien no ha checado aparece con falta,
+        // y en cuanto checa su estado se recalcula con la hora de entrada (a tiempo o retardo).
+        function aplicarReglaEntrada(reg, incapacidad, vacacion) {
+            // Si el registro trae un estado especial (permiso, justificado...), no se toca
+            if (reg && reg.estado && !ESTADOS_ASISTENCIA.includes(reg.estado)) {
+                return reg;
+            }
+
+            // Ya checó: se calcula con su hora de entrada
+            if (reg && reg.entrada) {
+                const minutos = aMinutos(reg.entrada);
+                // REGLA 10:00 (2/2) — para reactivarla, descomenta la primera línea y borra la segunda
+                // const estado = minutos > MIN_LIMITE_FALTA ? 'falta' : (minutos >= MIN_INICIO_RETARDO ? 'retardo' : 'asistencia');
+                const estado = minutos >= MIN_INICIO_RETARDO ? 'retardo' : 'asistencia';
+                return Object.assign({}, reg, { estado: estado });
+            }
+
+            // No ha checado: es falta, salvo incapacidad, vacaciones o domingo
+            const esDomingo = new Date().getDay() === 0;
+            if (!incapacidad && !vacacion && !esDomingo) {
+                return Object.assign({}, reg || {}, { estado: 'falta', entrada: '' });
+            }
+
+            return reg;
+        }
 
         const COLUMNAS_BASE = ['Empleado', 'Departamento'];
 
@@ -177,14 +238,16 @@
             presentes: {
                 titulo: 'Empleados Presentes Hoy',
                 filtro: f => f.reg && (f.reg.estado === 'asistencia' || f.reg.estado === 'retardo'),
-                columnas: ['Hora de Entrada', 'Estado'],
-                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + (f.reg.estado === 'retardo' ? etiqueta('Retardo', 'retardo') : etiqueta('A tiempo', 'asistencia')) + '</td>'
+                columnas: ['Hora de Entrada', 'Hora de Salida', 'Estado'],
+                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + horaSalida(f.reg) + '</td><td>' +
+                    (f.reg.estado === 'retardo' ? etiqueta('Retardo', 'retardo') : etiqueta('A tiempo', 'asistencia')) + '</td>'
             },
             retardos: {
                 titulo: 'Empleados con Retardo',
                 filtro: f => f.reg && f.reg.estado === 'retardo',
-                columnas: ['Hora de Entrada', 'Minutos de retardo', 'Estado'],
-                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + (aMinutos(f.reg.entrada) - HORARIO.entrada - TOLERANCIA_MINUTOS) + ' min</td><td>' + etiqueta('Retardo', 'retardo') + '</td>'
+                columnas: ['Hora de Entrada', 'Hora de Salida', 'Minutos de retardo', 'Estado'],
+                celdas: f => '<td>' + f.reg.entrada + '</td><td>' + horaSalida(f.reg) + '</td><td>' +
+                    (aMinutos(f.reg.entrada) - MIN_INICIO_RETARDO) + ' min</td><td>' + etiqueta('Retardo', 'retardo') + '</td>'
             },
             faltas: {
                 titulo: 'Empleados con Falta',
@@ -220,7 +283,9 @@
                 .sort((a, b) => a.id.localeCompare(b.id))
                 .map(emp => {
                     const incapacidad = incapacidadEn(emp, HOY_ISO) || null;
-                    return { emp, reg: registroDia(emp, HOY), incapacidad, vacacion: incapacidad ? null : (vacacionEn(emp, HOY_ISO) || null) };
+                    const vacacion = incapacidad ? null : (vacacionEn(emp, HOY_ISO) || null);
+                    const reg = aplicarReglaEntrada(registroDia(emp, HOY), incapacidad, vacacion);
+                    return { emp, reg, incapacidad, vacacion };
                 });
         }
 
@@ -275,6 +340,10 @@
                 listaSucursales().map(s => '<option value="' + s.clave + '">' + s.clave + ' - ' + escaparHtml(s.nombre) + '</option>').join('');
             fijarSucursalUnica(filtro);
             mostrarTabla('presentes');
+
+            // Faltas actualizables: se recalcula todo cada minuto para reflejar
+            // a quien checó después de haber sido marcado con falta
+            setInterval(actualizarVista, INTERVALO_ACTUALIZACION_MS);
         });
     </script>
 

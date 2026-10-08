@@ -82,7 +82,10 @@
                 </div>
             </div>
 
-            <div class="kpi-grid kpi-grid--2">
+            <!-- Trabajadores que ya terminaron su incapacidad y no han presentado el alta del seguro -->
+            <div id="avisoSinAlta" class="aviso-sin-alta hidden" role="status"></div>
+
+            <div class="kpi-grid kpi-grid--3">
                 <article class="kpi-card grip-card" data-filter="activa" tabindex="0" role="button" aria-label="Filtrar incapacidades activas">
                     <div class="kpi-card__header">
                         <span class="kpi-label">INCAPACIDADES ACTIVAS</span>
@@ -91,6 +94,17 @@
                     <div class="kpi-card__value incapacidad" id="kpiActivas">0</div>
                     <div class="kpi-meta">
                         <span class="muted">Trabajadores incapacitados hoy</span>
+                    </div>
+                </article>
+
+                <article class="kpi-card grip-card" data-filter="espera" tabindex="0" role="button" aria-label="Filtrar incapacidades que esperan el alta del seguro">
+                    <div class="kpi-card__header">
+                        <span class="kpi-label">ESPERANDO ALTA</span>
+                        <span class="kpi-icon danger">⛔</span>
+                    </div>
+                    <div class="kpi-card__value danger" id="kpiEspera">0</div>
+                    <div class="kpi-meta">
+                        <span class="muted">No pueden trabajar hasta presentar su alta</span>
                     </div>
                 </article>
 
@@ -116,6 +130,8 @@
                         <select id="statusFilter">
                             <option value="todos">Todas</option>
                             <option value="activa">Activas</option>
+                            <option value="espera">Esperando alta</option>
+                            <option value="revisar">Alta por aprobar</option>
                             <option value="finalizada">Finalizadas</option>
                         </select>
                     </label>
@@ -183,10 +199,63 @@
                             <th>Días</th>
                             <th>Estado</th>
                             <th>Certificado</th>
+                            <th>Alta del seguro</th>
+                            <th id="expedienteColBorrar" class="hidden"><span class="sr-only">Borrar</span></th>
                         </tr>
                     </thead>
                     <tbody id="expedienteTabla"></tbody>
                 </table>
+            </div>
+            <!-- Subir el alta del seguro: con ella el trabajador ya puede volver a trabajar -->
+            <div class="expediente-alta hidden" id="expedienteAlta">
+                <strong>Subir alta del seguro</strong>
+                <p id="expedienteAltaTexto"></p>
+                <div class="expediente-alta__campos">
+                    <label>Fecha del alta *
+                        <input id="expedienteAltaFecha" type="date">
+                    </label>
+                    <label>Documento del alta (PDF, JPG o PNG, máximo 2 MB) *
+                        <input id="expedienteAltaArchivo" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+                    </label>
+                </div>
+                <small class="expediente-alta__error" id="expedienteAltaError"></small>
+                <div class="expediente-borrar__acciones">
+                    <button class="btn btn--ghost" type="button" id="expedienteAltaNo">Cancelar</button>
+                    <button class="btn btn--primary" type="button" id="expedienteAltaSi">Guardar alta</button>
+                </div>
+            </div>
+            <!-- RH devuelve el alta que subió el admin: hay que decir por qué -->
+            <div class="expediente-borrar hidden" id="expedienteDevolver" role="alertdialog" aria-labelledby="expedienteDevolverTitulo">
+                <strong id="expedienteDevolverTitulo">Devolver el alta del seguro</strong>
+                <p id="expedienteDevolverTexto"></p>
+                <label for="expedienteDevolverMotivo">Motivo *</label>
+                <input id="expedienteDevolverMotivo" type="text" maxlength="200" placeholder="Ej. El documento no es el alta, es la receta" autocomplete="off">
+                <small class="expediente-borrar__error" id="expedienteDevolverError"></small>
+                <div class="expediente-borrar__acciones">
+                    <button class="btn btn--ghost" type="button" id="expedienteDevolverNo">Cancelar</button>
+                    <button class="btn btn--peligro" type="button" id="expedienteDevolverSi">Devolver alta</button>
+                </div>
+            </div>
+            <!-- Confirmación para borrar una incapacidad capturada por error (solo RH y Super usuario) -->
+            <div class="expediente-borrar hidden" id="expedienteBorrar" role="alertdialog" aria-labelledby="expedienteBorrarTitulo">
+                <strong id="expedienteBorrarTitulo">¿Borrar esta incapacidad?</strong>
+                <p id="expedienteBorrarTexto"></p>
+                <p class="expediente-borrar__aviso hidden" id="expedienteBorrarAviso"></p>
+                <label for="expedienteBorrarMotivo">Motivo *</label>
+                <input id="expedienteBorrarMotivo" type="text" maxlength="200" placeholder="Ej. Se capturó al trabajador equivocado" autocomplete="off">
+                <small class="expediente-borrar__error" id="expedienteBorrarError"></small>
+                <div class="expediente-borrar__acciones">
+                    <button class="btn btn--ghost" type="button" id="expedienteBorrarNo">No, cancelar</button>
+                    <button class="btn btn--peligro" type="button" id="expedienteBorrarSi">Sí, borrar</button>
+                </div>
+            </div>
+            <!-- Certificado del IMSS de la incapacidad elegida: se ve aquí mismo -->
+            <div class="expediente-visor hidden" id="expedienteVisor">
+                <div class="expediente-visor__barra">
+                    <strong id="expedienteVisorTitulo"></strong>
+                    <a id="expedienteVisorAbrir" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
+                </div>
+                <div class="expediente-visor__vista" id="expedienteVisorVista"></div>
             </div>
             <div class="expediente-modal__acciones">
                 <button class="btn btn--primary" type="button" id="expedienteAceptar">Cerrar</button>
@@ -209,11 +278,19 @@
         const MES_ACTUAL = HOY_ISO.slice(0, 7);
         let paginaActual = 1;
 
+        // "espera": ya terminó y el trabajador no ha presentado su alta del seguro (o RH se la devolvió).
+        // "revisar": ya terminó y el admin subió el alta, pero RH todavía no la aprueba.
+        function estadoIncapacidad(emp, inc, fin) {
+            if (fin >= HOY_ISO) return 'activa';
+            if (incapacidadSinAlta(emp) === inc) return 'espera';
+            return inc.alta && inc.alta.estado === 'revision' ? 'revisar' : 'finalizada';
+        }
+
         // Todas las incapacidades de todos los trabajadores (las que se registran en Empleados)
         function todasLasIncapacidades() {
             return EMPLEADOS.flatMap((emp) => (emp.incapacidades || []).map((inc) => {
                 const fin = finIncapacidad(inc);
-                return { emp, inc, fin, estado: fin >= HOY_ISO ? 'activa' : 'finalizada' };
+                return { emp, inc, fin, estado: estadoIncapacidad(emp, inc, fin) };
             }));
         }
 
@@ -228,7 +305,8 @@
             return todasLasIncapacidades()
                 .filter((r) => statusFilter.value === 'todos' || r.estado === statusFilter.value)
                 .filter((r) => sucursalFilter.value === 'todas' || r.emp.suc === sucursalFilter.value)
-                .filter((r) => !mes || (r.inc.inicio <= mes.fin && r.fin >= mes.inicio))
+                // Las que esperan alta se ven siempre al filtrarlas, aunque sean de otro mes: siguen pendientes
+                .filter((r) => !mes || (['espera', 'revisar'].includes(statusFilter.value) && r.estado === statusFilter.value) || (r.inc.inicio <= mes.fin && r.fin >= mes.inicio))
                 .filter((r) => !busqueda || normalizar(r.emp.nombre).includes(busqueda))
                 .sort((a, b) => b.inc.inicio.localeCompare(a.inc.inicio));
         }
@@ -240,13 +318,47 @@
             const finalizadasMes = todas.filter((r) => r.estado === 'finalizada' && r.fin >= mes.inicio);
             document.getElementById('kpiActivas').textContent = new Set(activasHoy.map((r) => r.emp.id)).size;
             document.getElementById('kpiFinalizadas').textContent = finalizadasMes.length;
+            document.getElementById('kpiEspera').textContent = todas.filter((r) => r.estado === 'espera').length;
+            renderAvisoSinAlta();
             cardButtons.forEach((card) => card.classList.toggle('active-card', card.dataset.filter === statusFilter.value));
         }
 
+        const PILL_ESTADO = {
+            activa: '<span class="status-pill status-pill--active">Activa</span>',
+            espera: '<span class="status-pill status-pill--espera">Esperando alta</span>',
+            revisar: '<span class="status-pill status-pill--revisar">Alta por aprobar</span>',
+            finalizada: '<span class="status-pill status-pill--done">Finalizada</span>'
+        };
+
+        // Aviso fijo arriba: no depende de los filtros, para que nadie crea que todo está en orden
+        function renderAvisoSinAlta() {
+            const aviso = document.getElementById('avisoSinAlta');
+            const enlace = (emp, inc) => `<a href="#" data-expediente="${emp.id}" data-folio="${escaparHtml(inc.folio)}">${escaparHtml(emp.nombre)}</a>`;
+            let html = '';
+            const sinAlta = trabajadoresSinAlta();
+            if (sinAlta.length) {
+                html += `<strong>⛔ ${sinAlta.length === 1 ? '1 trabajador no puede trabajar' : `${sinAlta.length} trabajadores no pueden trabajar`}: falta su alta del seguro</strong>`
+                    + `<span>Regrésalos hasta que la presenten y súbela aquí: ${sinAlta.map((emp) => {
+                        const inc = incapacidadSinAlta(emp);
+                        const notas = [`terminó el ${formatoFecha(finIncapacidad(inc))}`];
+                        if (inc.alta && inc.alta.estado === 'rechazada') notas.push(`RH devolvió el alta: ${escaparHtml(inc.alta.motivo)}`);
+                        if (inc.alta && inc.alta.estado === 'revision') notas.push('alta en revisión de RH');
+                        if (checadaDelDia(emp, HOY_ISO)) notas.push('⚠️ checó hoy');
+                        return `${enlace(emp, inc)} (${notas.join(' · ')})`;
+                    }).join(' · ')}</span>`;
+            }
+            // A quien aprueba (RH y Super usuario): las altas que subió el admin y aún no revisa
+            const porAprobar = puede('aprobarAlta') ? altasPorAprobar() : [];
+            if (porAprobar.length) {
+                html += `<strong>📄 ${porAprobar.length === 1 ? 'Hay 1 alta del seguro por aprobar' : `Hay ${porAprobar.length} altas del seguro por aprobar`}: ábrela, revisa el documento y apruébala o devuélvela</strong>`
+                    + `<span>${porAprobar.map(({ emp, inc }) => enlace(emp, inc)).join(' · ')}</span>`;
+            }
+            aviso.innerHTML = html;
+            aviso.classList.toggle('hidden', !html);
+        }
+
         function fila({ emp, inc, fin, estado }) {
-            const pill = estado === 'activa'
-                ? '<span class="status-pill status-pill--active">Activa</span>'
-                : '<span class="status-pill status-pill--done">Finalizada</span>';
+            const pill = PILL_ESTADO[estado];
             return `
                 <tr>
                     <td><div class="employee-cell"><span class="employee-id">${emp.id}</span><strong>${escaparHtml(emp.nombre)}</strong></div></td>
@@ -294,8 +406,9 @@
             const emp = EMPLEADOS.find((e) => e.id === empId);
             if (!emp) return;
             const incapacidades = (emp.incapacidades || [])
-                .map((inc) => ({ inc, fin: finIncapacidad(inc) }))
+                .map((inc, indice) => ({ inc, fin: finIncapacidad(inc), indice }))
                 .sort((a, b) => b.inc.inicio.localeCompare(a.inc.inicio));
+            const puedeBorrar = puede('eliminarIncapacidades');
             const anio = HOY.getFullYear();
             const delAnio = incapacidades.filter(({ inc }) => Number(inc.inicio.slice(0, 4)) === anio);
             const activa = incapacidades.find(({ inc, fin }) => inc.inicio <= HOY_ISO && fin >= HOY_ISO);
@@ -312,26 +425,327 @@
                 tarjeta(delAnio.reduce((total, { inc }) => total + inc.dias, 0), `Días en ${anio}`) +
                 tarjeta(incapacidades.length, 'En todo su historial');
 
-            document.getElementById('expedienteTabla').innerHTML = incapacidades.map(({ inc, fin }) => `
+            document.getElementById('expedienteColBorrar').classList.toggle('hidden', !puedeBorrar);
+            cancelarBorrado();
+            cancelarAlta();
+            cancelarDevolucion();
+            document.getElementById('expedienteTabla').innerHTML = incapacidades.map(({ inc, fin, indice }) => `
                 <tr class="${inc.folio === folio ? 'es-seleccionada' : ''}">
                     <td class="col-hora">${escaparHtml(inc.folio)}</td>
                     <td>${escaparHtml(inc.tipo)}</td>
                     <td class="col-hora">${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}</td>
                     <td><span class="day-pill">${inc.dias}</span></td>
-                    <td>${fin >= HOY_ISO
-                        ? '<span class="status-pill status-pill--active">Activa</span>'
-                        : '<span class="status-pill status-pill--done">Finalizada</span>'}</td>
+                    <td>${PILL_ESTADO[estadoIncapacidad(emp, inc, fin)]}</td>
                     <td class="action-cell">${inc.archivo
                         ? `<button type="button" data-certificado="${escaparHtml(inc.archivo.clave)}" data-emp="${emp.id}" title="${escaparHtml(inc.archivo.nombre)}">📎 Ver</button>`
                         : '<span class="sin-certificado">Sin adjuntar</span>'}</td>
-                </tr>`).join('');
+                    <td class="action-cell">${celdaAlta(emp, inc, fin, indice)}</td>
+                    ${puedeBorrar ? `<td class="action-cell"><button class="boton-borrar" type="button" data-borrar="${indice}" data-emp="${emp.id}" title="Borrar esta incapacidad">🗑 Borrar</button></td>` : ''}
+                </tr>`).join('') || `<tr><td colspan="8" class="sin-certificado">Sin incapacidades registradas.</td></tr>`;
 
             elementoAnterior = document.activeElement;
             expedienteModal.classList.remove('hidden');
             document.getElementById('expedienteCerrar').focus();
+
+            // El certificado de la incapacidad desde la que se abrió se muestra de una vez
+            cerrarCertificado();
+            const elegida = incapacidades.find(({ inc }) => inc.folio === folio && inc.archivo);
+            if (elegida) mostrarCertificado(emp.id, elegida.inc.archivo.clave, true);
+        }
+
+        let urlCertificado = null;
+
+        function cerrarCertificado() {
+            document.getElementById('expedienteVisor').classList.add('hidden');
+            document.getElementById('expedienteVisorVista').innerHTML = '';
+            if (urlCertificado) URL.revokeObjectURL(urlCertificado);
+            urlCertificado = null;
+        }
+
+        // silencioso: al abrir el expediente no se avisa si el archivo no está en este equipo
+        async function mostrarCertificado(empId, clave, silencioso = false) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            const inc = ((emp && emp.incapacidades) || []).find((i) => [i.archivo, i.alta && i.alta.archivo].some((a) => a && a.clave === clave));
+            if (!inc) return;
+            const esAlta = !(inc.archivo && inc.archivo.clave === clave);
+            const guardado = esAlta ? inc.alta.archivo : inc.archivo;
+            let archivo = null;
+            try {
+                archivo = await AlmacenDocumentos.obtener(empId, clave);
+            } catch (error) {
+                // sin acceso al almacén
+            }
+            if (expedienteModal.classList.contains('hidden')) return;
+            if (!archivo) {
+                if (!silencioso) mostrarToast('El certificado no está en esta computadora (se subió desde otro navegador).');
+                return;
+            }
+            cerrarCertificado();
+            urlCertificado = URL.createObjectURL(archivo);
+            const titulo = `${esAlta ? 'Alta del seguro' : 'Certificado'} · Folio ${inc.folio}`;
+            document.getElementById('expedienteVisorTitulo').textContent = `📎 ${titulo} · ${guardado.nombre}`;
+            document.getElementById('expedienteVisorAbrir').href = urlCertificado;
+            document.getElementById('expedienteVisorVista').innerHTML = archivo.type === 'application/pdf'
+                ? `<iframe src="${urlCertificado}" title="${escaparHtml(titulo)}"></iframe>`
+                : `<img src="${urlCertificado}" alt="${escaparHtml(titulo)}">`;
+            const visor = document.getElementById('expedienteVisor');
+            visor.classList.remove('hidden');
+            if (!silencioso) visor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ---------- Alta del seguro ----------
+        let altaPendiente = null; // { emp, inc }
+
+        // Se le puede subir el alta a la incapacidad más reciente mientras no la tenga (activa o ya terminada)
+        function admiteAlta(emp, inc, fin) {
+            // Si RH devolvió el alta, se puede subir otra
+            const conAlta = inc.alta && inc.alta.estado !== 'rechazada';
+            if (conAlta || fin < ALTA_OBLIGATORIA_DESDE || emp.baja || !puede('registrarAlta')) return false;
+            return !(emp.incapacidades || []).some((otra) => otra !== inc && finIncapacidad(otra) > fin);
+        }
+
+        function celdaAlta(emp, inc, fin, indice) {
+            const subir = admiteAlta(emp, inc, fin)
+                ? `<button class="boton-alta" type="button" data-alta="${indice}" data-emp="${emp.id}">⬆ ${inc.alta ? 'Subir otra alta' : 'Subir alta'}</button>`
+                : '';
+            if (!inc.alta) return subir || `<span class="sin-certificado">${incapacidadSinAlta(emp) === inc ? 'Falta' : '—'}</span>`;
+
+            const alta = inc.alta;
+            const ver = alta.archivo
+                ? `<button type="button" data-certificado="${escaparHtml(alta.archivo.clave)}" data-emp="${emp.id}" title="${escaparHtml(alta.archivo.nombre)}">📎 Ver alta</button>`
+                : '';
+            let nota = `<span class="alta-fecha">${formatoFecha(alta.fecha)}</span>`;
+            let revisar = '';
+            if (alta.estado === 'revision') {
+                nota += '<span class="alta-nota alta-nota--revision">Por aprobar por RH</span>';
+                if (puede('aprobarAlta')) {
+                    revisar = `<span class="alta-revisar"><button class="boton-alta" type="button" data-alta-aprobar="${indice}" data-emp="${emp.id}">✓ Aprobar</button>`
+                        + `<button class="boton-borrar" type="button" data-alta-devolver="${indice}" data-emp="${emp.id}">Devolver</button></span>`;
+                }
+            } else if (alta.estado === 'rechazada') {
+                nota += `<span class="alta-nota alta-nota--rechazada">Devuelta por RH: ${escaparHtml(alta.motivo)}</span>`;
+            } else if (alta.revisadaPor) {
+                nota += '<span class="alta-nota alta-nota--aprobada">Aprobada por RH</span>';
+            }
+            return `${ver} ${nota}${revisar}${subir}`;
+        }
+
+        function cancelarAlta() {
+            altaPendiente = null;
+            document.getElementById('expedienteAlta').classList.add('hidden');
+        }
+
+        function pedirAlta(empId, indice) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            const inc = emp && (emp.incapacidades || [])[indice];
+            if (!inc || !admiteAlta(emp, inc, finIncapacidad(inc))) return;
+            cancelarBorrado();
+            cancelarDevolucion();
+            altaPendiente = { emp, inc };
+            const fin = finIncapacidad(inc);
+            document.getElementById('expedienteAltaTexto').textContent =
+                `Incapacidad con folio ${inc.folio} (${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}). Al guardar el alta, ${emp.nombre} ya puede volver a trabajar.`;
+            const fecha = document.getElementById('expedienteAltaFecha');
+            fecha.min = inc.inicio;
+            fecha.max = HOY_ISO;
+            fecha.value = HOY_ISO;
+            document.getElementById('expedienteAltaArchivo').value = '';
+            document.getElementById('expedienteAltaError').textContent = '';
+            const caja = document.getElementById('expedienteAlta');
+            caja.classList.remove('hidden');
+            caja.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function guardarAlta() {
+            const boton = document.getElementById('expedienteAltaSi');
+            if (!altaPendiente || boton.disabled || !puede('registrarAlta')) return;
+            const { emp, inc } = altaPendiente;
+            const error = document.getElementById('expedienteAltaError');
+            const fecha = document.getElementById('expedienteAltaFecha').value;
+            const archivo = document.getElementById('expedienteAltaArchivo').files[0];
+            if (!fecha || fecha < inc.inicio || fecha > HOY_ISO) { error.textContent = 'La fecha del alta debe estar entre el primer día de la incapacidad y hoy.'; return; }
+            if (!archivo) { error.textContent = 'Adjunta el documento del alta del seguro.'; return; }
+            const errorArchivo = validarArchivoDocumento(archivo);
+            if (errorArchivo) { error.textContent = errorArchivo; return; }
+
+            // El documento se guarda primero: así el alta ya queda con su archivo
+            const clave = `alta-${Date.now()}`;
+            boton.disabled = true;
+            try {
+                await AlmacenDocumentos.guardar(emp.id, clave, archivo);
+            } catch (e) {
+                error.textContent = 'No se pudo guardar el documento en este navegador. Inténtalo de nuevo.';
+                return;
+            } finally {
+                boton.disabled = false;
+            }
+            // La que sube RH o el Super usuario queda aprobada; la del admin espera la revisión de RH
+            const aprobada = puede('aprobarAlta');
+            const anterior = inc.alta; // un alta devuelta por RH que se está reemplazando
+            inc.alta = {
+                fecha,
+                archivo: { clave, nombre: archivo.name, tamano: archivo.size, tipo: archivo.type },
+                estado: aprobada ? 'aprobada' : 'revision',
+                registradaPor: USUARIO_ACTUAL.usuario,
+                registradaEl: new Date().toISOString()
+            };
+            if (guardarCambios() === false) {
+                // no se guardó: queda como estaba
+                if (anterior) inc.alta = anterior;
+                else delete inc.alta;
+                AlmacenDocumentos.borrar(emp.id, clave).catch(() => {});
+                error.textContent = 'No se guardó en la base de datos. Revisa la conexión e inténtalo de nuevo.';
+                return;
+            }
+            if (anterior && anterior.archivo) AlmacenDocumentos.borrar(emp.id, anterior.archivo.clave).catch(() => {});
+            registrarBitacora('Alta del seguro registrada', `${emp.id} · ${emp.nombre} · Folio ${inc.folio} · alta del ${formatoFecha(fecha)}${aprobada ? '' : ' · por aprobar'}`);
+            renderizar();
+            pintarContadorDocumentos();
+            const regresarA = elementoAnterior;
+            abrirExpediente(emp.id, inc.folio);
+            elementoAnterior = regresarA;
+            mostrarToast(aprobada
+                ? `Alta registrada: ${emp.nombre} ya puede volver a trabajar.`
+                : ALTA_BLOQUEA_HASTA_APROBAR
+                    ? 'Alta enviada a RH. El trabajador podrá volver cuando RH la apruebe.'
+                    : `Alta enviada a RH para su aprobación. ${emp.nombre} ya puede volver a trabajar.`);
+        }
+
+        // ---------- RH revisa el alta que subió el admin ----------
+        let porDevolver = null; // { emp, inc }
+
+        function refrescarExpediente(emp, inc) {
+            renderizar();
+            pintarContadorDocumentos();
+            const regresarA = elementoAnterior;
+            abrirExpediente(emp.id, inc.folio);
+            elementoAnterior = regresarA;
+        }
+
+        // Cambia el alta y guarda; si no se pudo guardar, la deja como estaba. Regresa true si quedó guardada
+        function revisarAlta(inc, cambios) {
+            const anterior = { ...inc.alta };
+            Object.assign(inc.alta, cambios, { revisadaPor: USUARIO_ACTUAL.usuario, revisadaEl: new Date().toISOString() });
+            if (guardarCambios() !== false) return true;
+            inc.alta = anterior;
+            return false;
+        }
+
+        function aprobarAlta(empId, indice) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            const inc = emp && (emp.incapacidades || [])[indice];
+            if (!inc || !inc.alta || inc.alta.estado !== 'revision' || !puede('aprobarAlta')) return;
+            if (!revisarAlta(inc, { estado: 'aprobada', motivo: null })) return mostrarToast('⚠️ No se guardó en la base de datos. Revisa la conexión e inténtalo de nuevo.');
+            registrarBitacora('Alta del seguro aprobada', `${emp.id} · ${emp.nombre} · Folio ${inc.folio}`);
+            refrescarExpediente(emp, inc);
+            mostrarToast(`Alta de ${emp.nombre} aprobada.`);
+        }
+
+        function cancelarDevolucion() {
+            porDevolver = null;
+            document.getElementById('expedienteDevolver').classList.add('hidden');
+        }
+
+        function pedirDevolucion(empId, indice) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            const inc = emp && (emp.incapacidades || [])[indice];
+            if (!inc || !inc.alta || inc.alta.estado !== 'revision' || !puede('aprobarAlta')) return;
+            cancelarBorrado();
+            cancelarAlta();
+            porDevolver = { emp, inc };
+            const yaTermino = finIncapacidad(inc) < HOY_ISO;
+            document.getElementById('expedienteDevolverTexto').textContent =
+                `Alta de la incapacidad con folio ${inc.folio}, subida por ${inc.alta.registradaPor}. `
+                + (yaTermino
+                    ? `Al devolverla, ${emp.nombre} vuelve a quedar sin alta: no puede trabajar hasta que la sucursal suba otra.`
+                    : 'La sucursal tendrá que subir otra antes de que termine la incapacidad.');
+            document.getElementById('expedienteDevolverMotivo').value = '';
+            document.getElementById('expedienteDevolverError').textContent = '';
+            const caja = document.getElementById('expedienteDevolver');
+            caja.classList.remove('hidden');
+            caja.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            document.getElementById('expedienteDevolverMotivo').focus();
+        }
+
+        function confirmarDevolucion() {
+            if (!porDevolver || !puede('aprobarAlta')) return;
+            const { emp, inc } = porDevolver;
+            const error = document.getElementById('expedienteDevolverError');
+            const motivo = document.getElementById('expedienteDevolverMotivo').value.trim();
+            if (motivo.length < 5) { error.textContent = 'Escribe por qué se devuelve.'; return; }
+            if (!revisarAlta(inc, { estado: 'rechazada', motivo })) { error.textContent = 'No se guardó en la base de datos. Revisa la conexión e inténtalo de nuevo.'; return; }
+            registrarBitacora('Alta del seguro devuelta', `${emp.id} · ${emp.nombre} · Folio ${inc.folio} · ${motivo}`);
+            refrescarExpediente(emp, inc);
+            mostrarToast('Alta devuelta. La sucursal tendrá que subirla de nuevo.');
+        }
+
+        // ---------- Borrar una incapacidad capturada por error ----------
+        let porBorrar = null; // { emp, inc }
+
+        function cancelarBorrado() {
+            porBorrar = null;
+            document.getElementById('expedienteBorrar').classList.add('hidden');
+        }
+
+        function pedirBorrado(empId, indice) {
+            const emp = EMPLEADOS.find((e) => e.id === empId);
+            const inc = emp && (emp.incapacidades || [])[indice];
+            if (!inc || !puede('eliminarIncapacidades')) return;
+            cancelarAlta();
+            cancelarDevolucion();
+            porBorrar = { emp, inc };
+            const fin = finIncapacidad(inc);
+            document.getElementById('expedienteBorrarTexto').innerHTML =
+                `Se borrará la incapacidad con folio <strong>${escaparHtml(inc.folio)}</strong> (${escaparHtml(inc.tipo)}, ${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}, ${inc.dias} ${inc.dias === 1 ? 'día' : 'días'})${inc.archivo ? ' junto con su certificado' : ''}. No se puede recuperar.`;
+            // Con días ya pasados, borrarla cambia la asistencia (y la nómina) de esos días
+            const aviso = document.getElementById('expedienteBorrarAviso');
+            aviso.classList.toggle('hidden', inc.inicio > HOY_ISO);
+            aviso.textContent = '⚠️ Esta incapacidad tiene días que ya pasaron: al borrarla, esos días volverán a contar como faltas en Asistencia. Si la nómina de esas semanas ya se pagó, habrá que revisarla.';
+            document.getElementById('expedienteBorrarMotivo').value = '';
+            document.getElementById('expedienteBorrarError').textContent = '';
+            const caja = document.getElementById('expedienteBorrar');
+            caja.classList.remove('hidden');
+            caja.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            document.getElementById('expedienteBorrarMotivo').focus();
+        }
+
+        async function confirmarBorrado() {
+            if (!porBorrar || !puede('eliminarIncapacidades')) return;
+            const { emp, inc } = porBorrar;
+            const error = document.getElementById('expedienteBorrarError');
+            const motivo = document.getElementById('expedienteBorrarMotivo').value.trim();
+            if (motivo.length < 5) { error.textContent = 'Escribe por qué se borra.'; return; }
+            const posicion = emp.incapacidades.indexOf(inc);
+            if (posicion < 0) return cancelarBorrado();
+
+            emp.incapacidades.splice(posicion, 1);
+            if (guardarCambios() === false) {
+                emp.incapacidades.splice(posicion, 0, inc); // no se guardó: la incapacidad se queda
+                error.textContent = 'No se guardó en la base de datos. Revisa la conexión e inténtalo de nuevo.';
+                return;
+            }
+            for (const guardado of [inc.archivo, inc.alta && inc.alta.archivo]) {
+                if (!guardado) continue;
+                try {
+                    await AlmacenDocumentos.borrar(emp.id, guardado.clave);
+                } catch (e) {
+                    // el archivo no está en este navegador
+                }
+            }
+            registrarBitacora('Incapacidad eliminada', `${emp.id} · ${emp.nombre} · Folio ${inc.folio} · ${formatoFecha(inc.inicio)} – ${formatoFecha(finIncapacidad(inc))} · ${motivo}`);
+            renderizar();
+            pintarContadorDocumentos();
+            const regresarA = elementoAnterior;
+            abrirExpediente(emp.id, '');
+            elementoAnterior = regresarA;
+            mostrarToast(`Incapacidad con folio ${inc.folio} borrada.`);
         }
 
         function cerrarExpediente() {
+            cancelarBorrado();
+            cancelarAlta();
+            cancelarDevolucion();
+            cerrarCertificado();
             expedienteModal.classList.add('hidden');
             if (elementoAnterior) elementoAnterior.focus();
         }
@@ -359,7 +773,7 @@
             const hoja = [['ID', 'Nombre completo', 'Sucursal', 'Departamento', 'Folio IMSS', 'Tipo de incapacidad', 'Inicio', 'Fin', 'Días', 'Estado']]
                 .concat(filas.map(({ emp, inc, fin, estado }) => [
                     emp.id, emp.nombre, nombreSucursal(emp.suc), emp.depto, inc.folio, inc.tipo,
-                    formatoFecha(inc.inicio), formatoFecha(fin), inc.dias, estado === 'activa' ? 'Activa' : 'Finalizada'
+                    formatoFecha(inc.inicio), formatoFecha(fin), inc.dias, { activa: 'Activa', espera: 'Esperando alta', revisar: 'Alta por aprobar', finalizada: 'Finalizada' }[estado]
                 ]));
             const formato = descargarExcel(`incapacidades_${periodFilter.value || 'todas'}`, [{ nombre: 'Incapacidades', filas: hoja }]);
             mostrarToast(formato === 'xlsx' ? 'Archivo de Excel descargado.' : 'Sin internet: se descargó en CSV (se abre en Excel).');
@@ -379,20 +793,30 @@
             const boton = event.target.closest('[data-expediente]');
             if (boton) abrirExpediente(boton.dataset.expediente, boton.dataset.folio);
         });
-        document.getElementById('expedienteTabla').addEventListener('click', async (event) => {
+        document.getElementById('expedienteTabla').addEventListener('click', (event) => {
             const boton = event.target.closest('[data-certificado]');
-            if (!boton) return;
-            let archivo = null;
-            try {
-                archivo = await AlmacenDocumentos.obtener(boton.dataset.emp, boton.dataset.certificado);
-            } catch (error) {
-                // sin acceso al almacén
-            }
-            if (!archivo) return mostrarToast('El certificado no está en esta computadora (se subió desde otro navegador).');
-            const url = URL.createObjectURL(archivo);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            if (boton) mostrarCertificado(boton.dataset.emp, boton.dataset.certificado);
+            const borrar = event.target.closest('[data-borrar]');
+            if (borrar) pedirBorrado(borrar.dataset.emp, Number(borrar.dataset.borrar));
+            const alta = event.target.closest('[data-alta]');
+            if (alta) pedirAlta(alta.dataset.emp, Number(alta.dataset.alta));
+            const aprobar = event.target.closest('[data-alta-aprobar]');
+            if (aprobar) aprobarAlta(aprobar.dataset.emp, Number(aprobar.dataset.altaAprobar));
+            const devolver = event.target.closest('[data-alta-devolver]');
+            if (devolver) pedirDevolucion(devolver.dataset.emp, Number(devolver.dataset.altaDevolver));
         });
+        document.getElementById('expedienteDevolverNo').addEventListener('click', cancelarDevolucion);
+        document.getElementById('expedienteDevolverSi').addEventListener('click', confirmarDevolucion);
+        document.getElementById('expedienteAltaNo').addEventListener('click', cancelarAlta);
+        document.getElementById('expedienteAltaSi').addEventListener('click', guardarAlta);
+        document.getElementById('avisoSinAlta').addEventListener('click', (event) => {
+            const enlace = event.target.closest('[data-expediente]');
+            if (!enlace) return;
+            event.preventDefault();
+            abrirExpediente(enlace.dataset.expediente, enlace.dataset.folio);
+        });
+        document.getElementById('expedienteBorrarNo').addEventListener('click', cancelarBorrado);
+        document.getElementById('expedienteBorrarSi').addEventListener('click', confirmarBorrado);
         document.getElementById('expedienteCerrar').addEventListener('click', cerrarExpediente);
         document.getElementById('expedienteAceptar').addEventListener('click', cerrarExpediente);
         expedienteModal.addEventListener('click', (event) => { if (event.target === expedienteModal) cerrarExpediente(); });
@@ -423,6 +847,14 @@
         });
 
         renderizar();
+
+        // Desde los avisos de Inicio y Empleados se llega con ?expediente=ID: se abre ese expediente
+        const expedientePedido = new URLSearchParams(location.search).get('expediente');
+        if (expedientePedido) {
+            const pedido = EMPLEADOS.find((e) => e.id === expedientePedido);
+            const pendiente = pedido && (incapacidadSinAlta(pedido) || (pedido.incapacidades || []).find((i) => i.alta && i.alta.estado === 'revision'));
+            if (pedido) abrirExpediente(pedido.id, pendiente ? pendiente.folio : '');
+        }
     </script>
 
     <script src="recursos/estado-servidor.js"></script>

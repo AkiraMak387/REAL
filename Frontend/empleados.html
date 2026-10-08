@@ -69,9 +69,11 @@
             </div>
 
             <div class="header__right employee-header__right">
-                <a href="incapacidades.html" class="btn btn--secondary btn--pill" id="incapacidadesLink">Incapacidades</a>
+                <a href="incapacidades.html" class="btn btn--secondary btn--pill"
+                    id="incapacidadesLink">Incapacidades</a>
                 <button id="openImportModal" class="btn btn--secondary btn--pill" type="button">⇪ Importar</button>
-                <button id="openNewEmployeeModal" class="btn btn--primary btn--new-employee" type="button">+ Nuevo Trabajador</button>
+                <button id="openNewEmployeeModal" class="btn btn--primary btn--new-employee" type="button">+ Nuevo
+                    Trabajador</button>
             </div>
         </header>
 
@@ -99,6 +101,11 @@
                 </button>
             </div>
 
+            <!-- Aviso para quien sube documentos: RH devolvió alguno y hay que volver a subirlo -->
+            <div id="noDischargeAlert" class="faltas-alert faltas-alert--danger hidden" role="status"></div>
+            <div id="pendingDocsAlert" class="faltas-alert faltas-alert--warn hidden" role="status"></div>
+            <div id="returnedDocsAlert" class="faltas-alert faltas-alert--danger hidden" role="status"></div>
+
             <div class="toolbar">
                 <div class="searchbox">
                     <span class="search-icon">⌕</span>
@@ -116,13 +123,15 @@
                         <select id="periodMonth" class="toolbar-select" aria-label="Mes"></select>
                         <select id="periodYear" class="toolbar-select" aria-label="Año"></select>
                     </div>
-                    <select id="departmentFilter" class="toolbar-select" aria-label="Departamento">
-                        <option value="todos">Todos los departamentos</option>
+                    <!-- Filtro por sucursal (el admin de sucursal la ve fija en la suya) -->
+                    <select id="sucursalFilter" class="toolbar-select" aria-label="Sucursal">
+                        <option value="todas">Todas las sucursales</option>
                     </select>
                     <select id="statusFilter" class="toolbar-select" aria-label="Estado">
                         <option value="todos">Todos los estados</option>
                         <option value="activo">Activo</option>
-                        <option value="incapacitado">Incapacitado</option>
+                        <option value="incapacitado">Incapacidad</option>
+                        <option value="sinAlta">Sin alta del seguro</option>
                         <option value="vacaciones">Vacaciones</option>
                     </select>
                     <button id="clearFilters" class="btn btn--ghost" type="button">Limpiar filtros</button>
@@ -164,6 +173,9 @@
                     <button id="editEmployeeBtn" class="detail-edit hidden" type="button">✏️ Editar</button>
                     <!-- Dar de baja: conserva al trabajador y su historial (permiso "darBaja") -->
                     <button id="bajaEmployeeBtn" class="detail-delete hidden" type="button">⛔ Dar de baja</button>
+                    <!-- Eliminar definitivamente: SOLO Super usuario -->
+                    <button id="deleteEmployeeBtn" class="detail-delete hidden" type="button">🗑️ Eliminar
+                        empleado</button>
                     <button id="backToEmployees" class="detail-back" type="button">← Regresar</button>
                 </div>
             </div>
@@ -175,7 +187,8 @@
                         <div class="profile-grid">
                             <div class="profile-item">
                                 <span>Nombre</span>
-                                <strong><span class="employee-id" id="detailId"></span> <span id="detailFullName"></span></strong>
+                                <strong><span class="employee-id" id="detailId"></span> <span
+                                        id="detailFullName"></span></strong>
                             </div>
                             <div class="profile-item">
                                 <span>Departamento y puesto</span>
@@ -217,20 +230,18 @@
                     </div>
                 </section>
 
+                <!-- Horas trabajadas: resumen del mes + tabla por semana de nómina (sábado a viernes) -->
                 <section class="employee-profile-section">
                     <div class="section-header">
                         <h4>Horas trabajadas</h4>
                         <div class="hours-section-actions">
                             <span>Semana de nómina: sábado a viernes</span>
-                            <button id="openHoursDetailModal" class="detail-back hours-detail-button" type="button">Ver gráfica</button>
+                            <button id="openHoursDetailModal" class="detail-back hours-detail-button" type="button">Ver
+                                gráfica</button>
                         </div>
                     </div>
 
-                    <div class="hours-filter-row hours-filter-row--calendar hours-filter-row--four">
-                        <label class="hours-select-wrap">
-                            <span>Fecha</span>
-                            <input id="hoursDateSelect" type="date" value="">
-                        </label>
+                    <div class="hours-filter-row--dos">
                         <label class="hours-select-wrap">
                             <span>Mes</span>
                             <select id="hoursMonthSelect"></select>
@@ -239,38 +250,26 @@
                             <span>Año</span>
                             <select id="hoursYearSelect"></select>
                         </label>
-                        <label class="hours-select-wrap">
-                            <span>Semana</span>
-                            <select id="hoursWeekSelect"></select>
-                        </label>
                     </div>
 
-                    <div class="metrics-grid-detail metrics-grid-detail--four">
-                        <div class="mini-stat">
-                            <span id="dayLabel">Día</span>
-                            <strong id="dayHours">0 h</strong>
-                            <small id="daySummary"></small>
-                            <div id="dayBadges" class="mini-stat__badges"></div>
-                        </div>
-                        <div class="mini-stat">
-                            <span id="weekLabel">Semana</span>
-                            <strong id="weekHours">0 h</strong>
-                            <small id="weekSummary"></small>
-                            <div id="weekBadges" class="mini-stat__badges"></div>
-                        </div>
-                        <div class="mini-stat">
-                            <span id="monthLabel">Mes</span>
-                            <strong id="monthHours">0 h</strong>
-                            <small id="monthSummary"></small>
-                            <div id="monthBadges" class="mini-stat__badges"></div>
-                        </div>
-                        <div class="mini-stat">
-                            <span id="yearLabel">Año</span>
-                            <strong id="yearHours">0 h</strong>
-                            <small id="yearSummary"></small>
-                            <div id="yearBadges" class="mini-stat__badges"></div>
-                        </div>
+                    <div class="horas-resumen" id="horasResumen"></div>
+
+                    <div class="tabla-horas-wrap">
+                        <table class="tabla-horas" id="tablaHoras"></table>
                     </div>
+
+                    <div class="horas-leyenda">
+                        <span><i style="background:#22c55e"></i>A tiempo</span>
+                        <span><i style="background:#f59e0b"></i>Retardo</span>
+                        <span><i style="background:#ef4444"></i>Falta</span>
+                        <span><i style="background:#10b981"></i>En turno</span>
+                        <span><i style="background:#cbd5e1"></i>Descanso / feriado</span>
+                        <span><i style="background:#8b5cf6"></i>Vacaciones</span>
+                        <span><i style="background:#ec4899"></i>Incapacidad</span>
+                        <span><i style="background:#0ea5e9"></i>Permiso</span>
+                    </div>
+                    <p class="tabla-horas-nota">El resumen de arriba cuenta solo los días del mes elegido. Los días en
+                        gris son de otro mes: cuentan en el total de su semana de nómina.</p>
                 </section>
 
                 <section class="employee-profile-section">
@@ -279,7 +278,8 @@
                         <div class="history-filter-controls">
                             <label class="hours-select-wrap compact-select">
                                 <span>Año</span>
-                                <input id="vacationYearSelect" type="number" min="2015" max="2035" step="1" value="2026">
+                                <input id="vacationYearSelect" type="number" min="2015" max="2035" step="1"
+                                    value="2026">
                             </label>
                         </div>
                     </div>
@@ -306,7 +306,8 @@
                         <div class="history-filter-controls">
                             <label class="hours-select-wrap compact-select">
                                 <span>Año</span>
-                                <input id="incidentYearSelect" type="number" min="2015" max="2035" step="1" value="2026">
+                                <input id="incidentYearSelect" type="number" min="2015" max="2035" step="1"
+                                    value="2026">
                             </label>
                         </div>
                         <span id="incidentCount">0 registros</span>
@@ -322,9 +323,11 @@
                         <span id="documentsCount"></span>
                     </div>
                     <div id="documentsAlert" class="faltas-alert hidden"></div>
-                    <p class="documents-note">PDF, JPG o PNG de máximo 2 MB. Por ahora los archivos se guardan solo en esta computadora; cuando el sistema esté en línea se guardarán en el servidor.</p>
+                    <p class="documents-note">PDF, JPG o PNG de máximo 2 MB. Por ahora los archivos se guardan solo en
+                        esta computadora; cuando el sistema esté en línea se guardarán en el servidor.</p>
                     <div id="documentsList" class="documents-list"></div>
-                    <input id="documentFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden>
+                    <input id="documentFileInput" type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" hidden>
                 </section>
             </div>
         </div>
@@ -385,7 +388,8 @@
                         <h3 id="employeeModalTitle">Alta de Nuevo colaborador</h3>
                     </div>
                 </div>
-                <div class="connection-pill"><span class="connection-dot"></span> Conexión con terminales faciales activa</div>
+                <div class="connection-pill"><span class="connection-dot"></span> Conexión con terminales faciales
+                    activa</div>
             </div>
 
             <div class="wizard-steps">
@@ -410,8 +414,10 @@
                             </div>
 
                             <div class="camera-preview" id="cameraPreviewContainer">
-                                <video id="faceCameraVideo" autoplay playsinline muted aria-label="Vista previa de la cámara"></video>
-                                <canvas id="faceCaptureCanvas" class="hidden" aria-label="Captura facial temporal"></canvas>
+                                <video id="faceCameraVideo" autoplay playsinline muted
+                                    aria-label="Vista previa de la cámara"></video>
+                                <canvas id="faceCaptureCanvas" class="hidden"
+                                    aria-label="Captura facial temporal"></canvas>
 
                                 <div id="faceOverlay" class="face-overlay hidden">
                                     <div class="face-guide-ellipse" id="faceGuideEllipse">
@@ -421,7 +427,8 @@
                                         <div class="corner-reticle bottom-right"></div>
                                         <div id="scanLine" class="scan-line hidden"></div>
                                     </div>
-                                    <span id="faceGuideText" class="face-guide-text">Coloca tu rostro dentro del óvalo</span>
+                                    <span id="faceGuideText" class="face-guide-text">Coloca tu rostro dentro del
+                                        óvalo</span>
                                 </div>
 
                                 <div id="faceCameraPlaceholder" class="camera-placeholder">
@@ -442,7 +449,8 @@
                                 <button id="startFaceCamera" class="btn btn--primary btn--full" type="button">
                                     📷 Activar Cámara
                                 </button>
-                                <button id="captureFace" class="btn btn--success btn--full hidden" type="button" disabled>
+                                <button id="captureFace" class="btn btn--success btn--full hidden" type="button"
+                                    disabled>
                                     ⚡ Escanear y Registrar Rostro
                                 </button>
                                 <button id="retakeFace" class="btn btn--secondary hidden" type="button">
@@ -479,18 +487,21 @@
                             </div>
                             <div class="field field--full">
                                 <label for="newFirstNames">Nombre(s) *</label>
-                                <input id="newFirstNames" type="text" placeholder="Ej. Mariana Guadalupe" autocomplete="off">
+                                <input id="newFirstNames" type="text" placeholder="Ej. Mariana Guadalupe"
+                                    autocomplete="off">
                                 <small class="field-error" data-error-for="newFirstNames"></small>
                             </div>
                             <div class="field field--half">
                                 <label for="newCurp">CURP *</label>
-                                <input id="newCurp" type="text" placeholder="18 caracteres" maxlength="18" autocomplete="off">
+                                <input id="newCurp" type="text" placeholder="18 caracteres" maxlength="18"
+                                    autocomplete="off">
                                 <small class="field-hint">En mayúsculas y sin espacios.</small>
                                 <small class="field-error" data-error-for="newCurp"></small>
                             </div>
                             <div class="field field--half">
                                 <label for="newRfc">RFC *</label>
-                                <input id="newRfc" type="text" placeholder="13 caracteres con homoclave" maxlength="13" autocomplete="off">
+                                <input id="newRfc" type="text" placeholder="13 caracteres con homoclave" maxlength="13"
+                                    autocomplete="off">
                                 <small class="field-hint">Como aparece en la Constancia de Situación Fiscal.</small>
                                 <small class="field-error" data-error-for="newRfc"></small>
                             </div>
@@ -502,7 +513,8 @@
                             </div>
                             <div class="field field--half">
                                 <label for="newPhone">Teléfono Móvil *</label>
-                                <input id="newPhone" type="tel" placeholder="10 dígitos" maxlength="10" inputmode="numeric" autocomplete="off">
+                                <input id="newPhone" type="tel" placeholder="10 dígitos" maxlength="10"
+                                    inputmode="numeric" autocomplete="off">
                                 <small class="field-hint">Solo números, sin espacios ni guiones.</small>
                                 <small class="field-error" data-error-for="newPhone"></small>
                             </div>
@@ -524,7 +536,8 @@
                         <div class="field field--half">
                             <label for="newId">ID</label>
                             <input id="newId" type="text" readonly tabindex="-1">
-                            <small class="field-hint">Sucursal (2) + departamento (2) + número de trabajador (4), único en toda la empresa. Se asigna solo y nunca se repite.</small>
+                            <small class="field-hint">Sucursal (2) + departamento (2) + número de trabajador (4), único
+                                en toda la empresa. Se asigna solo y nunca se repite.</small>
                         </div>
                         <div class="field field--half">
                             <label for="newBranch">Sucursal de Asignación *</label>
@@ -564,7 +577,8 @@
                     <div class="sync-box">
                         <div class="sync-icon">◉</div>
                         <div id="summaryIntro">
-                            <strong>Resumen del nuevo ingreso:</strong> revisa que todo sea correcto. Al presionar <strong>Guardar Nuevo Ingreso</strong> se te pedirá confirmar antes de guardar.
+                            <strong>Resumen del nuevo ingreso:</strong> revisa que todo sea correcto. Al presionar
+                            <strong>Guardar Nuevo Ingreso</strong> se te pedirá confirmar antes de guardar.
                         </div>
                     </div>
                     <div id="newEmployeeSummary" class="new-employee-summary"></div>
@@ -617,14 +631,16 @@
                     <input type="radio" name="exportType" value="activos" checked>
                     <div>
                         <strong>Trabajadores activos</strong>
-                        <span>Toda la plantilla actual: ID, nombre, sucursal, departamento, puesto, fecha de ingreso, estado, CURP, RFC y teléfono.</span>
+                        <span>Toda la plantilla actual: ID, nombre, sucursal, departamento, puesto, fecha de ingreso,
+                            estado, CURP, RFC y teléfono.</span>
                     </div>
                 </label>
                 <label class="option-card">
                     <input type="radio" name="exportType" value="asistencia">
                     <div>
                         <strong>Trabajadores que asistieron</strong>
-                        <span>Resumen por trabajador (días asistidos, retardos, faltas y horas) y una segunda hoja con el detalle de entradas y salidas por día.</span>
+                        <span>Resumen por trabajador (días asistidos, retardos, faltas y horas) y una segunda hoja con
+                            el detalle de entradas y salidas por día.</span>
                     </div>
                 </label>
                 <div id="exportRange" class="export-range hidden">
@@ -660,7 +676,8 @@
                 <div class="form-instructions">
                     <strong>¿Cómo funciona?</strong>
                     <ol>
-                        <li>Descarga la plantilla y llénala con una fila por trabajador (la hoja "Catálogos" trae las sucursales, departamentos y puestos válidos).</li>
+                        <li>Descarga la plantilla y llénala con una fila por trabajador (la hoja "Catálogos" trae las
+                            sucursales, departamentos y puestos válidos).</li>
                         <li>Sube el archivo (.xlsx, .xls o .csv). El ID se asigna solo.</li>
                         <li>Revisa el resultado e importa. Después registra el rostro de cada trabajador.</li>
                     </ol>
@@ -718,11 +735,6 @@
                         <input id="recordEnd" type="date">
                         <small class="field-error" data-error-for="recordEnd"></small>
                     </div>
-                    <div class="field hidden" id="recordDaysField">
-                        <label for="recordDays">Días autorizados *</label>
-                        <input id="recordDays" type="number" min="1" max="365" value="1">
-                        <small class="field-error" data-error-for="recordDays"></small>
-                    </div>
                 </div>
 
                 <p id="recordVacationInfo" class="form-message is-info hidden"></p>
@@ -748,17 +760,26 @@
                     </div>
                 </div>
 
+                <div class="field hidden" id="recordCertificateField">
+                    <label for="recordCertificate">Certificado de incapacidad del IMSS *</label>
+                    <input id="recordCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+                    <small class="field-hint">El documento que entrega el IMSS, en PDF o foto (JPG o PNG), de máximo 2 MB. Se podrá ver en Incapacidades. Por ahora se guarda solo en esta computadora.</small>
+                    <small class="field-error" data-error-for="recordCertificate"></small>
+                </div>
+
                 <p id="recordTypeInfo" class="form-message is-info hidden"></p>
 
                 <div class="field hidden" id="recordActaFields">
                     <label for="recordTestigos">Testigos *</label>
-                    <input id="recordTestigos" type="text" maxlength="160" placeholder="2 nombres, separados por coma" autocomplete="off">
+                    <input id="recordTestigos" type="text" maxlength="160" placeholder="2 nombres, separados por coma"
+                        autocomplete="off">
                     <small class="field-error" data-error-for="recordTestigos"></small>
                 </div>
 
                 <div class="field hidden" id="recordDetailField">
                     <label for="recordDetail" id="recordDetailLabel">Motivo *</label>
-                    <textarea id="recordDetail" rows="3" placeholder="Escribe el motivo o la justificación..."></textarea>
+                    <textarea id="recordDetail" rows="3"
+                        placeholder="Escribe el motivo o la justificación..."></textarea>
                     <small class="field-error" data-error-for="recordDetail"></small>
                 </div>
             </div>
@@ -769,16 +790,55 @@
         </div>
     </div>
 
+    <!-- ========== VER DOCUMENTO (RH lo aprueba o lo devuelve desde aquí) ========== -->
+    <div id="documentModal" class="modal-overlay hidden" aria-hidden="true">
+        <div class="small-modal document-viewer" role="dialog" aria-modal="true" aria-labelledby="documentModalTitle">
+            <div class="employee-modal__header">
+                <div>
+                    <div class="employee-modal__eyebrow" id="documentModalEmployee"></div>
+                    <h3 id="documentModalTitle">Documento</h3>
+                </div>
+            </div>
+            <div class="small-modal__body">
+                <div class="document-viewer__meta">
+                    <span id="documentModalTag" class="doc-tag"></span>
+                    <span id="documentModalInfo"></span>
+                    <a id="documentModalOpen" class="link-button hidden" target="_blank" rel="noopener">Abrir en otra
+                        pestaña</a>
+                </div>
+                <p id="documentModalReason" class="form-message is-error hidden"></p>
+                <div id="documentModalPreview" class="document-viewer__preview"></div>
+                <div class="field hidden" id="documentReturnField">
+                    <label for="documentReturnReason">¿Por qué se devuelve? *</label>
+                    <textarea id="documentReturnReason" rows="3" maxlength="200"
+                        placeholder="Ej. INE vencida, no se lee, está incompleto..."></textarea>
+                    <small class="field-hint">El administrador de la sucursal verá este motivo y tendrá que volver a
+                        subirlo.</small>
+                    <small class="field-error" id="documentReturnError"></small>
+                </div>
+            </div>
+            <div class="wizard-footer">
+                <button id="documentModalDelete" class="btn btn--ghost btn--doc-delete hidden"
+                    type="button">Eliminar</button>
+                <button id="documentModalClose" class="btn btn--secondary" type="button">Cerrar</button>
+                <button id="documentModalDownload" class="btn btn--ghost hidden" type="button">⬇ Descargar</button>
+                <button id="documentModalReturn" class="btn btn--ghost hidden" type="button">Devolver</button>
+                <button id="documentModalApprove" class="btn btn--primary hidden" type="button">✓ Aprobar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script src="recursos/datos.js"></script>
+    <script src="recursos/datos-prueba.js"></script>
     <script src="recursos/documentos.js"></script>
     <script>
         // =====================================================================
         //  LISTA PRINCIPAL
         // =====================================================================
         const employeeSearch = document.getElementById('employeeSearch');
-        const departmentFilter = document.getElementById('departmentFilter');
+        const sucursalFilter = document.getElementById('sucursalFilter');
         const statusFilter = document.getElementById('statusFilter');
         const clearFiltersBtn = document.getElementById('clearFilters');
         const exportEmployeesBtn = document.getElementById('exportEmployeesBtn');
@@ -859,6 +919,45 @@
             return `<td><span class="status-badge ${estado.badge}">${estado.texto}</span></td>`;
         }
 
+        // Documentos del expediente contados por estado (los que faltan, solo los obligatorios)
+        function resumenDocumentos(emp) {
+            const cuenta = { falta: 0, entregado: 0, revisado: 0, rechazado: 0 };
+            DOCUMENTOS_BASICOS.forEach((doc) => {
+                const estado = estadoDocumento(emp, doc.clave).estado;
+                if (estado !== 'falta' || doc.obligatorio) cuenta[estado]++;
+            });
+            return cuenta;
+        }
+
+        function renderAvisoDevueltos() {
+            // Trabajadores que terminaron su incapacidad y no han presentado el alta del seguro
+            const avisoSinAlta = document.getElementById('noDischargeAlert');
+            avisoSinAlta.innerHTML = htmlAvisoSinAlta();
+            avisoSinAlta.classList.toggle('hidden', !avisoSinAlta.innerHTML);
+
+            // Lo que espera a RH (y al super usuario): documentos subidos que nadie ha aprobado ni devuelto
+            const avisoPorAprobar = document.getElementById('pendingDocsAlert');
+            const porAprobar = puede('revisarDocumentos')
+                ? EMPLEADOS.filter((e) => !e.baja && resumenDocumentos(e).entregado)
+                : [];
+            avisoPorAprobar.classList.toggle('hidden', !porAprobar.length);
+            if (porAprobar.length) {
+                avisoPorAprobar.innerHTML = `<strong>📄 Hay documentos por aprobar de ${porAprobar.length === 1 ? '1 trabajador' : `${porAprobar.length} trabajadores`}: revísalos y apruébalos o devuélvelos</strong>`
+                    + `<span>${porAprobar.map((e) => `<a href="#" data-id="${e.id}">${escaparHtml(e.nombre)} (${resumenDocumentos(e).entregado})</a>`).join(' · ')}</span>`;
+            }
+            pintarContadorDocumentos();
+
+            const aviso = document.getElementById('returnedDocsAlert');
+            // RH es quien devuelve: el aviso es para el admin (y el super usuario, que supervisa)
+            const conDevueltos = ['admin', 'super'].includes(USUARIO_ACTUAL.rol)
+                ? EMPLEADOS.filter((e) => !e.baja && resumenDocumentos(e).rechazado)
+                : [];
+            aviso.classList.toggle('hidden', !conDevueltos.length);
+            if (!conDevueltos.length) return;
+            aviso.innerHTML = `<strong>⚠️ RH devolvió documentos de ${conDevueltos.length === 1 ? '1 trabajador' : `${conDevueltos.length} trabajadores`}: hay que corregirlos y volver a subirlos</strong>`
+                + `<span>${conDevueltos.map((e) => `<a href="#" data-id="${e.id}">${escaparHtml(e.nombre)} (${resumenDocumentos(e).rechazado})</a>`).join(' · ')}</span>`;
+        }
+
         const CELDA_ACCION = '<td><button class="link-button" type="button">Ver <span>expediente</span></button></td>';
 
         function estadoVacacion(v) {
@@ -914,10 +1013,11 @@
             }
         };
 
+        // Búsqueda por nombre + filtro por sucursal
         function filtroBase() {
             const busqueda = normalizar(employeeSearch.value);
-            const depto = departmentFilter.value;
-            return (emp) => (!busqueda || normalizar(emp.nombre).includes(busqueda)) && (depto === 'todos' || emp.depto === depto);
+            const sucursal = sucursalFilter.value;
+            return (emp) => (!busqueda || normalizar(emp.nombre).includes(busqueda)) && (sucursal === 'todas' || emp.suc === sucursal);
         }
 
         function actualizarTarjetas() {
@@ -974,6 +1074,7 @@
         }
 
         function renderTodo() {
+            renderAvisoDevueltos();
             actualizarTarjetas();
             actualizarBarraHerramientas();
             renderTabla();
@@ -984,16 +1085,21 @@
             renderTodo();
         }
 
+        // Filtro de sucursales: quien puede ver todas tiene la opción "Todas las sucursales";
+        // el admin de sucursal solo ve la suya y el filtro queda fijo
+        const verTodasSucursales = puede('verTodasSucursales');
+        sucursalFilter.innerHTML = (verTodasSucursales ? '<option value="todas">Todas las sucursales</option>' : '') +
+            listaSucursales().map((s) => `<option value="${s.clave}">${s.clave} - ${escaparHtml(s.nombre)}</option>`).join('');
+        fijarSucursalUnica(sucursalFilter);
+
         // Filtros iniciales
-        llenarSelect(departmentFilter, [{ valor: 'todos', texto: 'Todos los departamentos' }]
-            .concat(DEPARTAMENTOS.map((d) => ({ valor: d.nombre, texto: d.nombre }))), 'todos');
         llenarSelect(periodMonth, MESES.map((m, i) => ({ valor: i, texto: m })), periodo.mes);
         llenarSelect(periodYear, aniosDisponibles(), periodo.anio);
         periodo.semana = semanaInicialDelPeriodo();
         llenarSemanasPeriodo();
 
         employeeSearch.addEventListener('input', reiniciarPaginaYRender);
-        departmentFilter.addEventListener('change', reiniciarPaginaYRender);
+        sucursalFilter.addEventListener('change', reiniciarPaginaYRender);
         statusFilter.addEventListener('change', reiniciarPaginaYRender);
         periodViewBy.addEventListener('change', () => {
             periodo.verPor = periodViewBy.value;
@@ -1021,7 +1127,8 @@
         });
         clearFiltersBtn.addEventListener('click', () => {
             employeeSearch.value = '';
-            departmentFilter.value = 'todos';
+            // Si el usuario solo ve su sucursal, el filtro se queda en la suya
+            if (verTodasSucursales) sucursalFilter.value = 'todas';
             statusFilter.value = 'todos';
             reiniciarPaginaYRender();
         });
@@ -1043,6 +1150,16 @@
             const emp = EMPLEADOS.find((e) => e.id === fila.dataset.id);
             if (emp) openEmployeeDetail(emp);
         });
+        // Los avisos de documentos abren el expediente directo en la sección Documentos
+        ['pendingDocsAlert', 'returnedDocsAlert'].forEach((id) => document.getElementById(id).addEventListener('click', (event) => {
+            const enlace = event.target.closest('a[data-id]');
+            if (!enlace) return;
+            event.preventDefault();
+            const emp = EMPLEADOS.find((e) => e.id === enlace.dataset.id);
+            if (!emp) return;
+            openEmployeeDetail(emp);
+            requestAnimationFrame(() => document.getElementById('documentsSection').scrollIntoView({ block: 'start' }));
+        }));
 
         renderTodo();
 
@@ -1096,6 +1213,12 @@
             return descargarExcel(`trabajadores_activos_${HOY_ISO}`, [{ nombre: 'Activos', filas }]);
         }
 
+        // Salida para mostrar: -- si sigue en turno, "(automática)" si el sistema la puso al terminar el día
+        function textoSalida(reg) {
+            if (!reg || !reg.salida || reg.enTurno) return '--';
+            return reg.salidaAutomatica ? `${reg.salida} (automática)` : reg.salida;
+        }
+
         function exportarAsistencia(desdeIso, hastaIso) {
             const desde = fechaDesdeISO(desdeIso);
             const hasta = fechaDesdeISO(hastaIso);
@@ -1109,7 +1232,7 @@
                 for (let fecha = new Date(desde); fecha <= hasta; fecha = sumarDias(fecha, 1)) {
                     const reg = registroDia(emp, fecha);
                     if (reg && (reg.estado === 'asistencia' || reg.estado === 'retardo')) {
-                        detalle.push([formatoFecha(aISO(fecha)), emp.id, emp.nombre, nombreSucursal(emp.suc), reg.entrada, reg.salida, reg.horas, reg.estado === 'retardo' ? 'Retardo' : 'Asistencia']);
+                        detalle.push([formatoFecha(aISO(fecha)), emp.id, emp.nombre, nombreSucursal(emp.suc), reg.entrada, textoSalida(reg), reg.enTurno ? '--' : reg.horas, reg.estado === 'retardo' ? 'Retardo' : 'Asistencia']);
                     }
                 }
             });
@@ -1159,10 +1282,10 @@
         const incidentList = document.getElementById('incidentList');
         const incidentCount = document.getElementById('incidentCount');
         const historyMonthSelect = document.getElementById('historyMonthSelect');
-        const hoursDateSelect = document.getElementById('hoursDateSelect');
         const hoursMonthSelect = document.getElementById('hoursMonthSelect');
         const hoursYearSelect = document.getElementById('hoursYearSelect');
-        const hoursWeekSelect = document.getElementById('hoursWeekSelect');
+        const tablaHoras = document.getElementById('tablaHoras');
+        const horasResumen = document.getElementById('horasResumen');
         const hoursDetailModal = document.getElementById('hoursDetailModal');
 
         let empleadoDetalle = null;
@@ -1200,94 +1323,151 @@
             `).join('');
         }
 
-        function textoResumen(r) {
-            return `${r.asistencias} día${r.asistencias === 1 ? '' : 's'} trabajado${r.asistencias === 1 ? '' : 's'}`;
+        // =====================================================================
+        //  TABLA DE HORAS: un renglón por semana de nómina (sábado a viernes)
+        // =====================================================================
+        const DIAS_TABLA = ['Sábado', 'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+        // Horario completo de una semana: lunes a viernes 08:00–18:00 + sábado 08:00–14:00 = 56 h
+        const HORAS_SEMANA_REFERENCIA = 56;
+
+        function etiquetaTabla(texto, tipo) {
+            return `<span class="th-tag th-tag--${tipo}">${texto}</span>`;
         }
 
-        function llenarSemanasHoras(anio, mes, fecha) {
-            const semanas = semanasDelMes(anio, mes);
-            const indice = Math.max(0, semanas.findIndex((s) => fecha >= s.inicio && fecha <= s.fin));
-            llenarSelect(hoursWeekSelect, semanas.map((s, i) => ({ valor: i, texto: `Sem ${i + 1}: ${etiquetaSemana(s)}` })), indice);
-            return semanas;
+        // Ej. "5 días · 2 retardos · 1 falta" (retardos y faltas solo si hay)
+        function textoResumenCorto(r) {
+            const partes = [`${r.asistencias} día${r.asistencias === 1 ? '' : 's'}`];
+            if (r.retardos) partes.push(`${r.retardos} retardo${r.retardos === 1 ? '' : 's'}`);
+            if (r.faltas) partes.push(`${r.faltas} falta${r.faltas === 1 ? '' : 's'}`);
+            return partes.join(' · ');
         }
 
-        function syncHoursFromDate(iso) {
-            if (!iso) return;
-            const fecha = fechaDesdeISO(iso);
-            hoursMonthSelect.value = String(fecha.getMonth());
-            hoursYearSelect.value = String(fecha.getFullYear());
-            llenarSemanasHoras(fecha.getFullYear(), fecha.getMonth(), fecha);
-            refreshHoursView();
+        // Tarjeta de un día: fecha, lo principal (horas o estado), detalle y etiquetas
+        function celdaDia(emp, fecha, mes) {
+            const iso = aISO(fecha);
+            const reg = registroDia(emp, fecha);
+            let tipo = 'vacio';
+            let principal = '';
+            let detalle = '';
+            let etiquetas = '';
+
+            if (!reg) {
+                // Día futuro: vacío. Día pasado sin checada ni incidencia: "Sin registro"
+                if (iso <= HOY_ISO) detalle = 'Sin registro';
+            } else if (reg.estado === 'asistencia' || reg.estado === 'retardo') {
+                if (reg.enTurno) {
+                    tipo = 'turno';
+                    principal = 'En turno';
+                    detalle = `Entrada ${reg.entrada}`;
+                } else {
+                    tipo = reg.estado;
+                    principal = formatoHoras(reg.horas);
+                    detalle = `${reg.entrada} – ${reg.salida}`;
+                    if (reg.salidaAutomatica) etiquetas += etiquetaTabla('Salida automática', 'auto');
+                }
+                if (reg.estado === 'retardo') etiquetas += etiquetaTabla('Retardo', 'retardo');
+            } else if (reg.estado === 'descanso') {
+                tipo = reg.feriado ? 'feriado' : 'descanso';
+                principal = reg.feriado ? 'Feriado' : 'Descanso';
+                detalle = reg.feriado ? reg.feriado.nombre : '';
+            } else {
+                const estados = {
+                    falta: ['falta', 'Falta', 'No asistió'],
+                    vacaciones: ['vac', 'Vacaciones', ''],
+                    incapacidad: ['inc', 'Incapacidad', ''],
+                    permiso: ['perm', 'Permiso', reg.permiso ? (reg.permiso.goce ? 'Con goce' : 'Sin goce') : '']
+                };
+                if (estados[reg.estado]) [tipo, principal, detalle] = estados[reg.estado];
+            }
+
+            const clases = ['dia', `dia--${tipo}`];
+            if (fecha.getMonth() !== mes) clases.push('dia--fuera');
+            if (iso === HOY_ISO) clases.push('dia--hoy');
+            return `<td>
+                <div class="${clases.join(' ')}">
+                    <span class="dia__fecha">${formatoCorto(fecha)}${iso === HOY_ISO ? ' · Hoy' : ''}</span>
+                    ${principal ? `<span class="dia__principal">${principal}</span>` : ''}
+                    ${detalle ? `<span class="dia__detalle">${escaparHtml(detalle)}</span>` : ''}
+                    ${etiquetas}
+                </div>
+            </td>`;
         }
 
         function refreshHoursView() {
             const emp = empleadoDetalle;
-            if (!emp || !hoursDateSelect.value) return;
-            const fecha = fechaDesdeISO(hoursDateSelect.value);
+            if (!emp) return;
             const anio = Number(hoursYearSelect.value);
             const mes = Number(hoursMonthSelect.value);
-
-            // Día
-            const dia = registroDia(emp, fecha);
-            const textosDia = {
-                asistencia: dia && `Entrada ${dia.entrada} · Salida ${dia.salida}`,
-                retardo: dia && `Retardo · Entrada ${dia.entrada} · Salida ${dia.salida}`,
-                falta: 'Falta',
-                descanso: dia && dia.feriado ? `Descanso obligatorio: ${dia.feriado.nombre}` : 'Domingo (descanso)',
-                vacaciones: 'De vacaciones',
-                incapacidad: 'Con incapacidad',
-                permiso: dia && dia.permiso && `Permiso ${dia.permiso.goce ? 'con' : 'sin'} goce`
-            };
-            setTexto('dayLabel', `Día (${formatoFecha(hoursDateSelect.value)})`);
-            setTexto('dayHours', formatoHoras(dia ? dia.horas : 0));
-            setTexto('daySummary', dia ? textosDia[dia.estado] : 'Sin registro');
-            renderBadges(document.getElementById('dayBadges'), dia && dia.estado === 'falta' ? 1 : 0, dia && dia.estado === 'retardo' ? 1 : 0);
-
-            // Semana de nómina (sábado a viernes)
-            const inicioSemana = inicioSemanaNomina(fecha);
-            const finSemana = sumarDias(inicioSemana, 6);
-            const semana = resumenRango(emp, inicioSemana, finSemana);
-            const etiquetaSem = `Semana (${etiquetaSemana({ inicio: inicioSemana, fin: finSemana })})`;
-            setTexto('weekLabel', etiquetaSem);
-            setTexto('weekHours', formatoHoras(semana.horas));
-            setTexto('weekSummary', textoResumen(semana));
-            renderBadges(document.getElementById('weekBadges'), semana.faltas, semana.retardos);
-
-            // Mes
             const inicioMes = new Date(anio, mes, 1, 12);
             const finMes = new Date(anio, mes + 1, 0, 12);
+            // Semanas de nómina que tocan algún día del mes (la primera y la última pueden cruzar de mes)
+            const semanas = semanasDelMes(anio, mes);
+
+            // ---- Resumen del mes (solo días del mes elegido) ----
             const resumenMes = resumenRango(emp, inicioMes, finMes);
-            setTexto('monthLabel', `Mes (${MESES[mes]} ${anio})`);
-            setTexto('monthHours', formatoHoras(resumenMes.horas));
-            setTexto('monthSummary', textoResumen(resumenMes));
-            renderBadges(document.getElementById('monthBadges'), resumenMes.faltas, resumenMes.retardos);
+            horasResumen.innerHTML = [
+                ['horas', `Horas en ${MESES[mes]}`, formatoHoras(resumenMes.horas)],
+                ['dias', 'Días trabajados', resumenMes.asistencias],
+                ['retardos', 'Retardos', resumenMes.retardos],
+                ['faltas', 'Faltas', resumenMes.faltas]
+            ].map(([clase, titulo, valor]) => `
+                <div class="horas-resumen__item horas-resumen__item--${clase}">
+                    <span>${titulo}</span>
+                    <strong>${valor}</strong>
+                </div>`).join('');
 
-            // Año
-            const resumenAnio = resumenRango(emp, new Date(anio, 0, 1, 12), new Date(anio, 11, 31, 12));
-            setTexto('yearLabel', `Año (${anio})`);
-            setTexto('yearHours', formatoHoras(resumenAnio.horas));
-            setTexto('yearSummary', textoResumen(resumenAnio));
-            renderBadges(document.getElementById('yearBadges'), resumenAnio.faltas, resumenAnio.retardos);
+            // ---- Tabla: una fila por semana ----
+            const filas = semanas.map((s) => {
+                const r = resumenRango(emp, s.inicio, s.fin);
+                const avance = Math.min(100, Math.round((r.horas / HORAS_SEMANA_REFERENCIA) * 100));
+                const dias = DIAS_TABLA.map((_, d) => celdaDia(emp, sumarDias(s.inicio, d), mes)).join('');
+                return `<tr>
+                    <td class="col-semana">
+                        <span class="semana__titulo">Semana</span>
+                        <span class="semana__rango">Del ${formatoCorto(s.inicio)} al ${formatoCorto(s.fin)}</span>
+                    </td>
+                    ${dias}
+                    <td>
+                        <div class="total">
+                            <span class="total__horas">${formatoHoras(r.horas)}</span>
+                            <span class="total__detalle">${textoResumenCorto(r)}</span>
+                            <span class="total__barra" title="${avance}% de ${HORAS_SEMANA_REFERENCIA} h"><span style="width:${avance}%"></span></span>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
 
-            // Gráficas
-            setTexto('modalWeekLabel', etiquetaSem);
-            setTexto('modalWeekHours', formatoHoras(semana.horas));
+            tablaHoras.innerHTML = `
+                <thead>
+                    <tr>
+                        <th class="col-semana">Semana</th>
+                        ${DIAS_TABLA.map((d) => `<th${d === 'Domingo' ? ' class="col-domingo"' : ''}>${d}</th>`).join('')}
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>`;
+
+            // ---- Gráfica: la semana de hoy si es el mes actual; si no, la última semana del mes ----
+            const semanaRef = semanas.find((s) => HOY >= s.inicio && HOY <= s.fin) || semanas[semanas.length - 1];
+            const resumenSemana = resumenRango(emp, semanaRef.inicio, semanaRef.fin);
+            setTexto('modalWeekLabel', `Semana (${etiquetaSemana(semanaRef)})`);
+            setTexto('modalWeekHours', formatoHoras(resumenSemana.horas));
             setTexto('modalMonthLabel', `Mes (${MESES[mes]} ${anio})`);
             setTexto('modalMonthHours', formatoHoras(resumenMes.horas));
-            renderBadges(document.getElementById('modalWeekBadges'), semana.faltas, semana.retardos);
+            renderBadges(document.getElementById('modalWeekBadges'), resumenSemana.faltas, resumenSemana.retardos);
             renderBadges(document.getElementById('modalMonthBadges'), resumenMes.faltas, resumenMes.retardos);
 
             renderWeekChart(['S', 'D', 'L', 'M', 'M', 'J', 'V'].map((label, i) => {
-                const reg = registroDia(emp, sumarDias(inicioSemana, i));
-                return { label, value: reg ? reg.horas : 0, max: 10 };
+                const reg = registroDia(emp, sumarDias(semanaRef.inicio, i));
+                return { label, value: reg ? reg.horas : 0, max: 12 };
             }));
-            setTexto('weekAssist', `${semana.asistencias}/6 asistencias`);
+            setTexto('weekAssist', `${resumenSemana.asistencias}/6 asistencias`);
 
-            renderMonthChart(semanasDelMes(anio, mes).map((s, i) => {
+            renderMonthChart(semanas.map((s) => {
                 const desde = s.inicio < inicioMes ? inicioMes : s.inicio;
                 const hasta = s.fin > finMes ? finMes : s.fin;
                 const horas = resumenRango(emp, desde, hasta).horas;
-                return { label: `Sem ${i + 1}`, value: horas, pct: Math.min(100, (horas / 50) * 100) };
+                return { label: `${formatoCorto(s.inicio)}`, value: horas, pct: Math.min(100, (horas / HORAS_SEMANA_REFERENCIA) * 100) };
             }));
             setTexto('monthAverage', resumenMes.asistencias
                 ? `${(resumenMes.horas / resumenMes.asistencias).toFixed(1)} h/día`
@@ -1446,6 +1626,8 @@
             // Un trabajador dado de baja queda solo de consulta: no se editan sus datos ni se le vuelve a dar de baja
             document.getElementById('editEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('editarTrabajador'));
             document.getElementById('bajaEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('darBaja'));
+            // Eliminar definitivamente: solo Super usuario y nunca un trabajador ya dado de baja.
+            document.getElementById('deleteEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('borrarTrabajador'));
 
             document.getElementById('detailExitDateItem').classList.toggle('hidden', !emp.baja);
             document.getElementById('detailExitReasonItem').classList.toggle('hidden', !emp.baja);
@@ -1454,16 +1636,14 @@
                 setTexto('detailExitReason', emp.baja.motivo);
             }
 
-            // Horas: se parte de hoy (o del día de la baja)
-            const fechaBase = emp.baja && emp.baja.fecha < HOY_ISO ? emp.baja.fecha : HOY_ISO;
+            // Horas: se abre en el mes de hoy (o en el mes de la baja)
+            const fechaBase = fechaDesdeISO(emp.baja && emp.baja.fecha < HOY_ISO ? emp.baja.fecha : HOY_ISO);
             const anioIngreso = Number(emp.ingreso.slice(0, 4));
             const anios = [];
             for (let a = HOY.getFullYear(); a >= anioIngreso; a--) anios.push({ valor: a, texto: String(a) });
-            llenarSelect(hoursYearSelect, anios);
-            hoursDateSelect.min = emp.ingreso;
-            hoursDateSelect.max = fechaBase;
-            hoursDateSelect.value = fechaBase;
-            syncHoursFromDate(fechaBase);
+            llenarSelect(hoursYearSelect, anios, fechaBase.getFullYear());
+            hoursMonthSelect.value = String(fechaBase.getMonth());
+            refreshHoursView();
 
             vacationYearSelect.value = String(HOY.getFullYear());
             historyMonthSelect.value = HOY_ISO.slice(0, 7);
@@ -1521,11 +1701,11 @@
                 aviso.className = 'faltas-alert faltas-alert--warn';
                 aviso.innerHTML = `<strong>⚠️ Expediente incompleto: ${pendientes === 1 ? 'falta 1 documento obligatorio' : `faltan ${pendientes} documentos obligatorios`}</strong>`
                     + (faltan.length ? `<span><b>Sin entregar:</b> ${faltan.join(', ')}.</span>` : '')
-                    + (rechazados.length ? `<span><b>Rechazados (hay que volver a subirlos):</b> ${rechazados.join(', ')}.</span>` : '');
+                    + (rechazados.length ? `<span><b>Devueltos por RH (hay que volver a subirlos):</b> ${rechazados.join(', ')}.</span>` : '');
             } else {
                 aviso.className = 'faltas-alert faltas-alert--ok';
                 aviso.innerHTML = `<strong>✅ Expediente completo: se entregaron los ${total} documentos obligatorios</strong>`
-                    + (porRevisar.length ? `<span>Pendientes de revisión por RH: ${porRevisar.join(', ')}.</span>` : '');
+                    + (porRevisar.length ? `<span>Pendientes de que RH los apruebe: ${porRevisar.join(', ')}.</span>` : '');
             }
             if (emp.baja) aviso.classList.add('hidden');
 
@@ -1534,27 +1714,25 @@
             const pendientes = faltan.length + rechazados.length;
             chip.classList.toggle('hidden', !pendientes || Boolean(emp.baja));
             chip.innerHTML = `<span aria-hidden="true">📄</span> ${pendientes === 1 ? 'Falta 1 documento' : `Faltan ${pendientes} documentos`} <span class="docs-chip__ver">Ver cuáles ›</span>`;
-            chip.title = [...faltan, ...rechazados.map((n) => `${n} (rechazado)`)].join(', ');
+            chip.title = [...faltan, ...rechazados.map((n) => `${n} (devuelto)`)].join(', ');
             const subir = puede('subirDocumentos') && !emp.baja;
             document.getElementById('documentsList').innerHTML = DOCUMENTOS_BASICOS.map((doc) => {
                 const info = estadoDocumento(emp, doc.clave);
                 const estado = ESTADOS_DOCUMENTO[info.estado];
                 const acciones = [];
-                if (info.archivo) acciones.push(`<button class="btn btn--ghost btn--doc" type="button" data-doc-ver="${doc.clave}">Ver</button>`);
+                if (info.archivo) acciones.push(`<button class="btn btn--ghost btn--doc" type="button" data-doc-ver="${doc.clave}">👁 Ver</button>`);
+                // Quien puede subir (RH y el admin de la sucursal) también puede reemplazar el archivo
                 if (subir) acciones.push(`<button class="btn btn--ghost btn--doc" type="button" data-doc-subir="${doc.clave}">${info.archivo ? 'Reemplazar' : 'Subir'}</button>`);
                 if (puede('revisarDocumentos') && info.estado === 'entregado') {
-                    acciones.push(`<button class="btn btn--primary btn--doc" type="button" data-doc-revisar="${doc.clave}">✓ Revisado</button>`);
-                    acciones.push(`<button class="btn btn--ghost btn--doc" type="button" data-doc-rechazar="${doc.clave}">Rechazar</button>`);
+                    acciones.push(`<button class="btn btn--primary btn--doc" type="button" data-doc-revisar="${doc.clave}">✓ Aprobar</button>`);
+                    acciones.push(`<button class="btn btn--ghost btn--doc" type="button" data-doc-rechazar="${doc.clave}">Devolver</button>`);
                 }
-                const detalle = info.archivo
-                    ? `${escaparHtml(info.archivo.nombre)} · ${tamanoLegible(info.archivo.tamano)} · subido por ${escaparHtml(info.subidoPor)} el ${formatoFecha(aISO(new Date(info.subidoEl)))}`
-                        + (info.revisadoPor ? ` · revisado por ${escaparHtml(info.revisadoPor)}` : '')
-                    : 'Sin archivo';
+                const detalle = info.archivo ? detalleArchivoDocumento(info) : 'Sin archivo';
                 return `<div class="document-row">
                     <div class="document-row__info">
-                        <strong>${escaparHtml(doc.nombre)}${doc.obligatorio ? '' : ' <small>(opcional)</small>'}</strong>
+                        <strong>${escaparHtml(doc.nombre)} <small class="doc-req doc-req--${doc.obligatorio ? 'si' : 'no'}">${doc.obligatorio ? 'Obligatorio' : 'Opcional'}</small></strong>
                         <span>${detalle}</span>
-                        ${info.estado === 'rechazado' ? `<span class="document-row__motivo">Rechazado: ${escaparHtml(info.motivo)}</span>` : ''}
+                        ${info.estado === 'rechazado' ? `<span class="document-row__motivo">Devuelto por RH: ${escaparHtml(info.motivo)}</span>` : ''}
                     </div>
                     <span class="doc-tag doc-tag--${estado.clase}">${estado.texto}</span>
                     <div class="document-row__actions">${acciones.join('')}</div>
@@ -1568,6 +1746,7 @@
             // Aquí irá la petición a la base de datos en línea; por ahora se guarda en el navegador
             if (guardarCambios() === false) mostrarToast('⚠️ No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
             renderDocumentos(emp);
+            renderAvisoDevueltos();
         }
 
         async function subirDocumento(archivo) {
@@ -1592,22 +1771,190 @@
                 motivo: null
             });
             registrarBitacora('Documento subido', `${emp.id} · ${emp.nombre} · ${nombre}`);
-            mostrarToast(`${nombre} guardado. Queda como "Entregado" hasta que RH lo revise.`);
+            // A quien también revisa (RH) no se le dice que espere a RH
+            mostrarToast(puede('revisarDocumentos')
+                ? `${nombre} guardado. Queda "Por aprobar": revísalo y apruébalo.`
+                : `${nombre} guardado. Queda "Por aprobar" hasta que RH lo revise.`);
         }
 
-        async function verDocumento(clave) {
+        function detalleArchivoDocumento(info) {
+            return `${escaparHtml(info.archivo.nombre)} · ${tamanoLegible(info.archivo.tamano)} · subido por ${escaparHtml(info.subidoPor)} el ${formatoFecha(aISO(new Date(info.subidoEl)))}`
+                + (info.revisadoPor ? ` · ${info.estado === 'rechazado' ? 'devuelto' : 'aprobado'} por ${escaparHtml(info.revisadoPor)}` : '');
+        }
+
+        function aprobarDocumento(emp, clave) {
+            const nombre = DOCUMENTOS_BASICOS.find((d) => d.clave === clave).nombre;
+            actualizarDocumento(emp, clave, { estado: 'revisado', revisadoPor: USUARIO_ACTUAL.usuario, motivo: null });
+            registrarBitacora('Documento aprobado', `${emp.id} · ${emp.nombre} · ${nombre}`);
+            mostrarToast(`${nombre} aprobado.`);
+        }
+
+        function devolverDocumento(emp, clave, motivo) {
+            const nombre = DOCUMENTOS_BASICOS.find((d) => d.clave === clave).nombre;
+            actualizarDocumento(emp, clave, { estado: 'rechazado', revisadoPor: USUARIO_ACTUAL.usuario, motivo });
+            registrarBitacora('Documento devuelto', `${emp.id} · ${emp.nombre} · ${nombre} · ${motivo}`);
+            mostrarToast(`${nombre} devuelto. El administrador tendrá que volver a subirlo.`);
+        }
+
+        // ---------- Visor del documento ----------
+        const documentModal = document.getElementById('documentModal');
+        const documentReturnField = document.getElementById('documentReturnField');
+        const documentReturnReason = document.getElementById('documentReturnReason');
+        const documentReturnError = document.getElementById('documentReturnError');
+        const documentModalReturn = document.getElementById('documentModalReturn');
+        const documentModalApprove = document.getElementById('documentModalApprove');
+        const documentModalOpen = document.getElementById('documentModalOpen');
+        const documentModalDownload = document.getElementById('documentModalDownload');
+        const documentModalDelete = document.getElementById('documentModalDelete');
+        let documentoEnVisor = null;
+        let urlDocumentoEnVisor = null;
+
+        function pedirMotivoDevolucion() {
+            documentReturnField.classList.remove('hidden');
+            documentModalReturn.textContent = 'Confirmar devolución';
+            documentModalApprove.classList.add('hidden');
+            documentReturnReason.focus();
+        }
+
+        // conMotivo: abre ya pidiendo el motivo (botón "Devolver" de la lista)
+        async function verDocumento(clave, conMotivo = false) {
             const emp = empleadoDetalle;
+            const doc = DOCUMENTOS_BASICOS.find((d) => d.clave === clave);
+            const info = estadoDocumento(emp, clave);
+            const estado = ESTADOS_DOCUMENTO[info.estado];
+            const revisable = puede('revisarDocumentos') && info.estado === 'entregado';
+            documentoEnVisor = clave;
+
+            setTexto('documentModalEmployee', `${emp.id} · ${emp.nombre}`);
+            setTexto('documentModalTitle', doc.nombre);
+            const etiqueta = document.getElementById('documentModalTag');
+            etiqueta.className = `doc-tag doc-tag--${estado.clase}`;
+            etiqueta.textContent = estado.texto;
+            document.getElementById('documentModalInfo').innerHTML = info.archivo ? detalleArchivoDocumento(info) : 'Sin archivo';
+            const motivo = document.getElementById('documentModalReason');
+            motivo.classList.toggle('hidden', info.estado !== 'rechazado');
+            motivo.textContent = info.estado === 'rechazado' ? `Devuelto por RH: ${info.motivo}` : '';
+
+            documentReturnField.classList.add('hidden');
+            documentReturnReason.value = '';
+            documentReturnReason.classList.remove('is-invalid');
+            documentReturnError.textContent = '';
+            documentModalReturn.textContent = 'Devolver';
+            documentModalReturn.classList.toggle('hidden', !revisable);
+            documentModalApprove.classList.toggle('hidden', !revisable);
+
+            const vista = document.getElementById('documentModalPreview');
+            vista.innerHTML = '<p class="document-viewer__empty">Cargando documento…</p>';
+            documentModalOpen.classList.add('hidden');
+            documentModalDownload.classList.add('hidden');
+            documentModalDelete.classList.toggle('hidden', !(info.archivo && puede('eliminarDocumentos')));
+            abrirModal(documentModal);
+            if (revisable && conMotivo) pedirMotivoDevolucion();
+
             let archivo = null;
             try {
                 archivo = await AlmacenDocumentos.obtener(emp.id, clave);
             } catch (e) {
                 // sin acceso al almacén
             }
-            if (!archivo) return mostrarToast('El archivo no está en esta computadora (se subió desde otro navegador).');
-            const url = URL.createObjectURL(archivo);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            if (documentoEnVisor !== clave || empleadoDetalle !== emp) return;
+            if (!archivo) {
+                vista.innerHTML = '<p class="document-viewer__empty">El archivo no está en esta computadora (se subió desde otro navegador). Cuando el sistema esté en línea se podrá ver desde cualquier equipo.</p>';
+                return;
+            }
+            if (urlDocumentoEnVisor) URL.revokeObjectURL(urlDocumentoEnVisor);
+            urlDocumentoEnVisor = URL.createObjectURL(archivo);
+            vista.innerHTML = archivo.type === 'application/pdf'
+                ? `<iframe src="${urlDocumentoEnVisor}" title="${escaparHtml(doc.nombre)}"></iframe>`
+                : `<img src="${urlDocumentoEnVisor}" alt="${escaparHtml(doc.nombre)}">`;
+            documentModalOpen.href = urlDocumentoEnVisor;
+            documentModalOpen.classList.remove('hidden');
+            documentModalDownload.classList.toggle('hidden', !puede('descargarDocumentos'));
         }
+
+        // Baja el archivo con un nombre ordenado: ID del trabajador + documento (ej. 01130001_INE.pdf)
+        function descargarDocumento() {
+            const emp = empleadoDetalle;
+            if (!emp || !documentoEnVisor || !urlDocumentoEnVisor || !puede('descargarDocumentos')) return;
+            const doc = DOCUMENTOS_BASICOS.find((d) => d.clave === documentoEnVisor);
+            const original = estadoDocumento(emp, documentoEnVisor).archivo.nombre;
+            const extension = original.includes('.') ? original.split('.').pop().toLowerCase() : 'pdf';
+            const enlace = document.createElement('a');
+            enlace.href = urlDocumentoEnVisor;
+            enlace.download = `${emp.id}_${doc.nombre.replace(/\s*\(.*?\)/g, '').replace(/\s+/g, '_')}.${extension}`;
+            document.body.appendChild(enlace);
+            enlace.click();
+            enlace.remove();
+            registrarBitacora('Documento descargado', `${emp.id} · ${emp.nombre} · ${doc.nombre}`);
+        }
+
+        function cerrarVisorDocumento() {
+            cerrarModal(documentModal);
+            document.getElementById('documentModalPreview').innerHTML = '';
+            if (urlDocumentoEnVisor) URL.revokeObjectURL(urlDocumentoEnVisor);
+            urlDocumentoEnVisor = null;
+            documentoEnVisor = null;
+        }
+
+        document.getElementById('documentModalClose').addEventListener('click', cerrarVisorDocumento);
+        documentModalDownload.addEventListener('click', descargarDocumento);
+        // Eliminar cierra el visor y pregunta en la ventana de confirmación (la misma del alta y la baja)
+        documentModalDelete.addEventListener('click', () => {
+            const emp = empleadoDetalle;
+            const clave = documentoEnVisor;
+            if (!emp || !clave || !puede('eliminarDocumentos')) return;
+            const nombre = DOCUMENTOS_BASICOS.find((d) => d.clave === clave).nombre;
+            cerrarVisorDocumento();
+            pedirConfirmacion({
+                titulo: '¿Estás seguro de eliminar este documento?',
+                texto: `Se eliminará <strong>${escaparHtml(nombre)}</strong> de <strong>${escaparHtml(emp.nombre)}</strong> (ID ${escaparHtml(emp.id)}).
+                    <br><br><span class="confirm-aviso">⚠️ El archivo no se puede recuperar. El documento volverá a "Falta" y habrá que subirlo de nuevo.</span>`,
+                si: 'Sí, eliminar',
+                no: 'No, cancelar',
+                peligro: true,
+                progreso: 'Eliminando documento…',
+                pasos: () => [
+                    { texto: 'Borrando el archivo', accion: () => AlmacenDocumentos.borrar(emp.id, clave) },
+                    {
+                        texto: 'Actualizando el expediente',
+                        accion: () => {
+                            emp.documentos = emp.documentos || {};
+                            emp.documentos[clave] = { estado: 'falta' };
+                            if (guardarCambios() === false) throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                            registrarBitacora('Documento eliminado', `${emp.id} · ${emp.nombre} · ${nombre}`);
+                        }
+                    }
+                ],
+                listo: 'Documento eliminado',
+                exito: `🗑️ <strong>${escaparHtml(nombre)}</strong> fue eliminado. Queda como "Falta".`,
+                alTerminar: () => {
+                    if (empleadoDetalle === emp) renderDocumentos(emp);
+                    renderAvisoDevueltos();
+                }
+            });
+        });
+        documentModal.addEventListener('click', (evento) => {
+            if (evento.target === documentModal) cerrarVisorDocumento();
+        });
+        documentModalApprove.addEventListener('click', () => {
+            const emp = empleadoDetalle;
+            if (!emp || !documentoEnVisor || !puede('revisarDocumentos')) return;
+            aprobarDocumento(emp, documentoEnVisor);
+            cerrarVisorDocumento();
+        });
+        documentModalReturn.addEventListener('click', () => {
+            const emp = empleadoDetalle;
+            if (!emp || !documentoEnVisor || !puede('revisarDocumentos')) return;
+            if (documentReturnField.classList.contains('hidden')) return pedirMotivoDevolucion();
+            const motivo = documentReturnReason.value.trim();
+            if (motivo.length < 3) {
+                documentReturnReason.classList.add('is-invalid');
+                documentReturnError.textContent = 'Escribe por qué se devuelve.';
+                return;
+            }
+            devolverDocumento(emp, documentoEnVisor, motivo);
+            cerrarVisorDocumento();
+        });
 
         document.getElementById('documentsList').addEventListener('click', (evento) => {
             const emp = empleadoDetalle;
@@ -1619,16 +1966,9 @@
                 documentoPorSubir = docSubir;
                 documentFileInput.click();
             }
-            if (docRevisar && puede('revisarDocumentos')) {
-                actualizarDocumento(emp, docRevisar, { estado: 'revisado', revisadoPor: USUARIO_ACTUAL.usuario, motivo: null });
-                registrarBitacora('Documento revisado', `${emp.id} · ${emp.nombre} · ${DOCUMENTOS_BASICOS.find((d) => d.clave === docRevisar).nombre}`);
-            }
-            if (docRechazar && puede('revisarDocumentos')) {
-                const motivo = (prompt('¿Por qué se rechaza? (ej. INE vencida, no se lee)') || '').trim();
-                if (motivo.length < 3) return;
-                actualizarDocumento(emp, docRechazar, { estado: 'rechazado', revisadoPor: USUARIO_ACTUAL.usuario, motivo });
-                registrarBitacora('Documento rechazado', `${emp.id} · ${emp.nombre} · ${DOCUMENTOS_BASICOS.find((d) => d.clave === docRechazar).nombre} · ${motivo}`);
-            }
+            if (docRevisar && puede('revisarDocumentos')) aprobarDocumento(emp, docRevisar);
+            // Para devolver se abre el visor: ahí se ve el archivo y se escribe el motivo
+            if (docRechazar && puede('revisarDocumentos')) verDocumento(docRechazar, true);
         });
         documentFileInput.addEventListener('change', () => subirDocumento(documentFileInput.files[0]));
         document.getElementById('detailDocsChip').addEventListener('click', () => {
@@ -1640,29 +1980,10 @@
         vacationYearSelect.addEventListener('input', renderVacations);
         incidentYearSelect.addEventListener('input', renderIncidencias);
         historyMonthSelect.addEventListener('change', renderHistory);
-        hoursDateSelect.addEventListener('change', () => syncHoursFromDate(hoursDateSelect.value));
 
-        function irAMesSeleccionado() {
-            const anio = Number(hoursYearSelect.value);
-            const mes = Number(hoursMonthSelect.value);
-            const esMesActual = anio === HOY.getFullYear() && mes === HOY.getMonth();
-            let fecha = esMesActual ? new Date(HOY) : new Date(anio, mes, 1, 12);
-            if (hoursDateSelect.min && aISO(fecha) < hoursDateSelect.min) fecha = fechaDesdeISO(hoursDateSelect.min);
-            hoursDateSelect.value = aISO(fecha);
-            llenarSemanasHoras(anio, mes, fecha);
-            refreshHoursView();
-        }
-
-        hoursMonthSelect.addEventListener('change', irAMesSeleccionado);
-        hoursYearSelect.addEventListener('change', irAMesSeleccionado);
-        hoursWeekSelect.addEventListener('change', () => {
-            const anio = Number(hoursYearSelect.value);
-            const mes = Number(hoursMonthSelect.value);
-            const semana = semanasDelMes(anio, mes)[Number(hoursWeekSelect.value)];
-            const inicioMes = new Date(anio, mes, 1, 12);
-            hoursDateSelect.value = aISO(semana.inicio < inicioMes ? inicioMes : semana.inicio);
-            refreshHoursView();
-        });
+        // Al cambiar el mes o el año se vuelve a armar la tabla de horas
+        hoursMonthSelect.addEventListener('change', refreshHoursView);
+        hoursYearSelect.addEventListener('change', refreshHoursView);
 
         document.getElementById('openHoursDetailModal').addEventListener('click', () => abrirModal(hoursDetailModal));
         document.getElementById('closeHoursDetailModal').addEventListener('click', () => cerrarModal(hoursDetailModal));
@@ -1683,12 +2004,12 @@
         const recordType = document.getElementById('recordType');
         const recordStart = document.getElementById('recordStart');
         const recordEnd = document.getElementById('recordEnd');
-        const recordDays = document.getElementById('recordDays');
         const recordFolio = document.getElementById('recordFolio');
+        const recordCertificate = document.getElementById('recordCertificate');
         const recordDetail = document.getElementById('recordDetail');
         const recordVacationInfo = document.getElementById('recordVacationInfo');
-        const CON_RANGO = ['vacaciones', 'permiso'];
-        const CAMPOS_REGISTRO = ['recordType', 'recordStart', 'recordEnd', 'recordDays', 'recordFolio', 'recordTestigos', 'recordDetail'];
+        const CON_RANGO = ['vacaciones', 'permiso', 'incapacidad'];
+        const CAMPOS_REGISTRO = ['recordType', 'recordStart', 'recordEnd', 'recordFolio', 'recordCertificate', 'recordTestigos', 'recordDetail'];
         const recordTestigos = document.getElementById('recordTestigos');
         // Qué hace cada tipo que no es obvio
         const AYUDA_REGISTRO = {
@@ -1718,7 +2039,21 @@
             mostrarToast.temporizador = window.setTimeout(() => toast.classList.add('hidden'), 3500);
         }
 
+        // Días naturales del periodo (el IMSS cuenta todos los días, también el domingo)
+        function diasIncapacidad(inicio, fin) {
+            return Math.round((fechaDesdeISO(fin) - fechaDesdeISO(inicio)) / 86400000) + 1;
+        }
+
         function actualizarInfoVacaciones() {
+            if (recordType.value === 'incapacidad') {
+                const completo = recordStart.value && recordEnd.value && recordEnd.value >= recordStart.value;
+                if (completo) {
+                    const dias = diasIncapacidad(recordStart.value, recordEnd.value);
+                    recordVacationInfo.innerHTML = `La incapacidad suma <strong>${dias} ${dias === 1 ? 'día' : 'días'}</strong> (${formatoFecha(recordStart.value)} – ${formatoFecha(recordEnd.value)}). Verifica que coincida con los días autorizados en la receta del IMSS.`;
+                }
+                recordVacationInfo.classList.toggle('hidden', !completo);
+                return;
+            }
             if (recordType.value !== 'vacaciones') {
                 recordVacationInfo.classList.add('hidden');
                 return;
@@ -1736,15 +2071,15 @@
             const tipo = recordType.value;
             document.getElementById('recordDates').classList.toggle('hidden', !tipo);
             document.getElementById('recordEndField').classList.toggle('hidden', !CON_RANGO.includes(tipo));
-            document.getElementById('recordDaysField').classList.toggle('hidden', tipo !== 'incapacidad');
             document.getElementById('recordGoceField').classList.toggle('hidden', tipo !== 'permiso');
             document.getElementById('recordIncapacityFields').classList.toggle('hidden', tipo !== 'incapacidad');
+            document.getElementById('recordCertificateField').classList.toggle('hidden', tipo !== 'incapacidad');
             document.getElementById('recordDetailField').classList.toggle('hidden', !tipo);
             document.getElementById('recordActaFields').classList.toggle('hidden', tipo !== 'falta-administrativa');
             const ayuda = document.getElementById('recordTypeInfo');
             ayuda.textContent = AYUDA_REGISTRO[tipo] || '';
             ayuda.classList.toggle('hidden', !AYUDA_REGISTRO[tipo]);
-            setTexto('recordStartLabel', CON_RANGO.includes(tipo) || tipo === 'incapacidad' ? 'Primer día *' : 'Fecha *');
+            setTexto('recordStartLabel', CON_RANGO.includes(tipo) ? 'Primer día *' : 'Fecha *');
             setTexto('recordDetailLabel', ETIQUETA_DETALLE[tipo] || 'Motivo *');
             actualizarInfoVacaciones();
         }
@@ -1757,8 +2092,8 @@
             recordStart.min = emp.ingreso;
             recordEnd.value = '';
             recordEnd.min = emp.ingreso;
-            recordDays.value = '1';
             recordFolio.value = '';
+            recordCertificate.value = '';
             recordDetail.value = '';
             recordTestigos.value = '';
             document.getElementById('recordGoce').value = 'con';
@@ -1793,10 +2128,10 @@
                 else if (inicio && fin < inicio) errores.recordEnd = 'No puede ser antes del primer día.';
             }
             if (tipo === 'incapacidad') {
-                const dias = Number(recordDays.value);
-                if (!(dias >= 1)) errores.recordDays = 'Indica los días autorizados por el IMSS.';
-                else if (inicio) fin = aISO(sumarDias(fechaDesdeISO(inicio), dias - 1));
                 if (recordFolio.value.trim().length < 4) errores.recordFolio = 'Captura el folio IMSS de la receta.';
+                errores.recordCertificate = recordCertificate.files[0]
+                    ? validarArchivoDocumento(recordCertificate.files[0])
+                    : 'Adjunta el certificado de incapacidad del IMSS.';
             }
             if (!['vacaciones', 'incapacidad'].includes(tipo) && !recordDetail.value.trim()) {
                 errores.recordDetail = 'Escribe el motivo.';
@@ -1813,7 +2148,7 @@
                 else if (error) errores.recordDetail = error;
             }
 
-            const fechasValidas = inicio && fin && !errores.recordStart && !errores.recordEnd && !errores.recordDays;
+            const fechasValidas = inicio && fin && !errores.recordStart && !errores.recordEnd;
             if (tipo === 'vacaciones' && fechasValidas) {
                 const dias = diasHabiles(inicio, fin);
                 const disponibles = diasVacacionesDisponibles(emp, Number(inicio.slice(0, 4)));
@@ -1827,8 +2162,10 @@
             return { errores, fin };
         }
 
-        function guardarRegistro() {
+        async function guardarRegistro() {
             const emp = empleadoDetalle;
+            const botonGuardar = document.getElementById('recordSave');
+            if (botonGuardar.disabled) return;
             const { errores, fin } = validarRegistro(emp);
             const valido = CAMPOS_REGISTRO.map((id) => marcarError(id, errores[id])).every(Boolean);
             if (!valido) return;
@@ -1836,6 +2173,22 @@
             const tipo = recordType.value;
             const inicio = recordStart.value;
             const detalle = recordDetail.value.trim();
+
+            // El certificado se guarda primero: así la incapacidad ya nace con su documento (se ve en Incapacidades)
+            let certificado = null;
+            const archivo = tipo === 'incapacidad' ? recordCertificate.files[0] : null;
+            if (archivo) {
+                const clave = `incapacidad-${Date.now()}`;
+                botonGuardar.disabled = true;
+                try {
+                    await AlmacenDocumentos.guardar(emp.id, clave, archivo);
+                } catch (error) {
+                    return marcarError('recordCertificate', 'No se pudo guardar el certificado en este navegador. Quítalo o inténtalo de nuevo.');
+                } finally {
+                    botonGuardar.disabled = false;
+                }
+                certificado = { clave, nombre: archivo.name, tamano: archivo.size, tipo: archivo.type };
+            }
             if (tipo === 'vacaciones') {
                 (emp.vacaciones = emp.vacaciones || []).push({ inicio, fin });
             } else if (tipo === 'permiso') {
@@ -1845,7 +2198,8 @@
                     tipo: document.getElementById('recordIncapacityType').value,
                     folio: recordFolio.value.trim().toUpperCase(),
                     inicio,
-                    dias: Number(recordDays.value)
+                    dias: diasIncapacidad(inicio, fin),
+                    archivo: certificado
                 });
             } else if (tipo === 'falta-administrativa') {
                 // Queda como acta aprobada (también aparece en Solicitudes, para imprimirla)
@@ -2370,7 +2724,7 @@
             newRole.disabled = !puestos.length;
             newRole.innerHTML = puestos.length
                 ? (puestos.length > 1 ? '<option value="">Selecciona el puesto</option>' : '') +
-                  puestos.map((p) => `<option value="${escaparHtml(p.nombre)}">${p.clave} · ${escaparHtml(p.nombre)}</option>`).join('')
+                puestos.map((p) => `<option value="${escaparHtml(p.nombre)}">${p.clave} · ${escaparHtml(p.nombre)}</option>`).join('')
                 : '<option value="">Primero elige el departamento</option>';
         }
 
@@ -2996,6 +3350,64 @@
         });
 
         // =====================================================================
+        //  ELIMINAR TRABAJADOR: eliminación definitiva. SOLO SUPER USUARIO.
+        //  A diferencia de "Dar de baja", aquí se quita el registro completo.
+        // =====================================================================
+        async function eliminarTrabajador(emp) {
+            if (!puede('borrarTrabajador')) throw new Error('Solo el Super usuario puede eliminar trabajadores.');
+            if (!emp || !emp.id) throw new Error('No se encontró el trabajador que se desea eliminar.');
+
+            const indiceCompleto = TODOS_EMPLEADOS.findIndex((e) => e.id === emp.id);
+            if (indiceCompleto < 0) throw new Error('El trabajador ya no existe en la lista.');
+
+            const eliminado = TODOS_EMPLEADOS[indiceCompleto];
+            TODOS_EMPLEADOS.splice(indiceCompleto, 1);
+
+            if (guardarCambios() === false) {
+                TODOS_EMPLEADOS.splice(indiceCompleto, 0, eliminado);
+                throw new Error('No se pudo eliminar de la base de datos. El trabajador fue restaurado. Revisa la conexión.');
+            }
+
+            registrarBitacora('Trabajador eliminado definitivamente', `${eliminado.id} · ${eliminado.nombre} · Eliminado por ${USUARIO_ACTUAL?.usuario || '—'}`);
+        }
+
+        function confirmarEliminacion(emp) {
+            if (!puede('borrarTrabajador')) {
+                alert('Solo el Super usuario puede eliminar trabajadores.');
+                return;
+            }
+
+            pedirConfirmacion({
+                titulo: '⚠️ Eliminar trabajador definitivamente',
+                texto: `<strong>${escaparHtml(emp.nombre)}</strong> (ID <strong>${escaparHtml(emp.id)}</strong>) será eliminado por completo.
+                    <br><br><strong>Esta acción NO es una baja.</strong> Se eliminará el registro del trabajador y dejará de aparecer en Empleados.
+                    <br><br><span class="confirm-aviso">⚠️ Esta acción es definitiva. El historial asociado al registro también dejará de estar disponible desde este expediente.</span>`,
+                si: 'Sí, eliminar definitivamente',
+                no: 'No, cancelar',
+                peligro: true,
+                progreso: 'Eliminando trabajador…',
+                pasos: () => [
+                    { texto: 'Eliminando el registro del trabajador', accion: () => eliminarTrabajador(emp) },
+                    { texto: 'Actualizando la lista de empleados', accion: () => wait(300) }
+                ],
+                listo: 'Trabajador eliminado',
+                exito: `🗑️ <strong>${escaparHtml(emp.nombre)}</strong> (ID ${escaparHtml(emp.id)}) fue eliminado definitivamente.`,
+                alTerminar: () => {
+                    empleadoDetalle = null;
+                    detailPanel.classList.add('hidden');
+                    detailPanel.setAttribute('aria-hidden', 'true');
+                    renderTodo();
+                }
+            });
+        }
+
+        document.getElementById('deleteEmployeeBtn').addEventListener('click', () => {
+            if (empleadoDetalle && !empleadoDetalle.baja && puede('borrarTrabajador')) {
+                confirmarEliminacion(empleadoDetalle);
+            }
+        });
+
+        // =====================================================================
         //  IMPORTAR TRABAJADORES
         // =====================================================================
         const importModal = document.getElementById('importModal');
@@ -3186,15 +3598,24 @@
             importResult.innerHTML = `<p class="form-message is-success">✅ Se importaron <strong>${cantidad}</strong> trabajador${cantidad === 1 ? '' : 'es'}. Recuerda registrar su rostro para que puedan checar.</p>`;
             renderTodo();
         });
-
         // El Super usuario entra a Incapacidades desde el menú: aquí no ve el acceso directo
-        document.getElementById('incapacidadesLink').classList.toggle('hidden', USUARIO_ACTUAL.rol === 'super');
+        document.getElementById('incapacidadesLink').classList.toggle(
+            'hidden',
+            USUARIO_ACTUAL.rol === 'super'
+        );
 
-        // Si se llega con ?id=XXXX (p. ej. desde Incapacidades), se abre directo su expediente
+        // Si se llega con ?id=XXXX (p. ej. desde Incapacidades),
+        // se abre directamente el expediente del empleado
         const idSolicitado = new URLSearchParams(location.search).get('id');
-        const empleadoSolicitado = idSolicitado && EMPLEADOS.find((e) => e.id === idSolicitado);
-        if (empleadoSolicitado) openEmployeeDetail(empleadoSolicitado);
+        const empleadoSolicitado = idSolicitado
+            ? EMPLEADOS.find((e) => e.id === idSolicitado)
+            : null;
+
+        if (empleadoSolicitado) {
+            openEmployeeDetail(empleadoSolicitado);
+        }
     </script>
+
     <script src="recursos/estado-servidor.js"></script>
 </body>
 

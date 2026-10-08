@@ -20,6 +20,11 @@ ALTO_CAMARA = 480
 # Entrada de lunes a sábado: hasta esta hora cuenta como puntual.
 HORA_LIMITE_ENTRADA = (8, 15)
 
+# Regla de entrada de lunes a sábado:
+# antes de las 8:15 = puntual, de 8:15 en adelante = retardo, después de las 10:00 = falta.
+HORA_INICIO_RETARDO = (8, 15)
+HORA_LIMITE_FALTA = (10, 0)
+
 # Salida: a partir de esta hora cuenta como salida normal.
 HORA_SALIDA_SEMANA = (18, 0)   # lunes a viernes
 HORA_SALIDA_SABADO = (14, 0)   # sábado
@@ -40,3 +45,13 @@ HORAS_DIA_DESCUENTO = 10
 # Cada tantos retardos dentro de la misma semana de pago (sábado a viernes) se descuenta 1 día.
 # Los retardos no se acumulan de una semana a otra.
 RETARDOS_POR_DESCUENTO = 3
+
+
+def clasificar_entrada(hora, minuto, segundo=0):
+    """Regresa 'puntual', 'retardo' o 'falta' según la hora de la checada de entrada."""
+    momento = (hora, minuto, segundo)
+    if momento > HORA_LIMITE_FALTA + (0,):
+        return "falta"
+    if momento >= HORA_INICIO_RETARDO + (0,):
+        return "retardo"
+    return "puntual"

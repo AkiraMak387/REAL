@@ -86,15 +86,33 @@
             <div class="config-card">
                 <div class="solicitudes-barra">
                     <div class="settings-tabs" id="tabs" role="tablist"></div>
-                    <select id="tipoFiltro" aria-label="Tipo de solicitud">
-                        <option value="todas">Todos los tipos</option>
-                        <option value="vacaciones">Vacaciones</option>
-                        <option value="permiso">Permisos</option>
-                        <option value="incapacidad">Incapacidades</option>
-                        <option value="acta">Faltas administrativas</option>
-                        <option value="retardo">Retardos justificados</option>
-                        <option value="salida">Salidas tempranas</option>
-                    </select>
+                    <div class="solicitudes-filtros">
+                        <select id="mesFiltro" aria-label="Mes de la solicitud">
+                            <option value="todos">Todos</option>
+                            <option value="01">Enero</option>
+                            <option value="02">Febrero</option>
+                            <option value="03">Marzo</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Mayo</option>
+                            <option value="06">Junio</option>
+                            <option value="07">Julio</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                        <select id="anioFiltro" aria-label="Año de la solicitud"></select>
+                        <select id="tipoFiltro" aria-label="Tipo de solicitud">
+                            <option value="todas">Todos los tipos</option>
+                            <option value="vacaciones">Vacaciones</option>
+                            <option value="permiso">Permisos</option>
+                            <option value="incapacidad">Incapacidades</option>
+                            <option value="acta">Faltas administrativas</option>
+                            <option value="retardo">Retardos justificados</option>
+                            <option value="salida">Salidas tempranas</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="novedades" class="novedades hidden" role="status"></div>
                 <div id="listaSolicitudes" class="lista-solicitudes"></div>
@@ -165,13 +183,9 @@
                     <label for="fInicio">Primer día</label>
                     <input id="fInicio" type="date">
                 </div>
-                <div class="form-field" data-tipos="vacaciones permiso">
+                <div class="form-field" data-tipos="vacaciones permiso incapacidad">
                     <label for="fFin">Último día</label>
                     <input id="fFin" type="date">
-                </div>
-                <div class="form-field" data-tipos="incapacidad">
-                    <label for="fDias">Días autorizados por el IMSS</label>
-                    <input id="fDias" type="number" min="1" max="365" value="1">
                 </div>
                 <div class="form-field" data-tipos="incapacidad">
                     <label for="fIncTipo">Tipo de incapacidad</label>
@@ -416,9 +430,46 @@
             </ol></details>`;
         }
 
+        // Meses (AAAA-MM) que toca la solicitud: todos los de su periodo, o el de su fecha si es de un solo día
+        function mesesDe(s) {
+            const d = s.datos || {};
+            const inicio = d.inicio || d.fecha || s.creado.slice(0, 10);
+            const fin = s.tipo === 'incapacidad' && d.inicio ? finIncapacidad(d) : (d.fin || inicio);
+            const meses = [inicio.slice(0, 7)];
+            let [anio, mes] = inicio.split('-').map(Number);
+            while (meses[meses.length - 1] < fin.slice(0, 7)) {
+                if (++mes > 12) { mes = 1; anio++; }
+                meses.push(`${anio}-${String(mes).padStart(2, '0')}`);
+            }
+            return meses;
+        }
+
+        // El filtro de año empieza siempre en el año actual. Lista desde el año pasado hasta el siguiente,
+        // y más si hay solicitudes de otros años; "Todos" queda al final.
+        function llenarAnioFiltro() {
+            const actual = HOY.getFullYear();
+            const elegido = campo('anioFiltro').value || String(actual);
+            const conSolicitudes = solicitudesVisibles().flatMap(mesesDe).map((m) => Number(m.slice(0, 4)));
+            const primero = Math.min(actual - 1, ...conSolicitudes);
+            const ultimo = Math.max(actual + 1, ...conSolicitudes);
+            let opciones = '';
+            for (let anio = ultimo; anio >= primero; anio--) opciones += `<option value="${anio}">${anio}</option>`;
+            campo('anioFiltro').innerHTML = opciones + '<option value="todos">Todos</option>';
+            campo('anioFiltro').value = elegido;
+        }
+
+        // Pasa si alguno de sus meses coincide con el mes y el año elegidos (cada filtro puede ir en "todos")
+        function enPeriodoElegido(s) {
+            const mes = campo('mesFiltro').value;
+            const anio = campo('anioFiltro').value;
+            return mesesDe(s).some((m) => (mes === 'todos' || m.slice(5) === mes) && (anio === 'todos' || m.slice(0, 4) === anio));
+        }
+
         function renderSolicitudes() {
+            llenarAnioFiltro();
             const todas = solicitudesVisibles()
                 .filter((s) => campo('tipoFiltro').value === 'todas' || s.tipo === campo('tipoFiltro').value)
+                .filter(enPeriodoElegido)
                 .sort((a, b) => b.creado.localeCompare(a.creado));
             campo('tabs').innerHTML = PESTANAS.map((p) => {
                 const deLaPestana = todas.filter(p.filtro);
@@ -664,7 +715,6 @@
             elegirEmpleado(empId ? buscarEmpleado(empId) : null);
             campo('fCertificado').value = '';
             ['fInicio', 'fFin', 'fHechos', 'fTestigos', 'fComentario', 'fMotivo', 'fFolio'].forEach((id) => { campo(id).value = ''; });
-            campo('fDias').value = '1';
             campo('fGoce').value = 'con';
             campo('fFecha').value = HOY_ISO;
             campo('fFecha').max = HOY_ISO;
@@ -822,9 +872,25 @@
             actualizarInfoFormulario();
         }
 
+        // Días naturales del periodo (el IMSS cuenta todos los días, también el domingo)
+        function diasIncapacidad(inicio, fin) {
+            return Math.round((fechaDesdeISO(fin) - fechaDesdeISO(inicio)) / 86400000) + 1;
+        }
+
         function actualizarInfoFormulario() {
             const emp = buscarEmpleado(campo('fEmpleado').value);
             const info = campo('formInfo');
+            if (formulario.tipo === 'incapacidad') {
+                const inicio = campo('fInicio').value;
+                const fin = campo('fFin').value;
+                const completo = inicio && fin && fin >= inicio;
+                if (completo) {
+                    const dias = diasIncapacidad(inicio, fin);
+                    info.innerHTML = `La incapacidad suma <strong>${dias} ${dias === 1 ? 'día' : 'días'}</strong> (${formatoFecha(inicio)} – ${formatoFecha(fin)}). Verifica que coincida con los días autorizados en la receta del IMSS.`;
+                }
+                info.classList.toggle('hidden', !completo);
+                return;
+            }
             if (!emp) { info.classList.add('hidden'); return; }
             info.classList.toggle('hidden', !['vacaciones', 'acta'].includes(formulario.tipo));
             if (formulario.tipo === 'vacaciones') {
@@ -857,11 +923,14 @@
                 datos = { inicio: campo('fInicio').value, fin: campo('fFin').value, goce: campo('fGoce').value === 'con', motivo: campo('fMotivo').value.trim() };
                 error = validarPeriodoAusencia(emp, datos.inicio, datos.fin) || (datos.motivo.length < 5 ? 'Escribe el motivo del permiso.' : '');
             } else if (tipo === 'incapacidad') {
-                datos = { tipo: campo('fIncTipo').value, folio: campo('fFolio').value.trim().toUpperCase(), inicio: campo('fInicio').value, dias: Number(campo('fDias').value) };
+                const fin = campo('fFin').value;
+                datos = { tipo: campo('fIncTipo').value, folio: campo('fFolio').value.trim().toUpperCase(), inicio: campo('fInicio').value };
                 if (!datos.inicio) error = 'Elige el primer día de la incapacidad.';
-                else if (!(datos.dias >= 1) || !Number.isInteger(datos.dias)) error = 'Indica los días autorizados por el IMSS.';
+                else if (!fin) error = 'Elige el último día de la incapacidad.';
+                else if (fin < datos.inicio) error = 'El último día no puede ser antes del primero.';
                 else if (datos.folio.length < 4) error = 'Captura el folio IMSS de la receta.';
-                else error = validarPeriodoAusencia(emp, datos.inicio, finIncapacidad(datos));
+                else error = validarPeriodoAusencia(emp, datos.inicio, fin);
+                if (fin >= datos.inicio) datos.dias = diasIncapacidad(datos.inicio, fin);
                 archivo = campo('fCertificado').files[0] || null;
                 if (!error && archivo) error = validarArchivoDocumento(archivo);
             } else if (tipo === 'acta') {
@@ -1042,6 +1111,10 @@
         ['fEmpleado', 'fInicio', 'fFin'].forEach((id) => campo(id).addEventListener('change', actualizarInfoFormulario));
         campo('fInicio').addEventListener('change', () => { if (!campo('fFin').value || campo('fFin').value < campo('fInicio').value) campo('fFin').value = campo('fInicio').value; actualizarInfoFormulario(); });
         campo('tipoFiltro').addEventListener('change', renderSolicitudes);
+        // El filtro de mes empieza en el mes actual (el de año lo pone llenarAnioFiltro)
+        campo('mesFiltro').value = String(HOY.getMonth() + 1).padStart(2, '0');
+        campo('mesFiltro').addEventListener('change', renderSolicitudes);
+        campo('anioFiltro').addEventListener('change', renderSolicitudes);
         campo('novedades').addEventListener('click', (evento) => {
             const enlace = evento.target.closest('[data-tab]');
             if (!enlace) return;

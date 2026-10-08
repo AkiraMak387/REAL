@@ -13,6 +13,8 @@ import 'ajustes.dart';
 import 'api.dart';
 import 'colores.dart';
 import 'pantalla_ajustes.dart';
+import 'rostros.dart';
+
 
 /// Estados de la pantalla:
 ///   esperando  → cámara activa, buscando un rostro
@@ -33,6 +35,7 @@ class _PantallaChecadorState extends State<PantallaChecador>
   Ajustes? _ajustes;
   ApiCliente? _api;
   ConfigServidor _cfg = const ConfigServidor();
+  final _rostros = Rostros(); // vectores de rostro de la bodega, leídos de Firestore
 
   // Cámara
   CameraController? _camara;
@@ -82,6 +85,7 @@ class _PantallaChecadorState extends State<PantallaChecador>
     _temporizadorManual?.cancel();
     _escaneo.dispose();
     _camara?.dispose();
+    _rostros.detener();
     super.dispose();
   }
 
@@ -102,6 +106,7 @@ class _PantallaChecadorState extends State<PantallaChecador>
 
   Future<void> _iniciar() async {
     _ajustes = await Ajustes.cargar();
+    _rostros.escuchar(_ajustes!.bodega);
     _api = ApiCliente(_ajustes!.servidor);
     await _cargarConfig();
     _reloj = Timer.periodic(const Duration(seconds: 1), (_) => _tic());
@@ -167,7 +172,7 @@ class _PantallaChecadorState extends State<PantallaChecador>
       );
       final controlador = CameraController(
         frontal,
-        ResolutionPreset.high, // 720p: suficiente para reconocer y ligero para la red
+        ResolutionPreset.medium, // 480p: suficiente para reconocer; se envía y se procesa más rápido
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -245,23 +250,64 @@ class _PantallaChecadorState extends State<PantallaChecador>
         if (_pantalla == Pantalla.procesando) _mostrar(Pantalla.esperando);
         return;
       }
-      final resp = await api.registrar(
-        imagenBase64: imagen,
-        tipo: _tipo,
-        dispositivo: ajustes.dispositivo,
-      );
-      if (mounted) _procesarRespuesta(resp);
+      final resp = await api.identificar(imagenBase64: imagen, existentes: _rostros.existentes);
+      if (mounted) _procesarRespuesta(_armarChecada(resp));
     } catch (e) {
       debugPrint('Error de conexión: $e');
       _mostrarError(
         'Sin conexión con el servidor',
-        'No se pudo registrar. Avisa al administrador si el problema continúa.',
+        'No se pudo registrar: $e',
         pastilla: 'Error de conexión',
       );
     } finally {
       avisoLento.cancel();
       _enviando = false;
     }
+  }
+
+  /// El servidor solo dice de quién es el rostro; aquí se arma la checada con los datos
+  /// del trabajador que ya se leyeron de Firestore.
+  Map<String, dynamic> _armarChecada(Map<String, dynamic> resp) {
+    if (resp['resultado'] != 'reconocido') return resp;
+    final t = _rostros.porId('${resp['id']}');
+    if (t == null) return {'resultado': 'no_reconocido'};
+
+    final ahora = DateTime.now();
+    final hoy = '${ahora.year}-${_dos(ahora.month)}-${_dos(ahora.day)}';
+    // Puede haber varias entradas y salidas el mismo día (permisos para salir y regresar).
+    // Lo que no se permite es repetir el mismo tipo dos veces seguidas.
+    final deHoy = t.checadas.where((c) => c['fecha'] == hoy).toList()
+      ..sort((a, b) => '${a['momento']}'.compareTo('${b['momento']}'));
+    if (deHoy.isNotEmpty && deHoy.last['tipo'] == _tipo) {
+      return {
+        'resultado': 'duplicado',
+        'mensaje': '${t.nombre.split(' ').first}, tu último registro de hoy ya es una $_tipo (${deHoy.last['hora']}). '
+            'Toca "${_tipo == 'entrada' ? 'Salida' : 'Entrada'}" si es lo que quieres registrar.',
+      };
+    }
+
+    // ponytail: la insignia usa el horario fijo de api.dart (no distingue la salida del sábado);
+    // el sistema web calcula retardos y horas por su cuenta con la hora guardada.
+    final h = _cfg.horario;
+    final minutos = ahora.hour * 60 + ahora.minute;
+    var estatus = 'a_tiempo';
+    var retardo = 0;
+    if (_tipo == 'entrada') {
+      retardo = minutos - Horario.aMinutos(h.entrada);
+      if (retardo > h.toleranciaMin) estatus = 'retardo';
+    } else if (minutos < Horario.aMinutos(h.salida)) {
+      estatus = 'salida_anticipada';
+    }
+    return {
+      'resultado': 'registrado',
+      'empleado': {'nombre': t.nombre, 'numero_empleado': t.id, 'departamento': t.depto},
+      'registro': {
+        'tipo': _tipo,
+        'fecha_hora': ahora.toIso8601String(),
+        'estatus': estatus,
+        'minutos_retardo': estatus == 'retardo' ? retardo : 0,
+      },
+    };
   }
 
   void _procesarRespuesta(Map<String, dynamic> resp) {
@@ -388,6 +434,7 @@ class _PantallaChecadorState extends State<PantallaChecador>
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     if (cambio == true) {
       _api = ApiCliente(ajustes.servidor);
+      _rostros.escuchar(ajustes.bodega); // por si cambió la bodega
       await _cargarConfig();
       _tic();
       _mostrar(Pantalla.esperando);

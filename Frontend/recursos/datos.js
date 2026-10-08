@@ -32,8 +32,25 @@ const HORARIO = {
     entrada: 8 * 60,
     salida: 18 * 60,        // lunes a viernes
     salidaSabado: 14 * 60,
-    comida: 60              // minutos de comida de lunes a viernes
+    // Minutos de comida que se descuentan de lunes a viernes.
+    // En 0: las horas se cuentan directo de la hora de entrada a la hora de salida.
+    // (Para volver a descontar 1 hora de comida, cambia este valor a 60)
+    comida: 0
 };
+
+// ---- Salida automática ----
+// Si el trabajador checó entrada pero se le olvidó checar salida, a las 11:50 pm
+// el sistema le pone salida a las 6:00 pm y calcula sus horas con esa hora.
+const SALIDA_AUTOMATICA = 18 * 60;          // 6:00 pm
+const HORA_CIERRE_DIA = 23 * 60 + 50;       // 11:50 pm
+
+// El día ya "cerró" si es un día pasado, o si es hoy y ya son las 11:50 pm o más
+function diaCerrado(iso) {
+    const ahora = new Date();
+    const ahoraIso = aISO(ahora);
+    if (iso < ahoraIso) return true;
+    return iso === ahoraIso && ahora.getHours() * 60 + ahora.getMinutes() >= HORA_CIERRE_DIA;
+}
 
 function salidaOficial(fecha) {
     return fecha.getDay() === 6 ? HORARIO.salidaSabado : HORARIO.salida;
@@ -81,6 +98,8 @@ const SUCURSALES = {
 // bodegas/{clave}, y adentro quedan sus trabajadores, solicitudes y reportes.
 const CLAVE_BODEGAS = 'elnevado.bodegas.v1';
 const CLAVE_SUCURSALES = 'elnevado.sucursales.v1'; // formato anterior: solo las agregadas, todas juntas
+// Claves de las sucursales borradas: sin esta lista, las de base volverían a aparecer al recargar
+const CLAVE_SUCURSALES_BORRADAS = 'elnevado.sucursales-borradas.v1';
 const BODEGAS = ALMACEN.leer(CLAVE_BODEGAS) || [];
 
 function guardarBodegas() {
@@ -91,6 +110,9 @@ function guardarBodegas() {
     const anteriores = ALMACEN.leer(CLAVE_SUCURSALES) || {};
     Object.assign(SUCURSALES, anteriores);
     BODEGAS.forEach((b) => { SUCURSALES[b.clave] = b.nombre; });
+    (ALMACEN.leer(CLAVE_SUCURSALES_BORRADAS) || []).forEach((clave) => {
+        if (!BODEGAS.some((b) => b.clave === clave)) delete SUCURSALES[clave];
+    });
     // Las bodegas de base (y las del formato anterior) que aún no tienen su registro se crean una vez
     const faltantes = Object.keys(SUCURSALES).filter((clave) => !BODEGAS.some((b) => b.clave === clave));
     if (!faltantes.length || !puede('editarSucursales')) return;
@@ -111,8 +133,52 @@ function listaSucursales() {
 // Crea la bodega con su registro propio. Sus colecciones (empleados, solicitudes, reportes)
 // se van llenando dentro de ella conforme se registran datos.
 function agregarSucursal(clave, nombre) {
-    const guardadas = { ...(ALMACEN.leer(CLAVE_SUCURSALES) || {}), [clave]: nombre };
-    if (!ALMACEN.escribir(CLAVE_SUCURSALES, guardadas)) return false;
+    BODEGAS.push({ clave, nombre, creada: new Date().toISOString(), creadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
+    if (!guardarBodegas()) {
+        BODEGAS.pop();
+        return false;
+    }
+    SUCURSALES[clave] = nombre;
+    return true;
+}
+
+// Quita la bodega y anota su clave como borrada. Regresa true solo si quedó guardado.
+// Quien la llama revisa antes que no tenga trabajadores ni usuarios (ver informacion.html).
+function borrarSucursal(clave) {
+    const borradas = ALMACEN.leer(CLAVE_SUCURSALES_BORRADAS) || [];
+    if (!ALMACEN.escribir(CLAVE_SUCURSALES_BORRADAS, [...new Set([...borradas, clave])])) return false;
+    const posicion = BODEGAS.findIndex((b) => b.clave === clave);
+    const [bodega] = posicion >= 0 ? BODEGAS.splice(posicion, 1) : [];
+    if (bodega && !guardarBodegas()) {
+        // No se pudo guardar: se regresa como estaba
+        BODEGAS.splice(posicion, 0, bodega);
+        ALMACEN.escribir(CLAVE_SUCURSALES_BORRADAS, borradas);
+        return false;
+    }
+    delete SUCURSALES[clave];
+    return true;
+}
+
+// Cambia solo el nombre de la bodega. La clave no cambia: de ella dependen los ID de sus trabajadores
+// y en qué bodega se guardan sus datos. Regresa true solo si quedó guardado.
+function renombrarSucursal(clave, nombre) {
+    let bodega = BODEGAS.find((b) => b.clave === clave);
+    const esNueva = !bodega;
+    if (esNueva) {
+        bodega = { clave, nombre: SUCURSALES[clave] };
+        BODEGAS.push(bodega);
+    }
+    const anterior = { ...bodega };
+    Object.assign(bodega, { nombre, modificada: new Date().toISOString(), modificadaPor: USUARIO_ACTUAL ? USUARIO_ACTUAL.usuario : '' });
+    if (!guardarBodegas()) {
+        // No se pudo guardar: se regresa como estaba
+        if (esNueva) BODEGAS.pop();
+        else {
+            Object.keys(bodega).forEach((campo) => delete bodega[campo]);
+            Object.assign(bodega, anterior);
+        }
+        return false;
+    }
     SUCURSALES[clave] = nombre;
     return true;
 }
@@ -248,7 +314,7 @@ function reservarIdTrabajador(suc, deptoNombre) {
 
 // Borra todo lo registrado: trabajadores, reglas y sucursales agregadas (deja la plantilla vacía)
 function restablecerDatosDemo() {
-    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES, CLAVE_BODEGAS].forEach((clave) => ALMACEN.borrar(clave));
+    [CLAVE_ALMACEN, CLAVE_CONFIGURACION, CLAVE_SUCURSALES, CLAVE_BODEGAS, CLAVE_SUCURSALES_BORRADAS].forEach((clave) => ALMACEN.borrar(clave));
     location.reload();
 }
 
@@ -435,16 +501,60 @@ function fechaLarga(fecha) {
     return `${DIAS_SEMANA[fecha.getDay()]}, ${fecha.getDate()} de ${MESES[fecha.getMonth()].toLowerCase()} de ${fecha.getFullYear()}`;
 }
 
+// ---------------------------------------------------------------------
+//  ALTA DEL SEGURO: al terminar una incapacidad (de cualquier tipo) el trabajador no puede
+//  volver a trabajar hasta presentar su alta médica del IMSS. El admin de la sucursal lo
+//  regresa y, cuando la trae, la sube en Incapacidades: inc.alta = { fecha, archivo, ... }.
+// ---------------------------------------------------------------------
+// Las incapacidades que terminaron antes de esta fecha se dan por cerradas (no se les pide alta)
+const ALTA_OBLIGATORIA_DESDE = '2026-10-08';
+
+// RH (o el Super usuario) revisa cada alta que sube el admin: inc.alta.estado es
+// 'revision' (por aprobar), 'aprobada' o 'rechazada' (devuelta con motivo: hay que subirla de nuevo).
+// Las que suben RH o el Super usuario quedan aprobadas de una vez.
+// false = con el alta subida el trabajador ya puede trabajar mientras RH la revisa.
+// true  = el trabajador sigue sin poder trabajar hasta que RH la apruebe.
+const ALTA_BLOQUEA_HASTA_APROBAR = false;
+
+// ¿La incapacidad tiene un alta que cuenta? (una devuelta no cuenta)
+function altaVigente(inc) {
+    if (!inc.alta || inc.alta.estado === 'rechazada') return false;
+    return !(ALTA_BLOQUEA_HASTA_APROBAR && inc.alta.estado === 'revision');
+}
+
+// La incapacidad ya terminada por la que el trabajador sigue sin presentar su alta, o null.
+// Solo cuenta la última: si el IMSS le dio otra incapacidad después, el alta se pide por esa.
+function incapacidadSinAlta(emp) {
+    if (emp.baja || !(emp.incapacidades || []).length) return null;
+    const ultima = emp.incapacidades.reduce((a, b) => (finIncapacidad(b) > finIncapacidad(a) ? b : a));
+    const fin = finIncapacidad(ultima);
+    return fin < HOY_ISO && fin >= ALTA_OBLIGATORIA_DESDE && !altaVigente(ultima) ? ultima : null;
+}
+
+// Altas que subió el admin y esperan la revisión de RH: [{ emp, inc }]
+function altasPorAprobar() {
+    return EMPLEADOS.flatMap((emp) => (emp.baja ? [] : emp.incapacidades || [])
+        .filter((inc) => inc.alta && inc.alta.estado === 'revision')
+        .map((inc) => ({ emp, inc })));
+}
+
+// Trabajadores (de los que ve este usuario) que no pueden trabajar porque les falta el alta
+function trabajadoresSinAlta() {
+    return EMPLEADOS.filter((emp) => incapacidadSinAlta(emp));
+}
+
 function estadoActual(emp) {
     if (emp.baja) return 'baja';
     if (incapacidadEn(emp, HOY_ISO)) return 'incapacitado';
+    if (incapacidadSinAlta(emp)) return 'sinAlta';
     if (vacacionEn(emp, HOY_ISO)) return 'vacaciones';
     return 'activo';
 }
 
 const ESTADOS = {
     activo: { texto: 'Activo', badge: 'color-asistencia' },
-    incapacitado: { texto: 'Incapacitado', badge: 'color-incapacidad' },
+    incapacitado: { texto: 'Incapacidad', badge: 'color-incapacidad' },
+    sinAlta: { texto: 'Sin alta del seguro', badge: 'color-falta' },
     vacaciones: { texto: 'Vacaciones', badge: 'color-vacaciones' },
     baja: { texto: 'Baja', badge: 'color-baja' }
 };
@@ -488,7 +598,8 @@ function horaTexto(minutos) {
 
 const aMinutosDelDia = (hora) => { const [h, m] = hora.split(':').map(Number); return h * 60 + m; };
 
-// Arma el registro de un día con checada (de la checadora o capturada a mano por RH)
+// Arma el registro de un día con checada (de la checadora o capturada a mano por RH).
+// Las horas se cuentan de la hora de entrada a la hora de salida (menos la comida, que hoy está en 0).
 function registroChecada(fecha, entrada, salida, extra = {}) {
     const comida = fecha.getDay() === 6 ? 0 : HORARIO.comida;
     const horas = Math.max(0, Math.round(((salida - entrada - comida) / 60) * 100) / 100);
@@ -546,7 +657,7 @@ function registroDia(emp, fecha) {
     const permiso = permisoEn(emp, iso);
     if (permiso) return { estado: 'permiso', horas: 0, extras: 0, permiso };
 
-    // Asistencia capturada por RH cuando falló la checadora (o checada corregida por el Super usuario)
+    // Asistencia capturada por RH (entrada y salida a mano): sus horas se calculan siempre
     const manual = asistenciaManualEn(emp, iso);
     if (manual) return conRetardoJustificado(emp, iso, registroChecada(fecha, aMinutosDelDia(manual.entrada), aMinutosDelDia(manual.salida), { manual }));
 
@@ -556,13 +667,31 @@ function registroDia(emp, fecha) {
     const checada = checadaDelDia(emp, iso);
     if (checada && checada.entrada) {
         const entrada = aMinutosDelDia(checada.entrada);
+
+        // 1) Checó su salida en el escáner: se usan sus horas reales
         if (checada.salida) {
             return conRetardoJustificado(emp, iso, registroChecada(fecha, entrada, Math.max(entrada, aMinutosDelDia(checada.salida)), { checadora: true }));
         }
-        // Hoy todavía puede checar su salida: se muestra "en turno" con la salida oficial
-        if (iso === HOY_ISO) return conRetardoJustificado(emp, iso, registroChecada(fecha, entrada, Math.max(entrada, salidaOficial(fecha)), { checadora: true, sinSalida: true }));
-        // Un día pasado sin salida: cuenta que asistió, pero sin horas hasta que RH capture la salida
-        return conRetardoJustificado(emp, iso, { ...registroChecada(fecha, entrada, entrada, { checadora: true, sinSalida: true }), salida: '—', horas: 0, extras: 0 });
+
+        // 2) Todavía no checa salida y aún no son las 11:50 pm: está "en turno".
+        //    La salida queda vacía (se muestra --) y NO se cuentan horas.
+        if (!diaCerrado(iso)) {
+            return conRetardoJustificado(emp, iso, {
+                ...registroChecada(fecha, entrada, entrada, { checadora: true, sinSalida: true, enTurno: true }),
+                salida: '',
+                horas: 0,
+                extras: 0
+            });
+        }
+
+        // 3) Ya son las 11:50 pm (o es un día pasado) y nunca checó salida:
+        //    se le pone salida automática a las 6:00 pm y se calculan sus horas.
+        //    Una salida automática nunca genera horas extra.
+        const salidaAutomatica = Math.max(entrada, SALIDA_AUTOMATICA);
+        return conRetardoJustificado(emp, iso, {
+            ...registroChecada(fecha, entrada, salidaAutomatica, { checadora: true, sinSalida: true, salidaAutomatica: true }),
+            extras: 0
+        });
     }
 
     // Sin checada ni captura de RH no se inventa asistencia: el día queda "sin registro".
@@ -933,15 +1062,18 @@ const DOCUMENTOS_BASICOS = [
     { clave: 'nss', nombre: 'Número de Seguro Social (NSS)', obligatorio: true },
     { clave: 'domicilio', nombre: 'Comprobante de domicilio (máx. 3 meses)', obligatorio: true },
     { clave: 'contrato', nombre: 'Contrato firmado', obligatorio: true },
+    { clave: 'antecedentes', nombre: 'Antecedentes no penales', obligatorio: true },
     { clave: 'estudios', nombre: 'Comprobante de estudios', obligatorio: false },
     { clave: 'solicitud', nombre: 'Solicitud de empleo', obligatorio: false }
 ];
 
+// El admin de sucursal sube el archivo ("entregado"); RH lo aprueba ("revisado") o lo
+// devuelve con un motivo ("rechazado") para que el admin lo vuelva a subir.
 const ESTADOS_DOCUMENTO = {
     falta: { texto: 'Falta', clase: 'muted' },
-    entregado: { texto: 'Entregado', clase: 'warn' },
-    revisado: { texto: 'Revisado', clase: 'ok' },
-    rechazado: { texto: 'Rechazado', clase: 'danger' }
+    entregado: { texto: 'Por aprobar', clase: 'warn' },
+    revisado: { texto: 'Aprobado', clase: 'ok' },
+    rechazado: { texto: 'Devuelto', clase: 'danger' }
 };
 
 function estadoDocumento(emp, clave) {

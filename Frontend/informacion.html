@@ -71,7 +71,7 @@
             <div class="configuration-header">
                 <div>
                     <h1>Información de la Empresa</h1>
-                    <p>Datos generales, resumen de la semana y sucursales de Distribuidora El Nevado.</p>
+                    <p>Datos generales, políticas vigentes y sucursales de Distribuidora El Nevado.</p>
                 </div>
             </div>
 
@@ -114,18 +114,7 @@
                         </div>
                     </div>
 
-                    <div class="config-card">
-                        <div class="config-card__title">
-                            <span class="config-icon">📊</span>
-                            <div>
-                                <h3>Resumen de la Semana</h3>
-                                <p id="semanaEtiqueta"></p>
-                            </div>
-                        </div>
-                        <div class="stat-grid stat-grid--compact" id="semanaStats"></div>
-                    </div>
-
-                    <div class="config-card">
+                    <div class="config-card" id="politicasCard">
                         <div class="config-card__title">
                             <span class="config-icon">📋</span>
                             <div>
@@ -137,7 +126,7 @@
                     </div>
                 </div>
 
-                <div class="config-column">
+                <div class="config-column" id="columnaSucursales">
                     <div class="config-card">
                         <div class="config-card__title">
                             <span class="config-icon">🏬</span>
@@ -146,26 +135,6 @@
                                 <p id="sucursalesConteo"></p>
                             </div>
                             <button class="btn btn--primary btn--small config-card__action" type="button" id="addBranchBtn">+ Agregar sucursal</button>
-                        </div>
-
-                        <!-- Formulario para agregar una sucursal o cambiarle el nombre (solo Super usuario y RH) -->
-                        <div class="branch-form hidden" id="branchForm">
-                            <div class="config-form-grid">
-                                <div class="form-field">
-                                    <label for="branchKey">Clave</label>
-                                    <input id="branchKey" type="text" maxlength="2" inputmode="numeric" placeholder="Ej. 14">
-                                    <small class="field-hint" id="branchKeyHint">Dos dígitos. Es el inicio del ID de sus trabajadores.</small>
-                                </div>
-                                <div class="form-field">
-                                    <label for="branchName">Nombre de la sucursal</label>
-                                    <input id="branchName" type="text" placeholder="Ej. Ixtlahuaca" autocomplete="off">
-                                </div>
-                            </div>
-                            <p class="form-error hidden" id="branchError" role="alert"></p>
-                            <div class="branch-form__actions">
-                                <button class="btn btn--ghost" type="button" id="cancelBranchBtn">Cancelar</button>
-                                <button class="btn btn--primary" type="button" id="saveBranchBtn">Guardar sucursal</button>
-                            </div>
                         </div>
 
                         <table class="branch-table">
@@ -185,6 +154,51 @@
         </section>
     </main>
 
+    <!-- Ventana para agregar una sucursal, cambiarle el nombre o borrarla. Cada parte lleva en
+         data-vista en qué paso se muestra: formulario → confirmar → progreso -->
+    <div id="branchModal" class="modal-overlay hidden" aria-hidden="true">
+        <div class="small-modal" role="dialog" aria-modal="true" aria-labelledby="branchModalTitle">
+            <div class="small-modal__body">
+                <div id="branchForm" data-vista="formulario">
+                    <h3 class="small-modal__title" id="branchModalTitle">Editar sucursal</h3>
+                    <div class="config-form-grid">
+                        <div class="form-field">
+                            <label for="branchKey">Clave</label>
+                            <input id="branchKey" type="text" maxlength="2" inputmode="numeric" placeholder="Ej. 14">
+                            <small class="field-hint" id="branchKeyHint">Dos dígitos. Es el inicio del ID de sus trabajadores.</small>
+                        </div>
+                        <div class="form-field">
+                            <label for="branchName">Nombre de la sucursal</label>
+                            <input id="branchName" type="text" placeholder="Ej. Ixtlahuaca" autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="form-error hidden" id="branchError" role="alert"></p>
+                    <small class="field-hint hidden" id="deleteBranchHint"></small>
+                </div>
+
+                <div class="confirm-block" data-vista="confirmar">
+                    <div class="confirm-icon confirm-icon--danger">?</div>
+                    <h3>¿Estás seguro de borrar la sucursal?</h3>
+                    <p id="deleteConfirmText"></p>
+                </div>
+
+                <div data-vista="progreso">
+                    <h3 class="small-modal__title" id="deleteProgressTitle">Borrando sucursal…</h3>
+                    <ul id="deleteSteps" class="save-steps"></ul>
+                    <p class="form-error hidden" id="deleteError" role="alert"></p>
+                </div>
+            </div>
+            <div class="small-modal__footer">
+                <button class="btn btn--peligro small-modal__left" type="button" id="deleteBranchBtn" data-vista="formulario">🗑️ Borrar sucursal</button>
+                <button class="btn btn--secondary" type="button" id="cancelBranchBtn" data-vista="formulario">Cancelar</button>
+                <button class="btn btn--primary" type="button" id="saveBranchBtn" data-vista="formulario">Guardar sucursal</button>
+                <button class="btn btn--secondary" type="button" id="deleteNoBtn" data-vista="confirmar">No</button>
+                <button class="btn btn--peligro" type="button" id="deleteYesBtn" data-vista="confirmar">Sí, borrar</button>
+                <button class="btn btn--primary hidden" type="button" id="deleteDoneBtn">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script src="recursos/datos.js"></script>
@@ -194,6 +208,8 @@
         const PUEDE_EDITAR_SUCURSALES = puede('editarSucursales');
         const PUEDE_RENOMBRAR_SUCURSALES = puede('renombrarSucursales'); // solo el Super usuario
         let claveEditando = null; // null = sucursal nueva; si no, la clave de la que se le cambia el nombre
+        const branchModal = campo('branchModal');
+        let borrando = false; // mientras se borra una sucursal, la ventana no se puede cerrar
 
         function mostrarToast(texto) {
             const toast = campo('toast');
@@ -216,36 +232,6 @@
                 tarjeta(listaSucursales().length, 'Sucursales') +
                 tarjeta(DEPARTAMENTOS.length, 'Departamentos') +
                 tarjeta(puestos.size, 'Puestos');
-        }
-
-        // Todo en números y por semana de nómina (sábado a viernes)
-        function renderSemana() {
-            const inicio = inicioSemanaNomina(HOY);
-            const fin = sumarDias(inicio, 6);
-            const [ini, fi] = [aISO(inicio), aISO(fin)];
-            const traslapa = (a, b) => a <= fi && b >= ini;
-            const lista = activos();
-
-            let retardos = 0;
-            let faltas = 0;
-            let horas = 0;
-            lista.forEach((emp) => {
-                const r = resumenRango(emp, inicio, fin);
-                retardos += r.retardos;
-                faltas += r.faltas;
-                horas += r.horas;
-            });
-
-            campo('semanaEtiqueta').textContent = `Semana de nómina: ${etiquetaSemana({ inicio, fin })}`;
-            campo('semanaStats').innerHTML =
-                tarjeta(EMPLEADOS.filter((e) => enRango(e.ingreso, ini, fi)).length, 'Nuevos ingresos') +
-                tarjeta(EMPLEADOS.filter((e) => e.baja && enRango(e.baja.fecha, ini, fi)).length, 'Bajas') +
-                tarjeta(lista.filter((e) => (e.vacaciones || []).some((v) => traslapa(v.inicio, v.fin))).length, 'En vacaciones') +
-                tarjeta(lista.filter((e) => (e.incapacidades || []).some((i) => traslapa(i.inicio, finIncapacidad(i)))).length, 'Con incapacidad') +
-                tarjeta(lista.filter((e) => (e.permisos || []).some((p) => traslapa(p.inicio, p.fin))).length, 'Con permiso') +
-                tarjeta(retardos, 'Retardos', 'stat-card--warning') +
-                tarjeta(faltas, 'Faltas', 'stat-card--danger') +
-                tarjeta(Math.round(horas).toLocaleString('es-MX'), 'Horas trabajadas');
         }
 
         function renderEmpresa() {
@@ -284,7 +270,7 @@
             return mayor < 99 ? String(mayor + 1).padStart(2, '0') : '';
         }
 
-        // Sin clave abre el alta de una sucursal; con clave, el cambio de nombre de esa sucursal
+        // Sin clave abre el alta de una sucursal; con clave, la ventana para cambiarle el nombre o borrarla
         function abrirFormulario(clave = null) {
             claveEditando = clave;
             campo('branchKey').value = clave || siguienteClaveLibre();
@@ -295,19 +281,102 @@
                 : 'Dos dígitos. Es el inicio del ID de sus trabajadores.';
             campo('branchName').value = clave ? SUCURSALES[clave] : '';
             campo('saveBranchBtn').textContent = clave ? 'Guardar cambios' : 'Guardar sucursal';
+            campo('branchModalTitle').textContent = clave ? `Editar sucursal ${clave}` : 'Agregar sucursal';
             campo('branchError').classList.add('hidden');
             document.querySelectorAll('#branchForm .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
-            campo('branchForm').classList.remove('hidden');
-            campo('addBranchBtn').classList.add('hidden');
-            campo('branchForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Si no se puede borrar, el botón queda apagado y se explica por qué
+            const motivo = clave ? motivoNoBorrar(clave) : '';
+            campo('deleteBranchBtn').disabled = Boolean(motivo);
+            campo('deleteBranchHint').textContent = motivo;
+            campo('deleteBranchHint').classList.toggle('hidden', !motivo);
+            mostrarVista('formulario');
+            branchModal.classList.remove('hidden');
+            branchModal.setAttribute('aria-hidden', 'false');
             campo('branchName').focus();
             if (clave) campo('branchName').select();
         }
 
         function cerrarFormulario() {
-            campo('branchForm').classList.add('hidden');
-            campo('addBranchBtn').classList.toggle('hidden', !PUEDE_EDITAR_SUCURSALES);
+            if (borrando) return;
+            branchModal.classList.add('hidden');
+            branchModal.setAttribute('aria-hidden', 'true');
             claveEditando = null;
+        }
+
+        // Muestra solo las partes de la ventana que son de ese paso
+        function mostrarVista(vista) {
+            branchModal.querySelectorAll('[data-vista]').forEach((el) => el.classList.toggle('hidden', el.dataset.vista !== vista));
+            campo('deleteDoneBtn').classList.add('hidden');
+            if (vista === 'formulario') campo('deleteBranchBtn').classList.toggle('hidden', !claveEditando);
+        }
+
+        // ---------- Borrar sucursal ----------
+        // Por qué no se puede borrar esa sucursal ('' = sí se puede). De la clave dependen los ID
+        // de sus trabajadores y dónde se guardan sus datos, así que solo se borra si está vacía.
+        function motivoNoBorrar(clave) {
+            if (clave === EMPRESA.sucursalPrincipal) return 'La matriz no se puede borrar.';
+            const trabajadores = TODOS_EMPLEADOS.filter((e) => e.suc === clave).length;
+            if (trabajadores) return `No se puede borrar: tiene ${trabajadores} ${trabajadores === 1 ? 'trabajador registrado' : 'trabajadores registrados'} (activos o dados de baja).`;
+            const usuarios = listaUsuarios().filter((u) => u.sucursal === clave).length;
+            if (usuarios) return `No se puede borrar: tiene ${usuarios} ${usuarios === 1 ? 'usuario asignado' : 'usuarios asignados'} en Usuarios y sistema.`;
+            return '';
+        }
+
+        function pedirBorrar() {
+            if (!PUEDE_RENOMBRAR_SUCURSALES || !claveEditando || motivoNoBorrar(claveEditando)) return;
+            campo('deleteConfirmText').innerHTML = `Se borrará <strong>${escaparHtml(nombreSucursal(claveEditando))}</strong>. Dejará de aparecer en los filtros y en el alta de trabajadores.`;
+            mostrarVista('confirmar');
+        }
+
+        const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+
+        // Borra paso por paso para que se vea el avance; si un paso falla, se detiene ahí
+        async function borrarSucursalElegida() {
+            const clave = claveEditando;
+            const nombre = SUCURSALES[clave];
+            if (!PUEDE_RENOMBRAR_SUCURSALES || !clave || borrando) return;
+            const pasos = [
+                { texto: 'Revisando que no tenga trabajadores ni usuarios', accion: () => {
+                    const motivo = motivoNoBorrar(clave);
+                    if (motivo) throw new Error(motivo);
+                } },
+                { texto: 'Quitando la sucursal de la base de datos', accion: () => {
+                    if (!borrarSucursal(clave)) throw new Error('No se pudo borrar. Revisa la conexión con la base de datos e inténtalo de nuevo.');
+                } },
+                { texto: 'Actualizando filtros y catálogos', accion: () => {
+                    registrarBitacora('Sucursal borrada', `${clave} - ${nombre}`);
+                    renderTodo();
+                } }
+            ];
+
+            borrando = true;
+            mostrarVista('progreso');
+            campo('deleteProgressTitle').textContent = 'Borrando sucursal…';
+            campo('deleteError').classList.add('hidden');
+            campo('deleteSteps').innerHTML = pasos.map((p) => `<li><span class="save-step__icon"></span>${p.texto}</li>`).join('');
+            const elementos = [...campo('deleteSteps').children];
+            let error = null;
+
+            for (let i = 0; i < pasos.length && !error; i++) {
+                elementos[i].className = 'is-running';
+                await esperar(800);
+                try {
+                    pasos[i].accion();
+                    elementos[i].className = 'is-done';
+                    elementos[i].querySelector('.save-step__icon').textContent = '✓';
+                } catch (fallo) {
+                    error = fallo;
+                    elementos[i].className = 'is-error';
+                    elementos[i].querySelector('.save-step__icon').textContent = '✕';
+                }
+            }
+
+            borrando = false;
+            campo('deleteProgressTitle').textContent = error ? 'No se pudo borrar' : `✅ Sucursal ${clave} - ${nombre} borrada`;
+            campo('deleteError').textContent = error ? error.message : '';
+            campo('deleteError').classList.toggle('hidden', !error);
+            campo('deleteDoneBtn').textContent = error ? 'Cerrar' : 'Aceptar';
+            campo('deleteDoneBtn').classList.remove('hidden');
         }
 
         function errorSucursal(texto, invalido) {
@@ -344,9 +413,11 @@
                 : `✅ Sucursal ${clave} - ${nombre} agregada. Ya aparece en los filtros y en el alta de trabajadores.`);
         }
 
+        // El admin solo ve su sucursal (una fila): sus Políticas Vigentes van debajo de Sucursales
+        if (USUARIO_ACTUAL.rol === 'admin') campo('columnaSucursales').appendChild(campo('politicasCard'));
+
         function renderTodo() {
             renderPlantilla();
-            renderSemana();
             renderEmpresa();
             renderSucursales();
         }
@@ -362,6 +433,14 @@
         });
         campo('cancelBranchBtn').addEventListener('click', cerrarFormulario);
         campo('saveBranchBtn').addEventListener('click', guardarSucursal);
+        campo('deleteBranchBtn').addEventListener('click', pedirBorrar);
+        campo('deleteNoBtn').addEventListener('click', () => mostrarVista('formulario'));
+        campo('deleteYesBtn').addEventListener('click', borrarSucursalElegida);
+        campo('deleteDoneBtn').addEventListener('click', cerrarFormulario);
+        branchModal.addEventListener('click', (e) => { if (e.target === branchModal) cerrarFormulario(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !branchModal.classList.contains('hidden')) cerrarFormulario();
+        });
         campo('branchKey').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); });
         campo('branchName').addEventListener('keydown', (e) => { if (e.key === 'Enter') guardarSucursal(); });
         renderTodo();
