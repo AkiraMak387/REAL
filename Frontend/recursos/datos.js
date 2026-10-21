@@ -17,7 +17,9 @@ const CONFIGURACION_INICIAL = {
     bonoPuntualidad: 200,           // por semana sin retardos ni faltas; solo el Super usuario lo otorga
     // Alertas (0 = sin aviso)
     avisoVacacionesDias: 14,        // días de anticipación para avisar salidas y regresos de vacaciones
-    avisoIncapacidadDias: 3         // días de anticipación para avisar el fin de una incapacidad
+    avisoIncapacidadDias: 3,        // días de anticipación para avisar el fin de una incapacidad
+    // Solicitudes
+    anticipacionVacacionesDias: 30  // días de anticipación con que el admin de sucursal debe pedir las vacaciones
 };
 
 // ALMACEN (sesion.js) guarda en Firebase si está configurado; si no, en este navegador
@@ -63,8 +65,10 @@ function horasExtra(fecha, minutosSalida) {
     return despues > 0 ? Math.floor((despues - 1) / 60) : 0;
 }
 
-// Datos generales de la empresa (se muestran en Información)
-const EMPRESA = {
+// Datos generales de la empresa (se muestran en Información y en los recibos y actas que se imprimen)
+const CLAVE_EMPRESA = 'elnevado.empresa.v1';
+
+const EMPRESA_INICIAL = {
     razonSocial: 'Distribuidora El Nevado S.A. de C.V.',
     rfc: 'DENE-140305-AB',
     domicilioFiscal: 'Av. Industrial San Jerónimo #412, Toluca, Edo. Méx.',
@@ -72,6 +76,14 @@ const EMPRESA = {
     horario: 'Lunes a viernes 08:00 – 18:00 · Sábado 08:00 – 14:00',
     periodoNomina: 'Semanal (sábado a viernes)'
 };
+
+// Razón social, RFC y domicilio fiscal los puede cambiar el Super usuario en Información: lo guardado
+// sustituye a los valores iniciales y lo ven todos los usuarios al cargar la página
+const EMPRESA = { ...EMPRESA_INICIAL, ...(ALMACEN.leer(CLAVE_EMPRESA) || {}) };
+
+function guardarEmpresa(datos) {
+    return ALMACEN.escribir(CLAVE_EMPRESA, datos);
+}
 
 // =====================================================================
 //  CATÁLOGOS
@@ -977,6 +989,28 @@ function periodosOcupadosDe(emp) {
     ];
 }
 
+// Dar de baja unas vacaciones o una incapacidad ("lista" = 'vacaciones' o 'incapacidades').
+// El registro sale de la lista vigente, así que deja de contar en asistencia, nómina, días disponibles
+// y validaciones, y se conserva en "<lista>Anuladas" con quién lo dio de baja, cuándo y por qué.
+// Devuelve true si quedó guardado.
+function anularAusencia(emp, lista, registro, motivo) {
+    const posicion = (emp[lista] || []).indexOf(registro);
+    if (posicion < 0) return false;
+    const anuladas = `${lista}Anuladas`;
+    emp[lista].splice(posicion, 1);
+    (emp[anuladas] = emp[anuladas] || []).push({
+        ...registro,
+        anulada: { por: USUARIO_ACTUAL.usuario, fecha: new Date().toISOString(), motivo }
+    });
+    if (guardarCambios() === false) {
+        // No se guardó: todo regresa a como estaba
+        emp[anuladas].pop();
+        emp[lista].splice(posicion, 0, registro);
+        return false;
+    }
+    return true;
+}
+
 // Devuelve el error de un periodo de vacaciones o '' si es válido
 function validarPeriodoVacaciones(emp, inicio, fin, excluirId) {
     if (!inicio || !fin) return 'Elige el primer y el último día.';
@@ -1055,16 +1089,18 @@ function nivelFaltas(cantidad) {
 
 // ---------- Documentos del expediente ----------
 const DOCUMENTOS_BASICOS = [
-    { clave: 'ine', nombre: 'INE', obligatorio: true },
     { clave: 'acta', nombre: 'Acta de nacimiento', obligatorio: true },
     { clave: 'curp', nombre: 'CURP', obligatorio: true },
+    { clave: 'ine', nombre: 'INE', obligatorio: true },
     { clave: 'rfc', nombre: 'Constancia de situación fiscal (RFC)', obligatorio: true },
     { clave: 'nss', nombre: 'Número de Seguro Social (NSS)', obligatorio: true },
     { clave: 'domicilio', nombre: 'Comprobante de domicilio (máx. 3 meses)', obligatorio: true },
-    { clave: 'contrato', nombre: 'Contrato firmado', obligatorio: true },
-    { clave: 'antecedentes', nombre: 'Antecedentes no penales', obligatorio: true },
+    { clave: 'croquis', nombre: 'Croquis de ubicación del domicilio (vista satelital)', obligatorio: true },
+    { clave: 'ineContacto', nombre: 'INE del contacto de emergencia', obligatorio: true },
     { clave: 'estudios', nombre: 'Comprobante de estudios', obligatorio: false },
-    { clave: 'solicitud', nombre: 'Solicitud de empleo', obligatorio: false }
+    { clave: 'antecedentes', nombre: 'Antecedentes no penales', obligatorio: true },
+    { clave: 'solicitud', nombre: 'Solicitud de empleo', obligatorio: false },
+    { clave: 'contrato', nombre: 'Contrato firmado', obligatorio: true }
 ];
 
 // El admin de sucursal sube el archivo ("entregado"); RH lo aprueba ("revisado") o lo

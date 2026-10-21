@@ -232,16 +232,20 @@
         </div>
     </div>
 
-    <!-- Confirmación para borrar unas vacaciones -->
+    <!-- Confirmación para dar de baja unas vacaciones (solo Super usuario): pide el motivo -->
     <div id="borrarVacModal" role="alertdialog" aria-modal="true" aria-labelledby="borrarVacTitulo"
         style="display:none;position:fixed;inset:0;z-index:400;place-items:center;padding:20px;background:rgba(15,23,42,.55)">
         <div style="width:min(440px,100%);background:#fff;border-radius:16px;padding:24px;box-shadow:0 24px 60px rgba(15,23,42,.3);text-align:center">
-            <div style="width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:grid;place-items:center;font-size:24px">🗑</div>
-            <h3 id="borrarVacTitulo" style="margin:0 0 8px;font-size:1.2rem;color:#0f172a">¿Estás seguro que deseas borrarlo permanentemente?</h3>
+            <div style="width:52px;height:52px;margin:0 auto 12px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:grid;place-items:center;font-size:24px">⛔</div>
+            <h3 id="borrarVacTitulo" style="margin:0 0 8px;font-size:1.2rem;color:#0f172a">¿Dar de baja estas vacaciones?</h3>
             <p id="borrarVacTexto" style="margin:0;font-size:.92rem;color:#475569"></p>
+            <label for="borrarVacMotivo" style="display:block;margin:16px 0 6px;font-size:.85rem;font-weight:600;color:#334155;text-align:left">Motivo *</label>
+            <input id="borrarVacMotivo" type="text" maxlength="200" placeholder="Ej. El trabajador ya no las va a tomar" autocomplete="off"
+                style="width:100%;min-height:40px;padding:0 12px;border:1px solid #dfe7ef;border-radius:10px;font:inherit">
+            <small id="borrarVacError" style="display:block;min-height:18px;margin-top:6px;color:#b91c1c;text-align:left"></small>
             <div style="display:flex;justify-content:center;gap:10px;margin-top:20px">
                 <button type="button" id="borrarVacNo" style="padding:10px 18px;border:1px solid #dfe7ef;border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer">No, cancelar</button>
-                <button type="button" id="borrarVacSi" style="padding:10px 18px;border:0;border-radius:10px;background:#b91c1c;color:#fff;font:inherit;font-weight:600;cursor:pointer">Sí, borrar</button>
+                <button type="button" id="borrarVacSi" style="padding:10px 18px;border:0;border-radius:10px;background:#b91c1c;color:#fff;font:inherit;font-weight:600;cursor:pointer">Sí, dar de baja</button>
             </div>
         </div>
     </div>
@@ -543,22 +547,32 @@
 
             empExpediente = emp;
             const puedeEditar = puede('registrarIncidencias') && !emp.baja;
-            // Se guarda la posición original de cada periodo para poder editarlo o borrarlo
+            const puedeAnular = puede('anularAusencias') && !emp.baja; // dar de baja: solo el Super usuario
+            // Se guarda la posición original de cada periodo para poder editarlo o darlo de baja
             const vacaciones = (emp.vacaciones || []).map((v, indice) => ({ ...v, indice })).sort((a, b) => b.inicio.localeCompare(a.inicio));
             const estado = (v) => v.fin < HOY_ISO
                 ? '<span class="exp-tag exp-tag--muted">Disfrutadas</span>'
                 : v.inicio <= HOY_ISO ? '<span class="exp-tag exp-tag--ok">En curso</span>' : '<span class="exp-tag exp-tag--info">Programadas</span>';
-            document.getElementById('expedienteTabla').innerHTML = vacaciones.length
+            // Las dadas de baja ya no cuentan, pero se conservan al final del historial con su motivo
+            const anuladas = (emp.vacacionesAnuladas || []).slice().sort((a, b) => b.inicio.localeCompare(a.inicio));
+            const filasAnuladas = anuladas.map((v) => `<tr style="color:#94a3b8">
+                    <td><s>${periodoTexto(v.inicio, v.fin)}</s></td>
+                    <td><s>${textoDias(diasHabiles(v.inicio, v.fin))}</s></td>
+                    <td>—</td>
+                    <td><span class="exp-tag exp-tag--muted">Dada de baja</span></td>
+                    <td style="font-size:12px;white-space:normal">${escaparHtml(v.anulada.motivo)}<br><small>${escaparHtml(v.anulada.por)} · ${formatoFecha(v.anulada.fecha.slice(0, 10))}</small></td>
+                </tr>`).join('');
+            document.getElementById('expedienteTabla').innerHTML = vacaciones.length || anuladas.length
                 ? vacaciones.map((v) => `<tr>
                     <td>${periodoTexto(v.inicio, v.fin)}</td>
                     <td>${textoDias(diasHabiles(v.inicio, v.fin))}</td>
                     <td>${formatoFecha(fechaRegreso(v.fin))}</td>
                     <td>${estado(v)}</td>
                     <td style="white-space:nowrap">${puedeEditar
-                        ? `<button type="button" style="${ESTILO_BOTON_VAC}" data-vac-editar="${v.indice}">✏️ Editar</button>
-                           <button type="button" style="${ESTILO_BOTON_VAC};color:#b91c1c;border-color:#fecaca" data-vac-borrar="${v.indice}">🗑 Borrar</button>`
+                        ? `<button type="button" style="${ESTILO_BOTON_VAC}" data-vac-editar="${v.indice}">✏️ Editar</button>`
+                            + (puedeAnular ? ` <button type="button" style="${ESTILO_BOTON_VAC};color:#b91c1c;border-color:#fecaca" data-vac-borrar="${v.indice}">⛔ Dar de baja</button>` : '')
                         : '—'}</td>
-                </tr>`).join('')
+                </tr>`).join('') + filasAnuladas
                 : '<tr><td colspan="5" class="expediente-vacio">Sin vacaciones registradas.</td></tr>';
 
             elementoAnterior = document.activeElement;
@@ -589,7 +603,7 @@
         });
 
         // =====================================================================
-        //  EDITAR Y BORRAR VACACIONES (solo RH y Super usuario)
+        //  EDITAR VACACIONES (RH y Super usuario) Y DARLAS DE BAJA (solo Super usuario)
         // =====================================================================
         const ESTILO_BOTON_VAC = 'padding:4px 10px;margin:2px;border:1px solid #dfe7ef;border-radius:8px;background:#fff;font:inherit;font-size:12px;cursor:pointer';
         let empExpediente = null;
@@ -663,7 +677,7 @@
             showToast('Vacaciones actualizadas.');
         }
 
-        // Ventana de confirmación antes de borrar
+        // Ventana de confirmación antes de dar de baja: pide el motivo
         const borrarVacModal = document.getElementById('borrarVacModal');
         let vacacionPorBorrar = null;
 
@@ -671,9 +685,11 @@
             const v = empExpediente.vacaciones[indice];
             vacacionPorBorrar = indice;
             document.getElementById('borrarVacTexto').textContent =
-                `Se borrarán las vacaciones de ${empExpediente.nombre} del ${periodoTexto(v.inicio, v.fin)} (${textoDias(diasHabiles(v.inicio, v.fin))}). Los días regresan a sus disponibles y esto no se puede deshacer.`;
+                `Se darán de baja las vacaciones de ${empExpediente.nombre} del ${periodoTexto(v.inicio, v.fin)} (${textoDias(diasHabiles(v.inicio, v.fin))}). Los días regresan a sus disponibles y el registro se conserva en su historial como "Dada de baja".`;
+            document.getElementById('borrarVacMotivo').value = '';
+            document.getElementById('borrarVacError').textContent = '';
             borrarVacModal.style.display = 'grid';
-            document.getElementById('borrarVacNo').focus();
+            document.getElementById('borrarVacMotivo').focus();
         }
 
         function cerrarConfirmacionBorrar() {
@@ -684,23 +700,28 @@
         document.getElementById('borrarVacNo').addEventListener('click', cerrarConfirmacionBorrar);
         document.getElementById('borrarVacSi').addEventListener('click', () => {
             const indice = vacacionPorBorrar;
+            const motivo = document.getElementById('borrarVacMotivo').value.trim();
+            if (motivo.length < 5) {
+                document.getElementById('borrarVacError').textContent = 'Escribe por qué se dan de baja.';
+                return;
+            }
             cerrarConfirmacionBorrar();
-            if (indice !== null) borrarVacacion(indice);
+            if (indice !== null) darDeBajaVacacion(indice, motivo);
         });
         borrarVacModal.addEventListener('click', (event) => { if (event.target === borrarVacModal) cerrarConfirmacionBorrar(); });
 
-        function borrarVacacion(indice) {
+        // Las vacaciones dejan de contar (los días regresan) pero se conservan en su historial
+        function darDeBajaVacacion(indice, motivo) {
             const emp = empExpediente;
             const v = emp.vacaciones[indice];
-            emp.vacaciones.splice(indice, 1);
-            if (guardarCambios() === false) {
-                emp.vacaciones.splice(indice, 0, v); // no se pudo guardar: se regresa como estaba
-                showToast('No se pudo borrar. Revisa la conexión e intenta de nuevo.');
+            if (!v || !puede('anularAusencias')) return;
+            if (!anularAusencia(emp, 'vacaciones', v, motivo)) {
+                showToast('No se pudo dar de baja. Revisa la conexión e intenta de nuevo.');
                 return;
             }
-            registrarBitacora('Vacaciones borradas', `${emp.id} · ${emp.nombre} · ${periodoTexto(v.inicio, v.fin)}`);
+            registrarBitacora('Vacaciones dadas de baja', `${emp.id} · ${emp.nombre} · ${periodoTexto(v.inicio, v.fin)} · ${motivo}`);
             refrescarExpediente();
-            showToast('Vacaciones borradas.');
+            showToast('Vacaciones dadas de baja.');
         }
 
         document.getElementById('expedienteTabla').addEventListener('click', (event) => {
@@ -709,7 +730,7 @@
             const fila = boton.closest('tr');
             const { vacEditar, vacBorrar, vacGuardar } = boton.dataset;
             if (vacEditar !== undefined) editarVacacion(fila, Number(vacEditar));
-            if (vacBorrar !== undefined) pedirConfirmacionBorrar(Number(vacBorrar));
+            if (vacBorrar !== undefined && puede('anularAusencias')) pedirConfirmacionBorrar(Number(vacBorrar));
             if (vacGuardar !== undefined) guardarVacacion(fila, Number(vacGuardar));
             if (boton.hasAttribute('data-vac-cancelar')) refrescarExpediente();
         });

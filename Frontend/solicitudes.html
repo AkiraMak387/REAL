@@ -271,6 +271,18 @@
         const buscarEmpleado = (id) => TODOS_EMPLEADOS.find((e) => e.id === id);
         // RH y Super usuario aprueban; por eso lo que registran aquí se aplica directo, sin pasar por revisión
         const ES_APROBADOR = puede('aprobarSolicitudes');
+
+        // Vacaciones: el admin de sucursal las pide con anticipación (Configuración: anticipacionVacacionesDias).
+        // RH y el Super usuario no tienen ese límite: las registran y las aprueban cuando sea.
+        const DIAS_ANTICIPACION = ES_APROBADOR ? 0 : Number(CONFIGURACION.anticipacionVacacionesDias) || 0;
+        const PRIMER_DIA_VACACIONES = aISO(sumarDias(HOY, DIAS_ANTICIPACION));
+
+        // Devuelve el error si el primer día queda antes de lo permitido, o ''
+        function errorAnticipacion(inicio) {
+            return DIAS_ANTICIPACION && inicio && inicio < PRIMER_DIA_VACACIONES
+                ? `Las vacaciones se piden con al menos ${DIAS_ANTICIPACION} días de anticipación; la primera fecha disponible es el ${formatoFecha(PRIMER_DIA_VACACIONES)}.`
+                : '';
+        }
         let pestana = 'atender'; // lo primero que se ve: lo que le toca resolver a este usuario
         let formulario = null;   // { tipo }
         let pendiente = null;    // solicitud ya validada, esperando el "sí" de la confirmación
@@ -307,7 +319,13 @@
                 { clave: 'cerradas', texto: 'Rechazadas y canceladas', filtro: (s) => ['rechazada', 'cancelada'].includes(s.estado) },
                 { clave: 'todas', texto: 'Todas', filtro: () => true }
             ];
+        // Las archivadas salen de todas las pestañas (para no saturar) y quedan solo en la suya
+        PESTANAS.forEach((p) => { const filtro = p.filtro; p.filtro = (s) => !s.archivada && filtro(s); });
+        PESTANAS.push({ clave: 'archivadas', texto: 'Archivadas', filtro: (s) => Boolean(s.archivada) });
+        // Solo se archiva lo que ya está cerrado
+        const ESTADOS_ARCHIVABLES = ['aprobada', 'rechazada', 'cancelada'];
         const VACIO_PESTANA = {
+            archivadas: 'No hay solicitudes archivadas.',
             atender: ES_APROBADOR ? '✅ No tienes solicitudes por atender.' : '✅ No tienes contrapropuestas de RH por atender.',
             espera: ES_APROBADOR ? 'No hay contrapropuestas de vacaciones pendientes de que la sucursal responda.' : 'No tienes solicitudes esperando a RH.'
         };
@@ -403,6 +421,10 @@
                 botones.push(boton('cancelar', 'Cancelar'));
             }
             if (s.tipo === 'acta' && s.estado === 'aprobada') botones.push(boton('imprimir-acta', '⎙ Imprimir acta'));
+            // Archivar: la saca de la vista sin borrarla. Espera a que quien la pidió ya haya visto la respuesta.
+            if (puede('archivarSolicitudes') && ESTADOS_ARCHIVABLES.includes(s.estado) && !s.sinVer) {
+                botones.push(s.archivada ? boton('desarchivar', '↩ Desarchivar', 'btn--archivar') : boton('archivar', '🗄 Archivar', 'btn--archivar'));
+            }
             return botones.join('');
         }
 
@@ -410,9 +432,11 @@
         function formularioEnLinea(s, accion) {
             const fechas = accion !== 'rechazar';
             const base = s.datos.propuesta || s.datos;
+            // La nueva propuesta del admin también respeta los días de anticipación
+            const minimo = accion === 'reenviar' && DIAS_ANTICIPACION ? ` min="${PRIMER_DIA_VACACIONES}"` : '';
             return `<div class="sol-inline" data-inline="${s.id}">
-                ${fechas ? `<label>Primer día<input type="date" data-campo="inicio" value="${base.inicio}"></label>
-                <label>Último día<input type="date" data-campo="fin" value="${base.fin}"></label>` : ''}
+                ${fechas ? `<label>Primer día<input type="date" data-campo="inicio" value="${base.inicio}"${minimo}></label>
+                <label>Último día<input type="date" data-campo="fin" value="${base.fin}"${minimo}></label>` : ''}
                 <label class="sol-inline__ancho">${accion === 'rechazar' ? 'Motivo del rechazo' : 'Comentario'}<input type="text" data-campo="comentario" maxlength="200" placeholder="${accion === 'contraproponer' ? 'Ej. Solo 3 de los 5 días por inventario' : ''}"></label>
                 <p class="form-error hidden" data-error></p>
                 <div class="sol-inline__acciones">
@@ -492,7 +516,7 @@
                                 <strong>${emp ? `${emp.id} · ${escaparHtml(emp.nombre)}` : s.empleado}</strong>
                                 <span class="field-hint">${escaparHtml(nombreSucursal(s.suc))}</span>
                             </div>
-                            <div>${nueva ? `${tag('Nuevo', 'nuevo')} ` : ''}${tag(textoEstado, estado.clase)}${s.tipo === 'vacaciones' && s.ronda > 1 ? ` ${tag(`Ronda ${s.ronda}`, 'muted')}` : ''}</div>
+                            <div>${nueva ? `${tag('Nuevo', 'nuevo')} ` : ''}${tag(textoEstado, estado.clase)}${s.archivada ? ` ${tag('Archivada', 'muted')}` : ''}${s.tipo === 'vacaciones' && s.ronda > 1 ? ` ${tag(`Ronda ${s.ronda}`, 'muted')}` : ''}</div>
                         </header>
                         <div class="solicitud__detalle">${detalleSolicitud(s)}</div>
                         ${historialHtml(s)}
@@ -526,6 +550,7 @@
         function renderTodo() {
             renderAlertas();
             renderSolicitudes();
+            pintarContadorSolicitudes(); // el contador del menú sigue lo que se va atendiendo
         }
 
         // =====================================================================
@@ -640,7 +665,7 @@
                 mostrarToast('Solicitud rechazada.');
             } else {
                 const fechas = { inicio: valor('inicio'), fin: valor('fin') };
-                const error = validarPeriodoVacaciones(emp, fechas.inicio, fechas.fin, id);
+                const error = (accion === 'reenviar' ? errorAnticipacion(fechas.inicio) : '') || validarPeriodoVacaciones(emp, fechas.inicio, fechas.fin, id);
                 if (error) return mostrarError(error);
                 if (accion === 'contraproponer') {
                     if (fechas.inicio === s.datos.inicio && fechas.fin === s.datos.fin) return mostrarError('Son las mismas fechas que pidió: mejor apruébala.');
@@ -685,6 +710,18 @@
                 cambiarSolicitud(id, (x) => { x.estado = 'cancelada'; x.historial.push(pasoHistorial('Canceló', null, '')); });
                 registrarBitacora(`${TIPOS_SOLICITUD[s.tipo]} cancelada`, `${emp.id} · ${emp.nombre}`);
                 mostrarToast('Solicitud cancelada.');
+            } else if (['archivar', 'desarchivar'].includes(accion)) {
+                // El admin solo archiva las de su sucursal
+                const esMia = puede('verTodasSucursales') || s.suc === USUARIO_ACTUAL.sucursal;
+                if (!puede('archivarSolicitudes') || !esMia || !ESTADOS_ARCHIVABLES.includes(s.estado)) return;
+                const archivar = accion === 'archivar';
+                const guardada = cambiarSolicitud(id, (x) => {
+                    x.archivada = archivar;
+                    x.historial.push(pasoHistorial(archivar ? 'Archivó' : 'Desarchivó', null, ''));
+                });
+                if (!guardada) return mostrarToast('⚠️ No se guardó. Revisa la conexión e inténtalo de nuevo.');
+                registrarBitacora(`Solicitud ${archivar ? 'archivada' : 'desarchivada'}`, `${TIPOS_SOLICITUD[s.tipo]} · ${emp ? `${emp.id} · ${emp.nombre}` : s.empleado}`);
+                mostrarToast(archivar ? 'Solicitud archivada: la encuentras en la pestaña "Archivadas".' : 'Solicitud desarchivada.');
             } else if (['contraproponer', 'rechazar', 'reenviar'].includes(accion)) {
                 return abrirInline(id, accion);
             } else if (accion.startsWith('confirmar-')) {
@@ -866,8 +903,8 @@
             campo('fMotivo').placeholder = { permiso: 'Ej. Cita médica', retardo: 'Ej. Accidente en la carretera, presentó comprobante', salida: 'Ej. Emergencia familiar' }[tipo] || '';
             // El admin pide vacaciones a futuro; RH y Super usuario también pueden registrar las ya tomadas
             const soloFuturo = tipo === 'vacaciones' && !ES_APROBADOR;
-            campo('fInicio').min = soloFuturo ? HOY_ISO : '';
-            campo('fFin').min = soloFuturo ? HOY_ISO : '';
+            campo('fInicio').min = soloFuturo ? PRIMER_DIA_VACACIONES : '';
+            campo('fFin').min = soloFuturo ? PRIMER_DIA_VACACIONES : '';
             campo('formError').classList.add('hidden');
             actualizarInfoFormulario();
         }
@@ -900,6 +937,7 @@
                 if (campo('fInicio').value && campo('fFin').value && campo('fFin').value >= campo('fInicio').value) {
                     texto += ` Seleccionados: <strong>${diasHabiles(campo('fInicio').value, campo('fFin').value)} días</strong> (domingos y descansos obligatorios no cuentan).`;
                 }
+                if (DIAS_ANTICIPACION) texto += ` Se piden con ${DIAS_ANTICIPACION} días de anticipación: a partir del <strong>${formatoFecha(PRIMER_DIA_VACACIONES)}</strong>.`;
                 info.innerHTML = texto;
             } else if (formulario.tipo === 'acta') {
                 const faltas = faltasUltimos30(emp).length;
@@ -918,7 +956,7 @@
             let archivo = null; // certificado del IMSS (solo incapacidades)
             if (tipo === 'vacaciones') {
                 datos = { inicio: campo('fInicio').value, fin: campo('fFin').value };
-                error = validarPeriodoVacaciones(emp, datos.inicio, datos.fin);
+                error = errorAnticipacion(datos.inicio) || validarPeriodoVacaciones(emp, datos.inicio, datos.fin);
             } else if (tipo === 'permiso') {
                 datos = { inicio: campo('fInicio').value, fin: campo('fFin').value, goce: campo('fGoce').value === 'con', motivo: campo('fMotivo').value.trim() };
                 error = validarPeriodoAusencia(emp, datos.inicio, datos.fin) || (datos.motivo.length < 5 ? 'Escribe el motivo del permiso.' : '');

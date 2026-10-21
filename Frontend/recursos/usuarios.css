@@ -85,6 +85,26 @@
 
 .status-dot--ok { background: #16a34a; }
 
+/* Los valores largos (como el correo del último inicio de sesión) bajan de renglón dentro de su recuadro */
+#systemInfo strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+
+
+
+/* Quién inició sesión: en su propio renglón, debajo de la fecha */
+.system-user {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+}
+
+
+
 /* Filtro por sucursal del estado del sistema */
 .system-filter {
     display: flex;

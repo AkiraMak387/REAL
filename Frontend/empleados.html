@@ -105,6 +105,8 @@
             <div id="noDischargeAlert" class="faltas-alert faltas-alert--danger hidden" role="status"></div>
             <div id="pendingDocsAlert" class="faltas-alert faltas-alert--warn hidden" role="status"></div>
             <div id="returnedDocsAlert" class="faltas-alert faltas-alert--danger hidden" role="status"></div>
+            <!-- Trabajadores sin rostro registrado (los de una importación masiva): no pueden checar -->
+            <div id="pendingFaceAlert" class="faltas-alert faltas-alert--warn hidden" role="status"></div>
 
             <div class="toolbar">
                 <div class="searchbox">
@@ -133,6 +135,9 @@
                         <option value="incapacitado">Incapacidad</option>
                         <option value="sinAlta">Sin alta del seguro</option>
                         <option value="vacaciones">Vacaciones</option>
+                        <option value="sinRostro">Rostro pendiente</option>
+                        <option value="sinDocumentos">Faltan documentos</option>
+                        <option value="sinDatos">Faltan datos</option>
                     </select>
                     <button id="clearFilters" class="btn btn--ghost" type="button">Limpiar filtros</button>
                     <button id="exportEmployeesBtn" class="btn btn--outline" type="button">Exportar Excel</button>
@@ -162,8 +167,6 @@
                     <div>
                         <div class="detail-panel__eyebrow">Ficha del empleado</div>
                         <h3 id="detailName"></h3>
-                        <!-- Aviso corto de documentos faltantes: al hacer clic baja a la sección Documentos -->
-                        <button id="detailDocsChip" class="docs-chip hidden" type="button"></button>
                     </div>
                 </div>
                 <div class="detail-panel__actions">
@@ -171,6 +174,8 @@
                     <button id="openRecordModal" class="btn btn--primary" type="button">+ Registrar incidencia</button>
                     <!-- Editar: solo Super usuario y RH -->
                     <button id="editEmployeeBtn" class="detail-edit hidden" type="button">✏️ Editar</button>
+                    <!-- Rostro: registrar el que quedó pendiente o volver a registrar uno que no quedó bien -->
+                    <button id="faceEmployeeBtn" class="detail-edit detail-edit--aviso hidden" type="button">📷 Registrar rostro</button>
                     <!-- Dar de baja: conserva al trabajador y su historial (permiso "darBaja") -->
                     <button id="bajaEmployeeBtn" class="detail-delete hidden" type="button">⛔ Dar de baja</button>
                     <!-- Eliminar definitivamente: SOLO Super usuario -->
@@ -178,6 +183,15 @@
                         empleado</button>
                     <button id="backToEmployees" class="detail-back" type="button">← Regresar</button>
                 </div>
+            </div>
+
+            <!-- Lo que le falta al trabajador, en su propio renglón bajo el encabezado -->
+            <div class="detail-avisos">
+                <!-- Documentos faltantes: al hacer clic baja a la sección Documentos -->
+                <button id="detailDocsChip" class="docs-chip hidden" type="button"></button>
+                <!-- Rostro sin registrar y datos sin capturar -->
+                <button id="detailFaceChip" class="docs-chip hidden" type="button"></button>
+                <button id="detailDataChip" class="docs-chip hidden" type="button"></button>
             </div>
 
             <div class="employee-profile-layout">
@@ -217,6 +231,14 @@
                             <div class="profile-item">
                                 <span>Fecha de ingreso</span>
                                 <strong id="detailHire"></strong>
+                            </div>
+                            <div class="profile-item profile-item--doble">
+                                <span>Contacto de emergencia 1</span>
+                                <strong id="detailContact1"></strong>
+                            </div>
+                            <div class="profile-item profile-item--doble">
+                                <span>Contacto de emergencia 2</span>
+                                <strong id="detailContact2"></strong>
                             </div>
                             <div class="profile-item hidden" id="detailExitDateItem">
                                 <span>Fecha de baja</span>
@@ -395,7 +417,8 @@
             <div class="wizard-steps">
                 <button class="wizard-step active" type="button">1. Datos Personales</button>
                 <button class="wizard-step" type="button">2. Datos Laborales</button>
-                <button class="wizard-step" type="button">3. Resumen</button>
+                <button class="wizard-step" type="button">3. Contactos de emergencia</button>
+                <button class="wizard-step" type="button">4. Resumen</button>
             </div>
 
             <div class="wizard-panel">
@@ -472,6 +495,12 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Solo al editar: cómo está el rostro y el botón para registrarlo o volver a registrarlo -->
+                        <div id="editFaceBar" class="edit-face-bar hidden">
+                            <span id="editFaceStatus"></span>
+                            <button id="editFaceBtn" class="btn btn--secondary" type="button">📷 Registrar rostro</button>
                         </div>
 
                         <div class="fields-grid">
@@ -572,8 +601,52 @@
                     </div>
                 </div>
 
-                <!-- Paso 3: resumen -->
+                <!-- Paso 3: contactos de emergencia (dos familiares, obligatorios) -->
                 <div class="wizard-panel__content" data-step="3">
+                    <div class="fields-grid fields-grid--compact">
+                        <p class="contact-note field--full">Captura a dos familiares a quienes avisar en caso de una
+                            emergencia. Deben ser dos personas distintas, con un teléfono diferente al del trabajador.</p>
+
+                        <h5 class="contact-title field--full">Contacto de emergencia 1</h5>
+                        <div class="field field--full">
+                            <label for="contact1Name">Nombre completo *</label>
+                            <input id="contact1Name" type="text" placeholder="Ej. María López Morales" autocomplete="off">
+                            <small class="field-error" data-error-for="contact1Name"></small>
+                        </div>
+                        <div class="field field--half">
+                            <label for="contact1Relation">Parentesco *</label>
+                            <select id="contact1Relation"></select>
+                            <small class="field-error" data-error-for="contact1Relation"></small>
+                        </div>
+                        <div class="field field--half">
+                            <label for="contact1Phone">Teléfono *</label>
+                            <input id="contact1Phone" type="tel" placeholder="10 dígitos" maxlength="10"
+                                inputmode="numeric" autocomplete="off">
+                            <small class="field-error" data-error-for="contact1Phone"></small>
+                        </div>
+
+                        <h5 class="contact-title field--full">Contacto de emergencia 2</h5>
+                        <div class="field field--full">
+                            <label for="contact2Name">Nombre completo *</label>
+                            <input id="contact2Name" type="text" placeholder="Ej. José Hernández Ruiz" autocomplete="off">
+                            <small class="field-error" data-error-for="contact2Name"></small>
+                        </div>
+                        <div class="field field--half">
+                            <label for="contact2Relation">Parentesco *</label>
+                            <select id="contact2Relation"></select>
+                            <small class="field-error" data-error-for="contact2Relation"></small>
+                        </div>
+                        <div class="field field--half">
+                            <label for="contact2Phone">Teléfono *</label>
+                            <input id="contact2Phone" type="tel" placeholder="10 dígitos" maxlength="10"
+                                inputmode="numeric" autocomplete="off">
+                            <small class="field-error" data-error-for="contact2Phone"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paso 4: resumen -->
+                <div class="wizard-panel__content" data-step="4">
                     <div class="sync-box">
                         <div class="sync-icon">◉</div>
                         <div id="summaryIntro">
@@ -910,8 +983,56 @@
             return { inicio: `${periodo.anio}-${mm}-01`, fin: `${periodo.anio}-${mm}-${ultimo}`, etiqueta: `${MESES[periodo.mes]} ${periodo.anio}` };
         }
 
+        // Trabajador activo sin rostro registrado (viene de una importación): la tableta no lo reconoce
+        function sinRostro(emp) {
+            return !emp.baja && !emp.rostro;
+        }
+
+        // Registrar el rostro pendiente lo hace quien da altas; cambiar uno ya registrado, quien edita trabajadores
+        function puedeRegistrarRostro(emp) {
+            return !emp.baja && puede(emp.rostro ? 'editarTrabajador' : 'darAlta');
+        }
+
+        // Datos del trabajador sin capturar (registros anteriores a que fueran obligatorios)
+        function datosFaltantes(emp) {
+            if (emp.baja) return [];
+            const faltan = [['telefono', 'Teléfono'], ['curp', 'CURP'], ['rfc', 'RFC'], ['depto', 'Departamento'], ['puesto', 'Puesto'], ['ingreso', 'Fecha de ingreso']]
+                .filter(([campoDato]) => !emp[campoDato])
+                .map(([, texto]) => texto);
+            if (!emp.fechaNacimiento && !nacimientoDesdeCurp(emp.curp)) faltan.push('Fecha de nacimiento');
+            [0, 1].forEach((i) => {
+                const contacto = (emp.contactosEmergencia || [])[i];
+                if (!contacto || !contacto.nombre || !contacto.parentesco || !contacto.telefono) faltan.push(`Contacto de emergencia ${i + 1}`);
+            });
+            return faltan;
+        }
+
+        // Documentos obligatorios sin entregar o devueltos por RH (los mismos que cuenta el aviso de la ficha)
+        function documentosPendientes(emp) {
+            if (emp.baja) return [];
+            return DOCUMENTOS_BASICOS
+                .filter((doc) => doc.obligatorio && ['falta', 'rechazado'].includes(estadoDocumento(emp, doc.clave).estado))
+                .map((doc) => doc.nombre);
+        }
+
+        // Lo que le falta al trabajador, por tipo: rostro, documentos y datos
+        function pendientesDe(emp) {
+            const lista = [];
+            if (sinRostro(emp)) lista.push({ tipo: 'sinRostro', etiqueta: 'Rostro pendiente', detalle: 'Rostro sin registrar' });
+            const documentos = documentosPendientes(emp);
+            if (documentos.length) lista.push({ tipo: 'sinDocumentos', etiqueta: 'Faltan documentos', detalle: `Documentos: ${documentos.join(', ')}` });
+            const datos = datosFaltantes(emp);
+            if (datos.length) lista.push({ tipo: 'sinDatos', etiqueta: 'Faltan datos', detalle: `Datos: ${datos.join(', ')}` });
+            return lista;
+        }
+
+        // Etiqueta junto al nombre: la del pendiente si es uno solo; "Expediente incompleto" si son varios
         function celdaColaborador(emp) {
-            return `<td><div class="employee-cell"><span class="employee-id">${emp.id}</span><span class="employee-name">${escaparHtml(emp.nombre)}</span></div></td>`;
+            const pendientes = pendientesDe(emp);
+            const etiqueta = pendientes.length
+                ? `<span class="etiqueta-pendiente${pendientes.length > 1 ? ' etiqueta-pendiente--general' : ''}" title="${escaparHtml(pendientes.map((p) => p.detalle).join(' · '))}">${pendientes.length > 1 ? 'Expediente incompleto' : pendientes[0].etiqueta}</span>`
+                : '';
+            return `<td><div class="employee-cell"><span class="employee-id">${emp.id}</span><span class="employee-name">${escaparHtml(emp.nombre)}</span>${etiqueta}</div></td>`;
         }
 
         function celdaEstado(emp) {
@@ -947,6 +1068,15 @@
             }
             pintarContadorDocumentos();
 
+            // Trabajadores sin rostro: el aviso lleva a la lista filtrada para registrarlos uno por uno
+            const avisoRostro = document.getElementById('pendingFaceAlert');
+            const pendientesRostro = puede('darAlta') ? EMPLEADOS.filter(sinRostro).length : 0;
+            avisoRostro.classList.toggle('hidden', !pendientesRostro);
+            if (pendientesRostro) {
+                avisoRostro.innerHTML = `<strong>📷 ${pendientesRostro === 1 ? '1 trabajador no tiene' : `${pendientesRostro} trabajadores no tienen`} rostro registrado: no podrán checar en la tableta hasta registrarlo</strong>`
+                    + `<span><a href="#">Ver quiénes son</a> · Abre su expediente${puede('editarTrabajador') ? ', entra a "Editar"' : ''} y presiona "Registrar rostro".</span>`;
+            }
+
             const aviso = document.getElementById('returnedDocsAlert');
             // RH es quien devuelve: el aviso es para el admin (y el super usuario, que supervisa)
             const conDevueltos = ['admin', 'super'].includes(USUARIO_ACTUAL.rol)
@@ -971,7 +1101,10 @@
             all: {
                 columnas: ['Colaborador', 'Departamento', 'Tipo de puesto', 'Fecha de ingreso', 'Estado', 'Acción'],
                 filas: (coincide) => EMPLEADOS
-                    .filter((e) => !e.baja && coincide(e) && (statusFilter.value === 'todos' || estadoActual(e) === statusFilter.value))
+                    .filter((e) => !e.baja && coincide(e) && (statusFilter.value === 'todos'
+                        || (['sinRostro', 'sinDocumentos', 'sinDatos'].includes(statusFilter.value)
+                            ? pendientesDe(e).some((p) => p.tipo === statusFilter.value)
+                            : estadoActual(e) === statusFilter.value)))
                     .sort((a, b) => a.id.localeCompare(b.id))
                     .map((emp) => ({ emp })),
                 celdas: ({ emp }) => `<td>${escaparHtml(emp.depto)}</td><td>${escaparHtml(emp.puesto)}</td><td>${formatoFecha(emp.ingreso)}</td>${celdaEstado(emp)}`
@@ -1149,6 +1282,14 @@
             if (!fila) return;
             const emp = EMPLEADOS.find((e) => e.id === fila.dataset.id);
             if (emp) openEmployeeDetail(emp);
+        });
+        // El aviso de rostros pendientes deja la lista solo con esos trabajadores
+        document.getElementById('pendingFaceAlert').addEventListener('click', (event) => {
+            if (!event.target.closest('a')) return;
+            event.preventDefault();
+            activeMetric = 'all';
+            statusFilter.value = 'sinRostro';
+            reiniciarPaginaYRender();
         });
         // Los avisos de documentos abren el expediente directo en la sección Documentos
         ['pendingDocsAlert', 'returnedDocsAlert'].forEach((id) => document.getElementById(id).addEventListener('click', (event) => {
@@ -1618,6 +1759,10 @@
             setTexto('detailCurp', emp.curp);
             setTexto('detailPhone', formatoTelefono(emp.telefono));
             setTexto('detailHire', formatoFecha(emp.ingreso));
+            [0, 1].forEach((i) => {
+                const contacto = (emp.contactosEmergencia || [])[i];
+                setTexto(`detailContact${i + 1}`, contacto && contacto.nombre ? textoContacto(contacto) : 'Falta capturar');
+            });
             setTexto('detailVacation', emp.baja
                 ? '—'
                 : `${diasVacacionesDisponibles(emp, HOY.getFullYear())} de ${getVacationDaysForYear(antiguedadAnios(emp))} días`);
@@ -1625,6 +1770,18 @@
             document.getElementById('openRecordModal').classList.toggle('hidden', Boolean(emp.baja) || !puede('registrarIncidencias'));
             // Un trabajador dado de baja queda solo de consulta: no se editan sus datos ni se le vuelve a dar de baja
             document.getElementById('editEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('editarTrabajador'));
+            // Rostro: quien puede editar (RH y Super usuario) lo encuentra dentro de "Editar"; el botón de
+            // aquí queda para el admin de sucursal, que no edita pero sí registra el rostro pendiente
+            document.getElementById('faceEmployeeBtn').classList.toggle('hidden', puede('editarTrabajador') || !puedeRegistrarRostro(emp));
+            // Avisos junto al nombre (al lado del de documentos): rostro sin registrar y datos sin capturar
+            const chipRostro = document.getElementById('detailFaceChip');
+            chipRostro.classList.toggle('hidden', !sinRostro(emp));
+            chipRostro.innerHTML = '<span aria-hidden="true">📷</span> Rostro pendiente' + (puedeRegistrarRostro(emp) ? ' <span class="docs-chip__ver">Registrar ›</span>' : '');
+            const datosSinCapturar = datosFaltantes(emp);
+            const chipDatos = document.getElementById('detailDataChip');
+            chipDatos.classList.toggle('hidden', !datosSinCapturar.length);
+            chipDatos.innerHTML = `<span aria-hidden="true">📝</span> ${datosSinCapturar.length === 1 ? 'Falta' : 'Faltan'}: ${escaparHtml(datosSinCapturar.join(', '))}`
+                + (puede('editarTrabajador') ? ' <span class="docs-chip__ver">Capturar ›</span>' : '');
             document.getElementById('bajaEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('darBaja'));
             // Eliminar definitivamente: solo Super usuario y nunca un trabajador ya dado de baja.
             document.getElementById('deleteEmployeeBtn').classList.toggle('hidden', Boolean(emp.baja) || !puede('borrarTrabajador'));
@@ -1973,6 +2130,13 @@
         documentFileInput.addEventListener('change', () => subirDocumento(documentFileInput.files[0]));
         document.getElementById('detailDocsChip').addEventListener('click', () => {
             document.getElementById('documentsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        // Los otros dos avisos llevan a donde se corrige: la cámara o el formulario de edición
+        document.getElementById('detailFaceChip').addEventListener('click', () => {
+            if (empleadoDetalle && puedeRegistrarRostro(empleadoDetalle)) abrirRegistroRostro(empleadoDetalle);
+        });
+        document.getElementById('detailDataChip').addEventListener('click', () => {
+            if (empleadoDetalle && !empleadoDetalle.baja && puede('editarTrabajador')) openEmployeeModal(empleadoDetalle);
         });
 
         llenarSelect(hoursMonthSelect, MESES.map((m, i) => ({ valor: i, texto: m })));
@@ -2776,6 +2940,30 @@
             return errores;
         }
 
+        // Contactos de emergencia: dos familiares, obligatorios en el alta, la edición y la importación
+        const PARENTESCOS = ['Madre', 'Padre', 'Cónyuge o pareja', 'Hijo(a)', 'Hermano(a)', 'Abuelo(a)', 'Tío(a)', 'Otro familiar'];
+
+        function textoContacto(contacto) {
+            return contacto && contacto.nombre ? `${contacto.nombre} (${contacto.parentesco}) · ${formatoTelefono(contacto.telefono)}` : '—';
+        }
+
+        function validarContactos(datos) {
+            const errores = {};
+            const contactos = datos.contactosEmergencia || [];
+            [0, 1].forEach((i) => {
+                const contacto = contactos[i] || {};
+                const n = i + 1;
+                if (String(contacto.nombre || '').split(/\s+/).filter(Boolean).length < 2) errores[`contacto${n}Nombre`] = `Contacto ${n}: escribe su nombre y apellido.`;
+                if (!PARENTESCOS.includes(contacto.parentesco)) errores[`contacto${n}Parentesco`] = `Contacto ${n}: elige el parentesco.`;
+                if (!/^\d{10}$/.test(contacto.telefono || '')) errores[`contacto${n}Telefono`] = `Contacto ${n}: el teléfono debe tener 10 dígitos.`;
+                else if (contacto.telefono === datos.telefono) errores[`contacto${n}Telefono`] = `Contacto ${n}: debe ser un teléfono distinto al del trabajador.`;
+            });
+            if (!errores.contacto1Telefono && !errores.contacto2Telefono && contactos[0].telefono === contactos[1].telefono) {
+                errores.contacto2Telefono = 'Contacto 2: debe ser una persona distinta al contacto 1.';
+            }
+            return errores;
+        }
+
         function validarDatosLaborales(datos) {
             const errores = {};
             if (!SUCURSALES[datos.suc]) errores.suc = 'Elige la sucursal.';
@@ -2806,7 +2994,12 @@
                 ingreso: campo('newHireDate').value,
                 depto: newDepartment.value,
                 puesto: newRole.value,
-                sueldo: parseFloat(newSalary.value)
+                sueldo: parseFloat(newSalary.value),
+                contactosEmergencia: [1, 2].map((n) => ({
+                    nombre: limpiar(`contact${n}Name`),
+                    parentesco: campo(`contact${n}Relation`).value,
+                    telefono: campo(`contact${n}Phone`).value.trim()
+                }))
             };
         }
 
@@ -2840,6 +3033,14 @@
                     marcarError('newSalary', e.sueldo)
                 ].every(Boolean);
             }
+            if (indice === 2) {
+                const e = validarContactos(datos);
+                return [1, 2].flatMap((n) => [
+                    marcarError(`contact${n}Name`, e[`contacto${n}Nombre`]),
+                    marcarError(`contact${n}Relation`, e[`contacto${n}Parentesco`]),
+                    marcarError(`contact${n}Phone`, e[`contacto${n}Telefono`])
+                ]).every(Boolean);
+            }
             return true;
         }
 
@@ -2870,6 +3071,12 @@
                         ${item('Sueldo semanal', puede('verSueldos') ? formatoDinero(d.sueldo) : 'Lo asigna Recursos Humanos')}
                     </div>
                 </div>
+                <div class="summary-section">
+                    <h5>Contactos de emergencia</h5>
+                    <div class="profile-grid">
+                        ${d.contactosEmergencia.map((c, i) => item(`Contacto ${i + 1}`, textoContacto(c))).join('')}
+                    </div>
+                </div>
                 ${empleadoEditando ? '' : `<div class="summary-section">
                     <h5>Rostro</h5>
                     <div class="profile-grid">
@@ -2891,7 +3098,8 @@
         }
 
         function limpiarFormulario() {
-            ['newLastName1', 'newLastName2', 'newFirstNames', 'newCurp', 'newRfc', 'newBirthDate', 'newPhone', 'newHireDate']
+            ['newLastName1', 'newLastName2', 'newFirstNames', 'newCurp', 'newRfc', 'newBirthDate', 'newPhone', 'newHireDate',
+                'contact1Name', 'contact1Relation', 'contact1Phone', 'contact2Name', 'contact2Relation', 'contact2Phone']
                 .forEach((id) => { campo(id).value = ''; });
             document.querySelectorAll('#employeeModal .is-invalid').forEach((el) => el.classList.remove('is-invalid'));
             document.querySelectorAll('#employeeModal .field-error').forEach((el) => { el.textContent = ''; });
@@ -2944,6 +3152,12 @@
             llenarPuestos();
             newRole.value = emp.puesto;
             newSalary.value = emp.sueldo;
+            [1, 2].forEach((n) => {
+                const contacto = (emp.contactosEmergencia || [])[n - 1] || {};
+                campo(`contact${n}Name`).value = contacto.nombre || '';
+                campo(`contact${n}Relation`).value = contacto.parentesco || '';
+                campo(`contact${n}Phone`).value = contacto.telefono || '';
+            });
         }
 
         // El mismo formulario sirve para el alta y para editar: aquí se ajustan los textos y lo que se muestra
@@ -2955,6 +3169,15 @@
             document.querySelector('#employeeModal .connection-pill').classList.toggle('hidden', editando);
             document.querySelector('#employeeModal .form-instructions').classList.toggle('hidden', editando);
             document.querySelector('#employeeModal .form-layout').classList.toggle('form-layout--sin-rostro', editando);
+            campo('editFaceBar').classList.toggle('hidden', !editando);
+            if (editando) {
+                // Con el rostro pendiente el renglón y el botón resaltan; ya registrado, quedan discretos
+                const pendiente = !empleadoEditando.rostro;
+                campo('editFaceBar').classList.toggle('edit-face-bar--pendiente', pendiente);
+                setTexto('editFaceStatus', pendiente ? '⚠️ Rostro pendiente: todavía no puede checar en la tableta.' : 'Rostro registrado.');
+                campo('editFaceBtn').textContent = pendiente ? '📷 Registrar rostro' : '📷 Volver a registrar rostro';
+                campo('editFaceBtn').className = `btn ${pendiente ? 'btn--primary' : 'btn--secondary'}`;
+            }
             campo('summaryIntro').innerHTML = editando
                 ? '<strong>Resumen de los cambios:</strong> revisa que todo sea correcto. Al presionar <strong>Guardar cambios</strong> se te pedirá confirmar antes de guardar.'
                 : '<strong>Resumen del nuevo ingreso:</strong> revisa que todo sea correcto. Al presionar <strong>Guardar Nuevo Ingreso</strong> se te pedirá confirmar antes de guardar.';
@@ -2965,6 +3188,7 @@
             empleadoEditando = emp;
             limpiarFormulario();
             if (emp) llenarFormularioEdicion(emp);
+            formularioAlAbrir = JSON.stringify(leerFormulario());
             ajustarModoFormulario();
             abrirModal(modal);
             await resetFaceCapture();
@@ -2975,6 +3199,66 @@
             await resetFaceCapture();
             cerrarModal(modal);
             empleadoEditando = null;
+            rostroDe = null;
+            modal.classList.remove('modal--solo-rostro');
+        }
+
+        // ---------- Rostro de un trabajador que ya existe ----------
+        // Usa el mismo recuadro de la cámara del alta, sin los datos. Sirve para el trabajador importado
+        // (rostro pendiente) y para volver a registrar un rostro que no quedó bien.
+        let rostroDe = null; // trabajador al que se le está registrando el rostro; null = alta o edición normal
+        let formularioAlAbrir = ''; // el formulario como estaba al abrirlo, para saber si hay cambios sin guardar
+
+        async function abrirRegistroRostro(emp) {
+            empleadoEditando = null;
+            ajustarModoFormulario();
+            rostroDe = emp;
+            modal.classList.add('modal--solo-rostro');
+            setTexto('employeeModalEyebrow', emp.rostro ? 'Volver a registrar rostro' : 'Registrar rostro pendiente');
+            setTexto('employeeModalTitle', `${emp.id} · ${emp.nombre}`);
+            abrirModal(modal);
+            await resetFaceCapture();
+            renderStep(0);
+            nextStepBtn.textContent = 'Guardar rostro';
+        }
+
+        function confirmarRostro(emp) {
+            if (!vectorCaptureSuccess) {
+                setVectorFeedback('danger', 'Registro de rostro pendiente', 'Activa la cámara y escanea el rostro del trabajador antes de guardar.');
+                return;
+            }
+            const reemplazo = Boolean(emp.rostro);
+            const quien = `<strong>${escaparHtml(emp.nombre)}</strong> (ID <strong>${emp.id}</strong>)`;
+            let rostro = '';
+            pedirConfirmacion({
+                titulo: reemplazo ? '¿Reemplazar el rostro registrado?' : '¿Guardar el rostro?',
+                texto: reemplazo
+                    ? `El rostro anterior de ${quien} se sustituye por el que acabas de escanear. La tableta checadora lo reconocerá con el nuevo.`
+                    : `Se registrará el rostro de ${quien} para que pueda checar en la tableta.`,
+                si: 'Sí, guardar',
+                progreso: 'Guardando el rostro…',
+                pasos: () => [
+                    { texto: 'Revisando que el rostro no esté repetido y cifrándolo', accion: async () => { rostro = await registrarRostro(emp); } },
+                    { texto: 'Guardando el rostro del trabajador', accion: () => guardarRostro(emp, rostro, reemplazo) }
+                ],
+                listo: 'Rostro guardado',
+                exito: `✅ El rostro de <strong>${escaparHtml(emp.nombre)}</strong> quedó registrado.`,
+                alTerminar: async () => {
+                    await closeEmployeeModal();
+                    renderTodo();
+                    openEmployeeDetail(emp);
+                }
+            });
+        }
+
+        // "rostro" es un campo protegido: el guardado normal no lo toca, por eso se escribe solo ese campo
+        function guardarRostro(emp, rostro, reemplazo) {
+            if (!ALMACEN.actualizarCampos(CLAVE_ALMACEN, emp, { rostro, rostroPendiente: undefined })) {
+                throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+            }
+            emp.rostro = rostro;
+            delete emp.rostroPendiente;
+            registrarBitacora(reemplazo ? 'Rostro reemplazado' : 'Rostro registrado', `${emp.id} · ${emp.nombre}`);
         }
 
         // Catálogos del formulario
@@ -2989,6 +3273,11 @@
         campo('newCurp').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/\s/g, ''); });
         campo('newRfc').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/\s/g, ''); });
         campo('newPhone').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); });
+        [1, 2].forEach((n) => {
+            campo(`contact${n}Relation`).innerHTML = '<option value="">Selecciona el parentesco</option>' +
+                PARENTESCOS.map((p) => `<option value="${p}">${p}</option>`).join('');
+            campo(`contact${n}Phone`).addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); });
+        });
         newBranch.addEventListener('change', actualizarIdAutomatico);
         newDepartment.addEventListener('change', () => {
             llenarPuestos();
@@ -2998,6 +3287,18 @@
         document.getElementById('openNewEmployeeModal').addEventListener('click', () => openEmployeeModal());
         document.getElementById('editEmployeeBtn').addEventListener('click', () => {
             if (empleadoDetalle && !empleadoDetalle.baja && puede('editarTrabajador')) openEmployeeModal(empleadoDetalle);
+        });
+        document.getElementById('faceEmployeeBtn').addEventListener('click', () => {
+            if (empleadoDetalle && puedeRegistrarRostro(empleadoDetalle)) abrirRegistroRostro(empleadoDetalle);
+        });
+        // Desde "Editar": el formulario cambia a la cámara, así que antes no debe haber datos sin guardar
+        campo('editFaceBtn').addEventListener('click', () => {
+            if (!empleadoEditando || !puedeRegistrarRostro(empleadoEditando)) return;
+            if (JSON.stringify(leerFormulario()) !== formularioAlAbrir) {
+                mostrarToast('Guarda primero los cambios de los datos y después registra el rostro.');
+                return;
+            }
+            abrirRegistroRostro(empleadoEditando);
         });
         document.getElementById('cancelEmployeeModal').addEventListener('click', closeEmployeeModal);
         startFaceCameraBtn.addEventListener('click', startFaceCamera);
@@ -3015,6 +3316,7 @@
         });
 
         nextStepBtn.addEventListener('click', () => {
+            if (rostroDe) return confirmarRostro(rostroDe);
             if (!validarPaso(currentStep)) return;
             if (currentStep < wizardPanels.length - 1) {
                 renderStep(currentStep + 1);
@@ -3077,9 +3379,15 @@
                 ['telefono', 'Teléfono', formatoTelefono], ['ingreso', 'Fecha de ingreso', formatoFecha],
                 ['depto', 'Departamento'], ['puesto', 'Puesto'], ['sueldo', 'Sueldo semanal', formatoDinero]
             ];
-            return campos
+            const cambios = campos
                 .filter(([clave]) => String(antes[clave] ?? '') !== String(d[clave] ?? ''))
                 .map(([clave, texto, formato = (v) => v]) => `${texto}: ${antes[clave] ? formato(antes[clave]) : '—'} → ${formato(d[clave])}`);
+            [0, 1].forEach((i) => {
+                const previo = textoContacto((emp.contactosEmergencia || [])[i]);
+                const nuevo = textoContacto(d.contactosEmergencia[i]);
+                if (previo !== nuevo) cambios.push(`Contacto de emergencia ${i + 1}: ${previo} → ${nuevo}`);
+            });
+            return cambios;
         }
 
         function abrirConfirmacionGuardado() {
@@ -3142,9 +3450,10 @@
         // Manda la captura al servidor local: él saca los vectores con InsightFace, revisa que esa cara
         // no esté registrada con otro trabajador y los cifra con su llave. La foto no se guarda en ningún
         // lado; a la base de datos solo llega el texto cifrado.
-        async function registrarRostro() {
+        // "propio": al volver a registrar, el rostro anterior de ese mismo trabajador no cuenta como repetido
+        async function registrarRostro(propio = null) {
             if (!capturaRostro) throw new Error('Falta registrar el rostro del trabajador.');
-            const existentes = TODOS_EMPLEADOS.filter((e) => e.rostro).map((e) => ({ id: e.id, rostro: e.rostro }));
+            const existentes = TODOS_EMPLEADOS.filter((e) => e.rostro && e !== propio).map((e) => ({ id: e.id, rostro: e.rostro }));
             let respuesta;
             try {
                 respuesta = await fetch('/api/rostro', {
@@ -3162,7 +3471,7 @@
 
         async function validarAntesDeGuardar(datos) {
             await wait(500);
-            const errores = { ...validarDatosPersonales(datos), ...validarDatosLaborales(datos) };
+            const errores = { ...validarDatosPersonales(datos), ...validarDatosLaborales(datos), ...validarContactos(datos) };
             const primero = Object.values(errores)[0];
             if (primero) throw new Error(primero);
         }
@@ -3194,7 +3503,8 @@
                 curp: datos.curp,
                 rfc: datos.rfc,
                 fechaNacimiento: datos.fechaNacimiento,
-                sueldo: datos.sueldo
+                sueldo: datos.sueldo,
+                contactosEmergencia: datos.contactosEmergencia
             });
             if (guardarCambios() === false) {
                 [EMPLEADOS, TODOS_EMPLEADOS].forEach((lista) => {
@@ -3222,7 +3532,8 @@
                 curp: datos.curp,
                 rfc: datos.rfc,
                 fechaNacimiento: datos.fechaNacimiento,
-                sueldo: datos.sueldo
+                sueldo: datos.sueldo,
+                contactosEmergencia: datos.contactosEmergencia
             });
             if (guardarCambios() === false) throw new Error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
             registrarBitacora('Trabajador modificado', `${emp.id} · ${emp.nombre} · ${cambios.join('; ')}`);
@@ -3414,16 +3725,18 @@
         const importFile = document.getElementById('importFile');
         const importResult = document.getElementById('importResult');
         const confirmImport = document.getElementById('confirmImport');
-        const COLUMNAS_PLANTILLA = ['Nombre completo', 'CURP', 'RFC', 'Fecha de nacimiento', 'Teléfono', 'Sucursal', 'Departamento', 'Puesto', 'Fecha de ingreso', 'Sueldo semanal'];
+        const COLUMNAS_PLANTILLA = ['Nombre completo', 'CURP', 'RFC', 'Fecha de nacimiento', 'Teléfono', 'Sucursal', 'Departamento', 'Puesto', 'Fecha de ingreso', 'Sueldo semanal',
+            'Contacto 1 nombre', 'Contacto 1 parentesco', 'Contacto 1 teléfono', 'Contacto 2 nombre', 'Contacto 2 parentesco', 'Contacto 2 teléfono'];
         let importacionPendiente = [];
 
         document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
-            const ejemplo = ['Mariana Guadalupe Hernández Morales', 'HEMM980416MMCRRR05', 'HEMM980416AB1', '1998-04-16', '7221234567', '05', 'Almacenista', 'Almacenista', HOY_ISO, SALARIO_MINIMO_SEMANAL];
-            const catalogos = [['Sucursal (clave)', 'Nombre de sucursal', '', 'Departamento', 'Puesto']];
+            const ejemplo = ['Mariana Guadalupe Hernández Morales', 'HEMM980416MMCRRR05', 'HEMM980416AB1', '1998-04-16', '7221234567', '05', 'Almacenista', 'Almacenista', HOY_ISO, SALARIO_MINIMO_SEMANAL,
+                'María Morales Díaz', 'Madre', '7229876543', 'José Hernández Ruiz', 'Padre', '7225551234'];
+            const catalogos = [['Sucursal (clave)', 'Nombre de sucursal', '', 'Departamento', 'Puesto', '', 'Parentesco']];
             const sucursales = listaSucursales().map(({ clave, nombre }) => [clave, nombre]);
             const puestos = DEPARTAMENTOS.flatMap((d) => puestosDe(d.nombre).map((p) => [d.nombre, p.nombre]));
-            for (let i = 0; i < Math.max(sucursales.length, puestos.length); i++) {
-                catalogos.push([...(sucursales[i] || ['', '']), '', ...(puestos[i] || ['', ''])]);
+            for (let i = 0; i < Math.max(sucursales.length, puestos.length, PARENTESCOS.length); i++) {
+                catalogos.push([...(sucursales[i] || ['', '']), '', ...(puestos[i] || ['', '']), '', PARENTESCOS[i] || '']);
             }
             descargarExcel('plantilla_trabajadores', [
                 { nombre: 'Trabajadores', filas: [COLUMNAS_PLANTILLA, ejemplo] },
@@ -3511,11 +3824,20 @@
                     depto: depto ? depto.nombre : '',
                     puesto: puesto ? puesto.nombre : '',
                     ingreso: fechaImportada(valor(fila, 'Fecha de ingreso')),
-                    sueldo: parseFloat(String(valor(fila, 'Sueldo semanal')).replace(/[$,\s]/g, ''))
+                    sueldo: parseFloat(String(valor(fila, 'Sueldo semanal')).replace(/[$,\s]/g, '')),
+                    contactosEmergencia: [1, 2].map((n) => {
+                        const parentesco = String(valor(fila, `Contacto ${n} parentesco`)).trim();
+                        return {
+                            nombre: String(valor(fila, `Contacto ${n} nombre`)).trim().replace(/\s+/g, ' '),
+                            // Se acepta sin acentos o en minúsculas; queda como en el catálogo
+                            parentesco: PARENTESCOS.find((p) => normalizar(p) === normalizar(parentesco)) || parentesco,
+                            telefono: String(valor(fila, `Contacto ${n} teléfono`)).replace(/\D/g, '')
+                        };
+                    })
                 };
                 // El admin no captura sueldos: se registra con el mínimo y RH lo ajusta
                 if (!puede('verSueldos')) datos.sueldo = SALARIO_MINIMO_SEMANAL;
-                const mensajes = Object.values({ ...validarDatosPersonales(datos), ...validarDatosLaborales(datos) });
+                const mensajes = Object.values({ ...validarDatosPersonales(datos), ...validarDatosLaborales(datos), ...validarContactos(datos) });
                 if (depto && !puesto) mensajes.push(`El puesto "${puestoTexto}" no pertenece a ${depto.nombre}.`);
                 if (datos.suc && !puede('elegirSucursalAlta') && datos.suc !== USUARIO_ACTUAL.sucursal) {
                     mensajes.push(`Solo puedes importar trabajadores de tu sucursal (${nombreSucursal(USUARIO_ACTUAL.sucursal)}).`);

@@ -17,6 +17,18 @@
     color: #fff;
 }
 
+/* Archivar / Desarchivar: rojo */
+.page-solicitudes .btn--archivar {
+    background: #dc2626;
+    color: #fff;
+    border: 1px solid #dc2626;
+}
+
+.page-solicitudes .btn--archivar:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
 .page-solicitudes .btn--small {
     padding: 7px 12px;
     font-size: 12.5px;

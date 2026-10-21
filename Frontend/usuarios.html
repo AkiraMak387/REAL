@@ -540,7 +540,7 @@
                 <li><span>Almacenamiento del navegador</span><strong>${punto(bytes !== null)}${usado}</strong></li>
                 <li><span>Trabajadores registrados</span><strong>${TODOS_EMPLEADOS.length} (${TODOS_EMPLEADOS.filter((e) => !e.baja).length} activos)</strong></li>
                 <li><span>Sucursales</span><strong>${Object.keys(SUCURSALES).length}</strong></li>
-                <li><span>Último inicio de sesión</span><strong>${ultimoAcceso ? `${new Date(ultimoAcceso.fecha).toLocaleString('es-MX')} · ${escaparHtml(ultimoAcceso.usuario)}` : '—'}</strong></li>
+                <li class="info-apilado"><span>Último inicio de sesión</span><strong>${ultimoAcceso ? `${new Date(ultimoAcceso.fecha).toLocaleString('es-MX')}<small class="system-user">${escaparHtml(ultimoAcceso.usuario)}</small>` : '—'}</strong></li>
                 <li><span>Revisado</span><strong>${horaRevision()}</strong></li>`;
         }
 

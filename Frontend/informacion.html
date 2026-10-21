@@ -112,6 +112,14 @@
                                 <input id="sucursalPrincipal" type="text" readonly>
                             </div>
                         </div>
+
+                        <!-- Editar razón social, RFC y domicilio fiscal: solo el Super usuario -->
+                        <p class="form-error hidden" id="companyError" role="alert"></p>
+                        <div class="hidden" id="companyActions" style="margin-top: 14px; text-align: right;">
+                            <button class="btn btn--outline btn--small" type="button" id="editCompanyBtn">✏️ Editar datos</button>
+                            <button class="btn btn--ghost btn--small hidden" type="button" id="cancelCompanyBtn">Cancelar</button>
+                            <button class="btn btn--primary btn--small hidden" type="button" id="saveCompanyBtn" style="margin-left: 8px;">Guardar cambios</button>
+                        </div>
                     </div>
 
                     <div class="config-card" id="politicasCard">
@@ -233,6 +241,55 @@
                 tarjeta(DEPARTAMENTOS.length, 'Departamentos') +
                 tarjeta(puestos.size, 'Puestos');
         }
+
+        // ---------- Datos generales de la empresa: los edita el Super usuario ----------
+        // [id del campo, dato de EMPRESA, nombre para los mensajes]
+        const CAMPOS_EMPRESA = [['razonSocial', 'razonSocial', 'Razón social'], ['rfcEmpresa', 'rfc', 'RFC'], ['domicilioFiscal', 'domicilioFiscal', 'Domicilio fiscal']];
+        // RFC de persona moral (12) o física (13); se acepta con o sin guiones
+        const REGEX_RFC_EMPRESA = /^[A-ZÑ&]{3,4}-?\d{6}-?[A-Z0-9]{2,3}$/;
+
+        // Activa o termina la edición; al terminar, los campos vuelven a lo guardado
+        function editarEmpresa(activo) {
+            CAMPOS_EMPRESA.forEach(([id]) => { campo(id).readOnly = !activo; });
+            campo('editCompanyBtn').classList.toggle('hidden', activo);
+            campo('cancelCompanyBtn').classList.toggle('hidden', !activo);
+            campo('saveCompanyBtn').classList.toggle('hidden', !activo);
+            campo('companyError').classList.add('hidden');
+            if (activo) campo('razonSocial').focus();
+            else renderEmpresa();
+        }
+
+        function guardarDatosEmpresa() {
+            const error = (texto) => { campo('companyError').textContent = texto; campo('companyError').classList.remove('hidden'); };
+            if (!puede('editarEmpresa')) return error('Tu usuario no puede cambiar los datos de la empresa.');
+            const nuevos = {
+                razonSocial: campo('razonSocial').value.trim().replace(/\s+/g, ' '),
+                rfc: campo('rfcEmpresa').value.trim().toUpperCase(),
+                domicilioFiscal: campo('domicilioFiscal').value.trim().replace(/\s+/g, ' ')
+            };
+            if (nuevos.razonSocial.length < 3) return error('Escribe la razón social.');
+            if (!REGEX_RFC_EMPRESA.test(nuevos.rfc)) return error('El RFC debe tener 12 o 13 caracteres (3 o 4 letras, 6 números de la fecha y la homoclave).');
+            if (nuevos.domicilioFiscal.length < 10) return error('Escribe el domicilio fiscal completo.');
+
+            const cambios = CAMPOS_EMPRESA
+                .filter(([, dato]) => EMPRESA[dato] !== nuevos[dato])
+                .map(([, dato, nombre]) => `${nombre}: ${EMPRESA[dato]} → ${nuevos[dato]}`);
+            if (!cambios.length) {
+                mostrarToast('No cambiaste ningún dato.');
+                return editarEmpresa(false);
+            }
+            if (!confirm(`¿Guardar los cambios?\n\n${cambios.join('\n')}\n\nSe verán en Información, en los recibos de nómina y en las actas que se impriman.`)) return;
+            if (guardarEmpresa(nuevos) === false) return error('No se guardó en la base de datos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+            Object.assign(EMPRESA, nuevos);
+            registrarBitacora('Datos de la empresa modificados', cambios.join('; '));
+            mostrarToast('✅ Datos de la empresa guardados.');
+            editarEmpresa(false);
+        }
+
+        campo('companyActions').classList.toggle('hidden', !puede('editarEmpresa'));
+        campo('editCompanyBtn').addEventListener('click', () => editarEmpresa(true));
+        campo('cancelCompanyBtn').addEventListener('click', () => editarEmpresa(false));
+        campo('saveCompanyBtn').addEventListener('click', guardarDatosEmpresa);
 
         function renderEmpresa() {
             campo('razonSocial').value = EMPRESA.razonSocial;

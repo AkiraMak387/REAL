@@ -1122,7 +1122,7 @@ body.page-empleados {
 
 .page-empleados .wizard-steps {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     padding: 14px 22px 0;
 }
@@ -2361,6 +2361,7 @@ body.page-empleados {
     align-items: center;
     gap: 6px;
     margin-top: 8px;
+    margin-right: 6px;
     padding: 4px 12px;
     border: 1px solid #fde68a;
     border-radius: 999px;
@@ -2373,6 +2374,33 @@ body.page-empleados {
 
 .page-empleados .docs-chip:hover {
     background: #fef3c7;
+}
+
+/* Avisos de lo que le falta al trabajador: un renglón propio bajo el encabezado de la ficha,
+   para que no compitan por el espacio con los botones */
+.page-empleados .detail-avisos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+}
+
+.page-empleados .detail-avisos .docs-chip {
+    margin: 0 0 14px;
+    text-align: left;
+}
+
+.page-empleados .detail-avatar {
+    flex: none;
+}
+
+/* Con poco ancho los botones pasan a un segundo renglón en vez de partir su texto en dos líneas */
+.page-empleados .detail-panel__actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.page-empleados .detail-panel__actions > * {
+    white-space: nowrap;
 }
 
 .page-empleados .docs-chip__ver {
@@ -2405,6 +2433,18 @@ body.page-empleados {
     background: #cbd5e1;
 }
 
+/* "Registrar rostro" del admin de sucursal: azul transparente, para que no se confunda con el aviso
+   amarillo de documentos ni con el rosa de "Regresar" */
+.page-empleados .detail-edit--aviso {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(37, 99, 235, 0.5);
+    color: #1d4ed8;
+}
+
+.page-empleados .detail-edit--aviso:hover {
+    background: rgba(59, 130, 246, 0.26);
+}
+
 .page-empleados .detail-delete,
 .page-empleados .btn--peligro {
     background: #dc2626;
@@ -2421,6 +2461,87 @@ body.page-empleados {
 /* Al editar no se muestra el registro de rostro: los campos ocupan todo el ancho */
 .page-empleados .form-layout--sin-rostro {
     display: block;
+}
+
+/* Etiqueta de la lista: lo que le falta al trabajador (rostro, documentos o datos) */
+.page-empleados .etiqueta-pendiente {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: help;
+}
+
+/* Le faltan varias cosas a la vez: "Expediente incompleto", en rojo suave */
+.page-empleados .etiqueta-pendiente--general {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Contactos de emergencia: en el formulario, cada contacto con su título; en la ficha ocupan media fila */
+.page-empleados .contact-note {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.page-empleados .contact-title {
+    margin: 4px 0 -4px;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.page-empleados .profile-item--doble {
+    grid-column: span 2;
+}
+
+/* Al editar: renglón con el estado del rostro y el botón para registrarlo */
+.page-empleados .edit-face-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Rostro pendiente: el renglón se pone en ámbar y el botón, grande y en el color principal */
+.page-empleados .edit-face-bar--pendiente {
+    padding: 14px 16px;
+    border-color: #fcd34d;
+    border-left: 5px solid #f59e0b;
+    background: #fffbeb;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #92400e;
+}
+
+.page-empleados .edit-face-bar--pendiente .btn {
+    flex: none;
+    min-height: 44px;
+    padding: 0 22px;
+    font-size: 15px;
+    box-shadow: 0 6px 16px rgba(37, 32, 96, 0.28);
+}
+
+/* Registrar el rostro de un trabajador que ya existe: del formulario solo queda el recuadro de la cámara */
+.page-empleados .modal--solo-rostro .wizard-steps,
+.page-empleados .modal--solo-rostro .fields-grid {
+    display: none;
+}
+
+.page-empleados .modal--solo-rostro .form-layout {
+    grid-template-columns: minmax(0, 420px);
+    justify-content: center;
 }
 
 .page-empleados .confirm-cambios {

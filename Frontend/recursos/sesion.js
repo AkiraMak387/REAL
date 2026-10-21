@@ -183,6 +183,7 @@ const ALMACEN = (() => {
         'elnevado.usuarios.v1': { coleccion: 'usuarios', id: (u) => u.usuario, opcional: true, sinMigrar: true },
         'elnevado.bitacora.v1': { coleccion: 'bitacora', id: (m) => `${m.fecha}_${m.usuario}` },
         'elnevado.configuracion.v1': { coleccion: 'ajustes', documento: 'configuracion' },
+        'elnevado.empresa.v1': { coleccion: 'ajustes', documento: 'empresa' },
         'elnevado.sucursales.v1': { coleccion: 'ajustes', documento: 'sucursales' }
     };
     const destinoDe = (clave) => DESTINOS[clave] || { coleccion: 'ajustes', documento: clave };
@@ -670,7 +671,8 @@ const PERMISOS = {
     registrarIncidencias: ['super', 'rh'],      // el admin las solicitará a RH
     aprobarSolicitudes: ['super', 'rh'],        // aprobar, rechazar o contraproponer
     resolverContrapropuesta: ['super'],         // cerrar una contrapropuesta sin esperar al admin de sucursal
-    solicitarVacaciones: ['admin'],             // RH y Super usuario las registran directo en Empleados
+    archivarSolicitudes: ['super', 'rh', 'admin'], // sacar de la vista las ya cerradas (no se borran); el admin, solo de su sucursal
+    solicitarVacaciones: ['admin'],            // RH y Super usuario las registran directo en Empleados
     solicitarActa: ['admin'],                   // falta administrativa: el admin la pide a RH
     levantarActa: ['super', 'rh'],              // RH y Super usuario la levantan ya aprobada
     darBaja: ['super'],
@@ -680,12 +682,14 @@ const PERMISOS = {
     revisarDocumentos: ['super', 'rh'],         // aprobar o devolver lo que subió el admin
     descargarDocumentos: ['super', 'rh'],       // el admin solo los ve; cada descarga queda en la bitácora
     eliminarDocumentos: ['super', 'rh'],        // borra el archivo y el documento vuelve a "Falta"
-    eliminarIncapacidades: ['super', 'rh'],     // para corregir una captura equivocada; pide motivo y queda en la bitácora
+    eliminarIncapacidades: ['super', 'rh'],     // (ya no se usa: las incapacidades se dan de baja, no se borran)
+    anularAusencias: ['super'],                 // dar de baja vacaciones e incapacidades: dejan de contar pero se conservan
     registrarAlta: ['super', 'rh', 'admin'],    // alta del seguro al terminar la incapacidad; el admin, solo de su sucursal
     aprobarAlta: ['super', 'rh'],               // aprobar o devolver el alta que subió el admin
     editarSucursales: ['super', 'rh'],          // agregar sucursales
     renombrarSucursales: ['super'],             // cambiarle el nombre a una sucursal que ya existe
     editarConfiguracion: ['super'],             // RH la ve en solo lectura
+    editarEmpresa: ['super'],                   // razón social, RFC y domicilio fiscal (Información)
     otorgarBono: ['super'],
     generarRecibos: ['super', 'rh'],
     generarListaAsistencia: ['admin'],          // lista semanal de su sucursal en PDF (por ahora solo el admin)
@@ -917,7 +921,7 @@ function abrirCambioContrasena() {
     document.getElementById('claveActual').focus();
 }
 
-// Campana: solicitudes que esperan respuesta de este usuario
+// Solicitudes que esperan respuesta de este usuario
 function solicitudesPorAtender() {
     const solicitudes = ALMACEN.leer('elnevado.solicitudes.v1') || [];
     // Además de lo que le toca resolver, cuentan las solicitudes suyas que alguien más ya aprobó o rechazó y aún no ve
@@ -927,19 +931,19 @@ function solicitudesPorAtender() {
     return 0;
 }
 
-function prepararCampana() {
-    const campana = document.querySelector('.btn-notification');
-    if (!campana || !USUARIO_ACTUAL) return;
-    if (!puedeAbrir('solicitudes.html')) {
-        campana.remove();
-        return;
-    }
+// Menú: contador junto a "Solicitudes" con las que esperan respuesta de este usuario.
+// Sustituye a la campana del encabezado, que avisaba de lo mismo: por eso la campana se quita.
+// La de Vacaciones (#notifBtn) se queda: abre su propio panel de avisos de salidas y regresos.
+function pintarContadorSolicitudes() {
+    const campana = document.querySelector('.btn-notification:not(#notifBtn)');
+    if (campana) campana.remove();
+    const enlace = document.querySelector('.sidebar__nav a[href="solicitudes.html"]');
+    if (!enlace || !USUARIO_ACTUAL) return;
     const pendientes = solicitudesPorAtender();
-    campana.classList.add('btn-notification--con-contador');
-    campana.title = pendientes ? `${pendientes} solicitud${pendientes === 1 ? '' : 'es'} por atender o con respuesta nueva` : 'Sin solicitudes por atender';
-    campana.setAttribute('aria-label', campana.title);
-    if (pendientes) campana.insertAdjacentHTML('beforeend', `<span class="contador-campana">${pendientes > 9 ? '9+' : pendientes}</span>`);
-    campana.addEventListener('click', () => { location.href = 'solicitudes.html'; });
+    const anterior = enlace.querySelector('.nav-contador');
+    if (anterior) anterior.remove();
+    enlace.title = pendientes ? `${pendientes} solicitud${pendientes === 1 ? '' : 'es'} por atender o con respuesta nueva` : '';
+    if (pendientes) enlace.insertAdjacentHTML('beforeend', `<span class="nav-contador">${pendientes > 9 ? '9+' : pendientes}</span>`);
 }
 
 // Menú: contador junto a "Empleados" con los trabajadores cuyos documentos esperan a este usuario
@@ -1016,7 +1020,7 @@ if (PAGINA_ACTUAL !== 'index.html') {
     document.addEventListener('DOMContentLoaded', () => {
         vigia.disconnect();
         prepararMenu();
-        prepararCampana();
+        pintarContadorSolicitudes();
         pintarContadorDocumentos();
     });
 }

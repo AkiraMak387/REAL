@@ -200,7 +200,7 @@
                             <th>Estado</th>
                             <th>Certificado</th>
                             <th>Alta del seguro</th>
-                            <th id="expedienteColBorrar" class="hidden"><span class="sr-only">Borrar</span></th>
+                            <th id="expedienteColBorrar" class="hidden"><span class="sr-only">Dar de baja</span></th>
                         </tr>
                     </thead>
                     <tbody id="expedienteTabla"></tbody>
@@ -236,9 +236,9 @@
                     <button class="btn btn--peligro" type="button" id="expedienteDevolverSi">Devolver alta</button>
                 </div>
             </div>
-            <!-- Confirmación para borrar una incapacidad capturada por error (solo RH y Super usuario) -->
+            <!-- Confirmación para dar de baja una incapacidad (solo Super usuario): deja de contar pero se conserva -->
             <div class="expediente-borrar hidden" id="expedienteBorrar" role="alertdialog" aria-labelledby="expedienteBorrarTitulo">
-                <strong id="expedienteBorrarTitulo">¿Borrar esta incapacidad?</strong>
+                <strong id="expedienteBorrarTitulo">¿Dar de baja esta incapacidad?</strong>
                 <p id="expedienteBorrarTexto"></p>
                 <p class="expediente-borrar__aviso hidden" id="expedienteBorrarAviso"></p>
                 <label for="expedienteBorrarMotivo">Motivo *</label>
@@ -246,7 +246,7 @@
                 <small class="expediente-borrar__error" id="expedienteBorrarError"></small>
                 <div class="expediente-borrar__acciones">
                     <button class="btn btn--ghost" type="button" id="expedienteBorrarNo">No, cancelar</button>
-                    <button class="btn btn--peligro" type="button" id="expedienteBorrarSi">Sí, borrar</button>
+                    <button class="btn btn--peligro" type="button" id="expedienteBorrarSi">Sí, dar de baja</button>
                 </div>
             </div>
             <!-- Certificado del IMSS de la incapacidad elegida: se ve aquí mismo -->
@@ -408,7 +408,7 @@
             const incapacidades = (emp.incapacidades || [])
                 .map((inc, indice) => ({ inc, fin: finIncapacidad(inc), indice }))
                 .sort((a, b) => b.inc.inicio.localeCompare(a.inc.inicio));
-            const puedeBorrar = puede('eliminarIncapacidades');
+            const puedeBorrar = puede('anularAusencias'); // dar de baja: solo el Super usuario
             const anio = HOY.getFullYear();
             const delAnio = incapacidades.filter(({ inc }) => Number(inc.inicio.slice(0, 4)) === anio);
             const activa = incapacidades.find(({ inc, fin }) => inc.inicio <= HOY_ISO && fin >= HOY_ISO);
@@ -440,8 +440,22 @@
                         ? `<button type="button" data-certificado="${escaparHtml(inc.archivo.clave)}" data-emp="${emp.id}" title="${escaparHtml(inc.archivo.nombre)}">📎 Ver</button>`
                         : '<span class="sin-certificado">Sin adjuntar</span>'}</td>
                     <td class="action-cell">${celdaAlta(emp, inc, fin, indice)}</td>
-                    ${puedeBorrar ? `<td class="action-cell"><button class="boton-borrar" type="button" data-borrar="${indice}" data-emp="${emp.id}" title="Borrar esta incapacidad">🗑 Borrar</button></td>` : ''}
-                </tr>`).join('') || `<tr><td colspan="8" class="sin-certificado">Sin incapacidades registradas.</td></tr>`;
+                    ${puedeBorrar ? `<td class="action-cell"><button class="boton-borrar" type="button" data-borrar="${indice}" data-emp="${emp.id}" title="Dar de baja esta incapacidad">⛔ Dar de baja</button></td>` : ''}
+                </tr>`).join('')
+                // Las dadas de baja ya no cuentan, pero se conservan al final del historial con su certificado y su motivo
+                + (emp.incapacidadesAnuladas || []).slice().sort((a, b) => b.inicio.localeCompare(a.inicio)).map((inc) => `
+                <tr style="color:#94a3b8">
+                    <td class="col-hora"><s>${escaparHtml(inc.folio)}</s></td>
+                    <td>${escaparHtml(inc.tipo)}</td>
+                    <td class="col-hora"><s>${formatoFecha(inc.inicio)} – ${formatoFecha(finIncapacidad(inc))}</s></td>
+                    <td><s>${inc.dias}</s></td>
+                    <td><span class="status-pill status-pill--done">Dada de baja</span></td>
+                    <td class="action-cell">${inc.archivo
+                        ? `<button type="button" data-certificado="${escaparHtml(inc.archivo.clave)}" data-emp="${emp.id}" title="${escaparHtml(inc.archivo.nombre)}">📎 Ver</button>`
+                        : '<span class="sin-certificado">Sin adjuntar</span>'}</td>
+                    <td colspan="${puedeBorrar ? 2 : 1}" style="font-size:12px;white-space:normal">${escaparHtml(inc.anulada.motivo)}<br><small>${escaparHtml(inc.anulada.por)} · ${formatoFecha(inc.anulada.fecha.slice(0, 10))}</small></td>
+                </tr>`).join('')
+                || `<tr><td colspan="8" class="sin-certificado">Sin incapacidades registradas.</td></tr>`;
 
             elementoAnterior = document.activeElement;
             expedienteModal.classList.remove('hidden');
@@ -679,7 +693,7 @@
             mostrarToast('Alta devuelta. La sucursal tendrá que subirla de nuevo.');
         }
 
-        // ---------- Borrar una incapacidad capturada por error ----------
+        // ---------- Dar de baja una incapacidad: deja de contar pero se conserva en el historial ----------
         let porBorrar = null; // { emp, inc }
 
         function cancelarBorrado() {
@@ -690,17 +704,17 @@
         function pedirBorrado(empId, indice) {
             const emp = EMPLEADOS.find((e) => e.id === empId);
             const inc = emp && (emp.incapacidades || [])[indice];
-            if (!inc || !puede('eliminarIncapacidades')) return;
+            if (!inc || !puede('anularAusencias')) return;
             cancelarAlta();
             cancelarDevolucion();
             porBorrar = { emp, inc };
             const fin = finIncapacidad(inc);
             document.getElementById('expedienteBorrarTexto').innerHTML =
-                `Se borrará la incapacidad con folio <strong>${escaparHtml(inc.folio)}</strong> (${escaparHtml(inc.tipo)}, ${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}, ${inc.dias} ${inc.dias === 1 ? 'día' : 'días'})${inc.archivo ? ' junto con su certificado' : ''}. No se puede recuperar.`;
-            // Con días ya pasados, borrarla cambia la asistencia (y la nómina) de esos días
+                `Se dará de baja la incapacidad con folio <strong>${escaparHtml(inc.folio)}</strong> (${escaparHtml(inc.tipo)}, ${formatoFecha(inc.inicio)} – ${formatoFecha(fin)}, ${inc.dias} ${inc.dias === 1 ? 'día' : 'días'}). Deja de contar, pero el registro${inc.archivo ? ' y su certificado' : ''} se conserva${inc.archivo ? 'n' : ''} en el historial como "Dada de baja".`;
+            // Con días ya pasados, darla de baja cambia la asistencia (y la nómina) de esos días
             const aviso = document.getElementById('expedienteBorrarAviso');
             aviso.classList.toggle('hidden', inc.inicio > HOY_ISO);
-            aviso.textContent = '⚠️ Esta incapacidad tiene días que ya pasaron: al borrarla, esos días volverán a contar como faltas en Asistencia. Si la nómina de esas semanas ya se pagó, habrá que revisarla.';
+            aviso.textContent = '⚠️ Esta incapacidad tiene días que ya pasaron: al darla de baja, esos días volverán a contar como faltas en Asistencia. Si la nómina de esas semanas ya se pagó, habrá que revisarla.';
             document.getElementById('expedienteBorrarMotivo').value = '';
             document.getElementById('expedienteBorrarError').textContent = '';
             const caja = document.getElementById('expedienteBorrar');
@@ -710,35 +724,25 @@
         }
 
         async function confirmarBorrado() {
-            if (!porBorrar || !puede('eliminarIncapacidades')) return;
+            if (!porBorrar || !puede('anularAusencias')) return;
             const { emp, inc } = porBorrar;
             const error = document.getElementById('expedienteBorrarError');
             const motivo = document.getElementById('expedienteBorrarMotivo').value.trim();
-            if (motivo.length < 5) { error.textContent = 'Escribe por qué se borra.'; return; }
-            const posicion = emp.incapacidades.indexOf(inc);
-            if (posicion < 0) return cancelarBorrado();
+            if (motivo.length < 5) { error.textContent = 'Escribe por qué se da de baja.'; return; }
+            if (!(emp.incapacidades || []).includes(inc)) return cancelarBorrado();
 
-            emp.incapacidades.splice(posicion, 1);
-            if (guardarCambios() === false) {
-                emp.incapacidades.splice(posicion, 0, inc); // no se guardó: la incapacidad se queda
+            // El certificado y el alta no se borran: la incapacidad se conserva completa en el historial
+            if (!anularAusencia(emp, 'incapacidades', inc, motivo)) {
                 error.textContent = 'No se guardó en la base de datos. Revisa la conexión e inténtalo de nuevo.';
                 return;
             }
-            for (const guardado of [inc.archivo, inc.alta && inc.alta.archivo]) {
-                if (!guardado) continue;
-                try {
-                    await AlmacenDocumentos.borrar(emp.id, guardado.clave);
-                } catch (e) {
-                    // el archivo no está en este navegador
-                }
-            }
-            registrarBitacora('Incapacidad eliminada', `${emp.id} · ${emp.nombre} · Folio ${inc.folio} · ${formatoFecha(inc.inicio)} – ${formatoFecha(finIncapacidad(inc))} · ${motivo}`);
+            registrarBitacora('Incapacidad dada de baja', `${emp.id} · ${emp.nombre} · Folio ${inc.folio} · ${formatoFecha(inc.inicio)} – ${formatoFecha(finIncapacidad(inc))} · ${motivo}`);
             renderizar();
             pintarContadorDocumentos();
             const regresarA = elementoAnterior;
             abrirExpediente(emp.id, '');
             elementoAnterior = regresarA;
-            mostrarToast(`Incapacidad con folio ${inc.folio} borrada.`);
+            mostrarToast(`Incapacidad con folio ${inc.folio} dada de baja.`);
         }
 
         function cerrarExpediente() {
