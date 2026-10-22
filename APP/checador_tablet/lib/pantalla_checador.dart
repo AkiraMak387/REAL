@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -107,6 +108,9 @@ class _PantallaChecadorState extends State<PantallaChecador>
   Future<void> _iniciar() async {
     _ajustes = await Ajustes.cargar();
     _rostros.escuchar(_ajustes!.bodega);
+    if (FirebaseAuth.instance.currentUser == null) {
+      _mostrarError('Tablet sin cuenta', 'Mantén presionado el logo y entra a Ajustes para iniciar sesión.');
+    }
     _api = ApiCliente(_ajustes!.servidor);
     await _cargarConfig();
     _reloj = Timer.periodic(const Duration(seconds: 1), (_) => _tic());

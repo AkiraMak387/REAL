@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'ajustes.dart';
@@ -18,6 +19,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
   late final TextEditingController _servidor;
   late final TextEditingController _dispositivo;
   late final TextEditingController _bodega;
+  final _correo = TextEditingController(text: FirebaseAuth.instance.currentUser?.email ?? '');
+  final _contrasena = TextEditingController();
   String? _resultado;
   bool _resultadoOk = false;
   bool _probando = false;
@@ -35,6 +38,8 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
     _servidor.dispose();
     _dispositivo.dispose();
     _bodega.dispose();
+    _correo.dispose();
+    _contrasena.dispose();
     super.dispose();
   }
 
@@ -70,6 +75,18 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
         _resultado = 'La clave de bodega debe tener 2 dígitos, por ejemplo 01.';
       });
       return;
+    }
+    // La cuenta de la tableta (la da de alta Sistemas en Firebase); Firebase guarda la sesión, no la contraseña
+    if (_contrasena.text.isNotEmpty) {
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(email: _correo.text.trim(), password: _contrasena.text);
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _resultadoOk = false;
+          _resultado = 'No se pudo iniciar sesión con la cuenta de la tablet (${e.code}).';
+        });
+        return;
+      }
     }
     widget.ajustes.bodega = _bodega.text.trim();
     widget.ajustes.servidor = _servidor.text.trim();
@@ -122,6 +139,27 @@ class _PantallaAjustesState extends State<PantallaAjustes> {
               border: OutlineInputBorder(),
               hintText: '01',
               helperText: 'La misma clave que tiene la bodega en el sistema web',
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text('Cuenta de esta tablet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _correo,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'tablet.colon01@delnevado.com'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _contrasena,
+            obscureText: true,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: 'Contraseña',
+              helperText: FirebaseAuth.instance.currentUser == null
+                  ? 'Sin sesión: la tablet no puede leer ni guardar checadas'
+                  : 'Sesión activa. Escribe la contraseña solo para cambiar de cuenta.',
             ),
           ),
           const SizedBox(height: 32),

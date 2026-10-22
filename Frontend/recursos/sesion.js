@@ -178,6 +178,9 @@ const ALMACEN = (() => {
         'elnevado.empleados.v4': { coleccion: 'empleados', id: (e) => e.id, bodega: (e) => e.suc, protegidos: ['checadas', 'rostro'] },
         'elnevado.solicitudes.v1': { coleccion: 'solicitudes', id: (s) => s.id, bodega: (s) => s.suc },
         'elnevado.reportes.v1': { coleccion: 'reportes', id: (r) => `${r.fecha}_${r.empleado}`, bodega: (r) => r.suc },
+        // Nómina semanal de cada sucursal: la arma el admin y la aprueba o rechaza el Super usuario o RH
+        // "opcional": si las reglas de Firestore aún no la permiten, no se muestra el aviso rojo en todas las páginas
+        'elnevado.nominas.v1': { coleccion: 'nominas', id: (n) => n.id, bodega: (n) => n.suc, opcional: true },
         // "opcional": si no se puede leer (por las reglas de Firestore) no se muestra el aviso de
         // "sin conexión": se usan los perfiles iniciales. "sinMigrar": nunca existió en el formato anterior.
         'elnevado.usuarios.v1': { coleccion: 'usuarios', id: (u) => u.usuario, opcional: true, sinMigrar: true },
@@ -311,8 +314,18 @@ const ALMACEN = (() => {
         ? `bodegas/${idSeguro(destino.bodega(item), 'sin-bodega')}/${destino.coleccion}/${id}`
         : `${destino.coleccion}/${id}`);
 
+    // Bodega del admin de sucursal: solo puede leer la suya, y Firestore rechaza completa una consulta
+    // que abarque otras bodegas. null para los demás roles (o si todavía no hay sesión).
+    function bodegaPropia() {
+        try {
+            return USUARIO_ACTUAL && USUARIO_ACTUAL.rol === 'admin' ? idSeguro(USUARIO_ACTUAL.sucursal, 'sin-bodega') : null;
+        } catch (error) {
+            return null; // USUARIO_ACTUAL aún no existe (se está leyendo la colección de usuarios)
+        }
+    }
+
     // Cada colección se lee una sola vez por página, la primera vez que se necesita.
-    // Las que van por bodega se leen de todas las bodegas en una sola consulta.
+    // Las que van por bodega se leen de todas las bodegas en una sola consulta (el admin, solo de la suya).
     function cargar(destino) {
         const coleccion = destino.coleccion;
         if (coleccion in colecciones) return colecciones[coleccion];
@@ -329,9 +342,14 @@ const ALMACEN = (() => {
                 if (destino.bodega && ruta !== rutaDe(destino, valor, ruta.split('/').pop())) porReubicar.add(coleccion);
             };
             if (destino.bodega) {
-                const respuesta = peticion('POST', `${URL_FIRESTORE}:runQuery?${CON_LLAVE}`, {
-                    structuredQuery: { from: [{ collectionId: coleccion, allDescendants: true }] }
-                });
+                const propia = bodegaPropia();
+                const respuesta = propia
+                    ? peticion('POST', `${URL_FIRESTORE}/bodegas/${propia}:runQuery?${CON_LLAVE}`, {
+                        structuredQuery: { from: [{ collectionId: coleccion }] }
+                    })
+                    : peticion('POST', `${URL_FIRESTORE}:runQuery?${CON_LLAVE}`, {
+                        structuredQuery: { from: [{ collectionId: coleccion, allDescendants: true }] }
+                    });
                 respuesta.forEach((fila) => { if (fila.document) anotar(fila.document); });
             } else {
                 let pagina = '';
@@ -657,7 +675,7 @@ const ROLES = {
 const PAGINAS_POR_ROL = {
     super: ['inicio.html', 'empleados.html', 'asistencia.html', 'incapacidades.html', 'vacaciones.html', 'solicitudes.html', 'nomina.html', 'informacion.html', 'configuracion.html', 'usuarios.html'],
     rh: ['inicio.html', 'empleados.html', 'asistencia.html', 'incapacidades.html', 'vacaciones.html', 'solicitudes.html', 'nomina.html', 'informacion.html', 'configuracion.html'],
-    admin: ['inicio.html', 'empleados.html', 'asistencia.html', 'incapacidades.html', 'vacaciones.html', 'solicitudes.html', 'informacion.html'],
+    admin: ['inicio.html', 'empleados.html', 'asistencia.html', 'incapacidades.html', 'vacaciones.html', 'solicitudes.html', 'nomina.html', 'informacion.html'],
     // Sistemas da mantenimiento: no ve datos personales ni sueldos
     sistemas: ['usuarios.html']
 };
@@ -691,7 +709,10 @@ const PERMISOS = {
     editarConfiguracion: ['super'],             // RH la ve en solo lectura
     editarEmpresa: ['super'],                   // razón social, RFC y domicilio fiscal (Información)
     otorgarBono: ['super'],
-    generarRecibos: ['super', 'rh'],
+    generarRecibos: ['super', 'rh'],           // guardar recibos y registrar el pago de la semana
+    armarNomina: ['admin'],                     // captura la nómina de su sucursal y la envía a revisión
+    aprobarNomina: ['super', 'rh'],             // aprueba o rechaza la nómina que envió el admin de sucursal
+    juzgarFaltas: ['admin'],                    // desde Nómina decide y aplica faltas administrativas (y la baja si lo corren)
     generarListaAsistencia: ['admin'],          // lista semanal de su sucursal en PDF (por ahora solo el admin)
     reportarFallaChecadora: ['admin'],          // el admin no captura asistencias, solo las reporta
     registrarAsistenciaManual: ['super', 'rh'], // cuando no hubo checada
@@ -964,6 +985,21 @@ function pintarContadorDocumentos() {
     pintarContadorSinAlta();
 }
 
+// Menú: contador junto a "Nómina" con las nóminas que esperan a este usuario
+// (Super usuario y RH: las que enviaron los admin; el admin: la que debe enviar o corregir)
+function pintarContadorNomina() {
+    const enlace = document.querySelector('.sidebar__nav a[href="nomina.html"]');
+    if (!enlace || !USUARIO_ACTUAL || typeof nominasPorAprobar !== 'function') return;
+    const porAprobar = puede('aprobarNomina');
+    const pendientes = porAprobar ? nominasPorAprobar().length : nominasPorEnviar().length;
+    const anterior = enlace.querySelector('.nav-contador');
+    if (anterior) anterior.remove();
+    enlace.title = pendientes
+        ? `${pendientes} nómina${pendientes === 1 ? '' : 's'} ${porAprobar ? 'por aprobar' : 'por enviar o corregir'}`
+        : '';
+    if (pendientes) enlace.insertAdjacentHTML('beforeend', `<span class="nav-contador">${pendientes > 9 ? '9+' : pendientes}</span>`);
+}
+
 // Menú: contador junto a "Incapacidades" con los trabajadores que no pueden trabajar
 // porque ya terminó su incapacidad y no han presentado el alta del seguro
 function pintarContadorSinAlta() {
@@ -1022,5 +1058,6 @@ if (PAGINA_ACTUAL !== 'index.html') {
         prepararMenu();
         pintarContadorSolicitudes();
         pintarContadorDocumentos();
+        pintarContadorNomina();
     });
 }

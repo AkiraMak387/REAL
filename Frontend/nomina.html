@@ -238,6 +238,12 @@
                     </div>
                 </div>
                 <div class="recibos-resumen" id="recibosResumen"></div>
+                <!-- Super usuario y RH: nóminas que enviaron los admin de sucursal, para aprobarlas o rechazarlas -->
+                <div class="nominas-sucursal hidden" id="nominasSucursal"></div>
+                <!-- Admin: asistente que lo lleva trabajador por trabajador, una pregunta a la vez -->
+                <div class="asistente hidden" id="asistente">
+                    <div id="asisVista" aria-live="polite"></div>
+                </div>
                 <div class="table-responsive">
                     <table class="table recibos-tabla">
                         <thead>
@@ -355,10 +361,11 @@
             <p class="recibo-estado hidden" id="reciboAprobacion"></p>
             <div id="reciboContenido"></div>
 
-            <!-- Horas extra, pago extra, bonos y descuentos: solo el Super usuario, y solo mientras el recibo no esté pagado -->
+            <!-- Horas extra, pago extra, bonos y descuentos: el admin (mientras su nómina no esté enviada) y el Super usuario, mientras el recibo no esté pagado -->
             <section class="bono-editor hidden" id="bonoEditor">
                 <h4>Horas extra</h4>
-                <p class="bono-editor__ayuda">Indique las horas extra trabajadas en la semana y el monto que se pagará por ellas. Se sumará al total al guardar.</p>
+                <p class="bono-editor__ayuda">Indique las horas extra trabajadas en la semana. El pago se calcula solo (las primeras 9 al doble y las siguientes al triple) y se puede ajustar. Se sumará al total al guardar.</p>
+                <p class="extra-editor__checadora" id="extraChecadora"></p>
                 <div class="extra-editor__fila">
                     <div class="bono-editor__campo bono-editor__campo--monto">
                         <label for="extraHoras">Horas extra</label>
@@ -368,6 +375,11 @@
                         <label for="extraPago">Pago extra</label>
                         <input id="extraPago" type="number" min="0" step="0.01" inputmode="decimal" placeholder="$0.00">
                     </div>
+                </div>
+                <div class="extra-editor__justificacion hidden" id="extraJustificacionCaja">
+                    <label for="extraJustificacion">¿Por qué hizo tiempo extra?</label>
+                    <textarea id="extraJustificacion" maxlength="300"
+                        placeholder="Ej. Descarga de dos tráileres que llegaron tarde el jueves"></textarea>
                 </div>
 
                 <h4>Bonos de este recibo</h4>
@@ -404,6 +416,36 @@
                 </div>
 
                 <p class="bono-editor__error hidden" id="bonoError" role="alert"></p>
+            </section>
+
+            <!-- Falta administrativa: el admin de la sucursal decide y la aplica al momento -->
+            <section class="falta-editor hidden" id="faltaEditor">
+                <details id="faltaDetalles">
+                    <summary>⚠️ Registrar falta administrativa</summary>
+                    <p class="bono-editor__ayuda">Úsala si el trabajador hizo algo indebido. Tú decides cómo se paga ese día y si
+                        se le da de baja; se aplica al momento y queda en su expediente con el acta.</p>
+                    <div id="faltaRegistradas"></div>
+                    <div class="falta-editor__campos" id="faltaCampos">
+                        <label>Día<select id="faltaDia"></select></label>
+                        <label>¿A qué hora dejó de trabajar?<input id="faltaHora" type="time"></label>
+                        <label class="falta-editor__ancho">¿Qué pasó?
+                            <textarea id="faltaHechos" maxlength="500"
+                                placeholder="Ej. A las 11:00 se le encontró sacando mercancía sin autorización"></textarea></label>
+                        <label>Testigo 1<input id="faltaTestigo1" type="text" maxlength="80" placeholder="Nombre completo"></label>
+                        <label>Testigo 2<input id="faltaTestigo2" type="text" maxlength="80" placeholder="Nombre completo"></label>
+                        <fieldset class="falta-editor__ancho">
+                            <legend>¿Ese día se le paga?</legend>
+                            <label><input type="radio" name="faltaPago" value="horas" checked> Sí, solo las horas que trabajó</label>
+                            <label><input type="radio" name="faltaPago" value="no"> No, cuenta como falta (no se paga el día)</label>
+                        </fieldset>
+                        <label class="falta-editor__ancho falta-editor__baja"><input type="checkbox" id="faltaBaja"> Darlo de baja
+                            desde ese día (despido)</label>
+                        <p class="bono-editor__error hidden falta-editor__ancho" id="faltaError" role="alert"></p>
+                        <div class="falta-editor__ancho falta-editor__acciones">
+                            <button class="btn falta-editor__aplicar" id="faltaAplicar" type="button">Aplicar falta administrativa</button>
+                        </div>
+                    </div>
+                </details>
             </section>
 
             <div class="recibo-modal__acciones">
@@ -472,6 +514,21 @@
         </div>
     </div>
 
+    <!-- Rechazo de la nómina de una sucursal: regresa al admin con el motivo -->
+    <div class="nom-modal hidden" id="nominaRechazoModal" role="dialog" aria-modal="true" aria-labelledby="nominaRechazoTitulo">
+        <div class="nom-modal__caja">
+            <h3 id="nominaRechazoTitulo">Rechazar la nómina de la sucursal</h3>
+            <p class="nom-modal__texto" id="nominaRechazoTexto"></p>
+            <label class="decision-campo" for="nominaRechazoMotivo">¿Qué debe corregir el admin? (obligatorio)</label>
+            <textarea class="decision-motivo" id="nominaRechazoMotivo" maxlength="300" placeholder="Ej. Revisa las horas extra de Juan Pérez: no coinciden con sus checadas"></textarea>
+            <p class="bono-editor__error hidden" id="nominaRechazoError" role="alert"></p>
+            <div class="nom-modal__acciones">
+                <button class="btn btn--outline" type="button" id="nominaRechazoCancelar">Cancelar</button>
+                <button class="btn btn--outline btn--rechazar" type="button" id="nominaRechazoConfirmar">✕ Rechazar y regresar al admin</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Avance mientras el sistema guarda -->
     <div class="nom-modal hidden" id="avanceModal" role="dialog" aria-modal="true" aria-labelledby="avanceTitulo" aria-live="polite">
         <div class="nom-modal__caja">
@@ -497,12 +554,18 @@
             const campo = (id) => document.getElementById(id);
             const selSemana = campo('reciboSemana');
             const selSucursal = campo('reciboSucursal');
-            // Horas extra, pago extra, bonos y descuentos: solo los captura el Super usuario
+            // Horas extra, pago extra, bonos y descuentos: los captura el admin de la sucursal (mientras su
+            // nómina no esté enviada ni aprobada) y el Super usuario
             const ES_SUPER = USUARIO_ACTUAL.rol === 'super';
-            const PUEDE_GUARDAR = puede('generarRecibos');
-            // Aceptar o rechazar un recibo: por ahora SIN restricción de rol (cualquier usuario puede).
-            // Cuando se desee limitarlo, aquí se vuelve a validar USUARIO_ACTUAL.rol.
-            const ES_DIRECTOR = true;
+            const ES_ADMIN = puede('armarNomina');
+            const PUEDE_PAGAR = puede('generarRecibos');
+            const PUEDE_GUARDAR = PUEDE_PAGAR || ES_ADMIN;
+            // Aprobar o rechazar la nómina completa que envió el admin de cada sucursal
+            const PUEDE_APROBAR = puede('aprobarNomina');
+            const MIN_JUSTIFICACION = 10;
+            // Aceptar o rechazar un recibo: por ahora SIN restricción de rol, salvo el admin de sucursal,
+            // que envía su nómina completa a revisión. Cuando se desee limitarlo, aquí se vuelve a validar USUARIO_ACTUAL.rol.
+            const ES_DIRECTOR = !ES_ADMIN;
             const pausa = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
             const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
             const sumaMontos = (lista) => redondear(lista.reduce((total, b) => total + b.monto, 0));
@@ -546,8 +609,32 @@
                 return `<option value="${aISO(inicio)}">${texto}</option>`;
             }).join('');
             selSemana.value = aISO(sumarDias(actual, -7)); // la última semana completa
-            selSucursal.innerHTML = '<option value="todas">Todas las sucursales</option>' +
+            // El admin solo arma la nómina de su sucursal
+            selSucursal.innerHTML = (puede('verTodasSucursales') ? '<option value="todas">Todas las sucursales</option>' : '') +
                 listaSucursales().map(({ clave, nombre }) => `<option value="${clave}">${clave} - ${escaparHtml(nombre)}</option>`).join('');
+            if (!puede('verTodasSucursales')) selSucursal.disabled = true;
+            if (!PUEDE_PAGAR) campo('registerPayrollBtn').classList.add('hidden');
+
+            // El admin solo ve el asistente y la semana: nada de tablas, totales ni historial de pagos
+            if (ES_ADMIN) {
+                document.querySelectorAll('.header .search-box, #summaryBtn, #pendientesBtn, .seccion-ejemplo, .stats-grid, .filters-bar, .table-card, #recibosResumen, '
+                    + '.recibos-card .table-responsive, .recibos-nota, #imprimirRecibos, #reciboSucursal, .recibos-header > div:first-child')
+                    .forEach((elemento) => { elemento.style.display = 'none'; });
+                document.querySelector('.page-header h1').textContent = 'Nómina de mi sucursal';
+                document.querySelector('.page-header .page-subtitle').textContent =
+                    'Revisa a tus trabajadores uno por uno y envía la nómina a revisión (Super usuario o RH).';
+                selSemana.insertAdjacentHTML('beforebegin', '<label for="reciboSemana" class="asistente-semana">Semana:</label>');
+                campo('asistente').classList.remove('hidden');
+            }
+
+            // ---------- Estado de la nómina de cada sucursal ----------
+            const semanaTerminada = (semana) => aISO(sumarDias(fechaDesdeISO(semana), 6)) <= HOY_ISO;
+            const nominaDelRecibo = (r) => nominaDe(r.semana, r.emp.suc);
+            const nominaAprobada = (r) => estadoNomina(nominaDelRecibo(r)) === 'aprobada';
+            // El admin edita mientras su nómina no se haya enviado o se la hayan rechazado
+            const adminPuedeEditar = (r) => ES_ADMIN && ['borrador', 'rechazada'].includes(estadoNomina(nominaDelRecibo(r)));
+            const puedeEditar = (r) => !estaPagado(r) && (ES_SUPER || adminPuedeEditar(r));
+            const faltaJustificacion = (r) => r.extras > 0 && (r.justificacion || '').trim().length < MIN_JUSTIFICACION;
 
             function textoSemana() {
                 const inicio = fechaDesdeISO(selSemana.value);
@@ -620,7 +707,10 @@
                 const fin = sumarDias(inicio, 6);
                 const dias = Array.from({ length: 7 }, (_, i) => diaDeLaSemana(emp, sumarDias(inicio, i)));
                 const resumen = resumenRango(emp, inicio, fin);
-                const ajuste = (emp.extrasNomina || []).find((a) => a.semana === semana) || {};
+                const capturado = (emp.extrasNomina || []).find((a) => a.semana === semana);
+                // Si nadie las ha capturado, al admin se le proponen las horas extra que marcó la checadora
+                const precargar = ES_ADMIN && !capturado;
+                const ajuste = capturado || {};
                 const bonos = (emp.bonos || []).filter((b) => b.semana === semana).map((b) => ({ ...b }));
                 const descuentos = (emp.descuentos || []).filter((d) => d.semana === semana).map((d) => ({ ...d }));
                 let guardado = null;
@@ -630,8 +720,8 @@
                     guardado = null;
                 }
                 const sueldo = redondear(Number(emp.sueldo) || 0);
-                const extras = Number(ajuste.horas) || 0;
-                const pagoExtras = redondear(Number(ajuste.pago) || 0);
+                const extras = precargar ? resumen.extras : Number(ajuste.horas) || 0;
+                const pagoExtras = precargar ? pagoHorasExtra(sueldo, extras) : redondear(Number(ajuste.pago) || 0);
                 const totalBonos = sumaBonos(bonos);
                 const totalDescuentos = sumaMontos(descuentos);
 
@@ -641,7 +731,27 @@
                 const tarifa = tarifaHora(emp);
                 const descuentoDias = Math.min(redondear(horasNoPagadas * tarifa), sueldo);
 
-                const total = Math.max(0, redondear(sueldo - descuentoDias + pagoExtras + totalBonos - totalDescuentos));
+                // Falta administrativa (la decide el admin): el día no se paga, o solo sus horas trabajadas,
+                // y si lo dieron de baja por ella, tampoco los días que siguen en la semana.
+                // Si el día ya cuenta como falta, ya va dentro de los días no pagados y no se descuenta otra vez.
+                const diario = sueldo / 7;
+                const finIso = aISO(fin);
+                const ajustesFalta = [];
+                (emp.actas || []).filter((a) => a.fecha >= semana && a.fecha <= finIso).forEach((a) => {
+                    const dia = dias.find((x) => x.iso === a.fecha);
+                    if (a.cuentaComoFalta) {
+                        if (!(dia && dia.noPagado)) ajustesFalta.push({ texto: `Falta administrativa del ${formatoFecha(a.fecha)}: no se paga el día`, monto: redondear(diario) });
+                    } else if (dia && dia.horas < 8) {
+                        ajustesFalta.push({ texto: `Falta administrativa del ${formatoFecha(a.fecha)}: solo se pagan ${formatoHoras(dia.horas)} trabajadas`, monto: redondear(diario * (1 - dia.horas / 8)) });
+                    }
+                });
+                if (emp.baja && emp.baja.acta && emp.baja.fecha >= semana && emp.baja.fecha < finIso) {
+                    const restantes = Math.round((fin - fechaDesdeISO(emp.baja.fecha)) / 86400000);
+                    ajustesFalta.push({ texto: `Baja desde el ${formatoFecha(emp.baja.fecha)}: ${plural(restantes, 'día', 'días')} sin trabajar`, monto: redondear(diario * restantes) });
+                }
+                const descuentoFalta = Math.min(Math.max(0, sueldo - descuentoDias), redondear(ajustesFalta.reduce((t, a) => t + a.monto, 0)));
+
+                const total = Math.max(0, redondear(sueldo - descuentoDias - descuentoFalta + pagoExtras + totalBonos - totalDescuentos));
 
                 // Decisión de aceptar / rechazar. Si el total cambió después de decidir, la decisión ya no es válida
                 // y el recibo vuelve a "En proceso".
@@ -661,8 +771,14 @@
                     faltas: resumen.faltas,
                     retardos: resumen.retardos,
                     sueldo,
+                    ajustesFalta,
+                    descuentoFalta,
                     extras,
                     pagoExtras,
+                    justificacion: ajuste.justificacion || '',
+                    extrasChecadora: resumen.extras,
+                    extrasPrecargadas: precargar && resumen.extras > 0,
+                    capturado: Boolean(capturado),
                     bonos,
                     totalBonos,
                     descuentos,
@@ -679,22 +795,29 @@
                 };
             }
 
-            // Recibos de CUALQUIER semana (respeta el filtro de sucursal de arriba)
-            function calcularSemana(semanaIso) {
+            // Recibos de CUALQUIER semana (por omisión, de la sucursal elegida arriba)
+            function calcularSemana(semanaIso, suc = selSucursal.value) {
                 const inicio = fechaDesdeISO(semanaIso);
                 const finIso = aISO(sumarDias(inicio, 6));
                 return EMPLEADOS
                     .filter((e) => e.ingreso <= finIso && (!e.baja || e.baja.fecha >= semanaIso))
-                    .filter((e) => selSucursal.value === 'todas' || e.suc === selSucursal.value)
+                    .filter((e) => suc === 'todas' || e.suc === suc)
                     .sort((a, b) => a.id.localeCompare(b.id))
                     .map((emp) => reciboDe(emp, inicio));
             }
 
             const calcular = () => calcularSemana(selSemana.value);
 
+            // Para el admin: listo = ya lo revisó y, si hizo horas extra, ya las justificó
+            const estaListo = (r) => Boolean(r.guardado) && r.capturado && !faltaJustificacion(r);
+
             // Estado del recibo: Pagado, o el estatus de la decisión
             function celdaEstado(r) {
                 if (estaPagado(r)) return '<span class="tag tag--ok">Pagado</span>';
+                if (ES_ADMIN) {
+                    if (faltaJustificacion(r)) return '<span class="tag tag--danger">Falta justificar</span>';
+                    return estaListo(r) ? '<span class="tag tag--ok">✓ Listo</span>' : '<span class="tag tag--warn">Pendiente</span>';
+                }
                 const estado = estadoAprobacion(r);
                 let nota = '';
                 if (r.aprobacion && r.aprobacion.motivo) nota = r.aprobacion.motivo;
@@ -706,6 +829,16 @@
                     + (nota ? `<small class="estado-motivo" title="${escaparHtml(nota)}">${escaparHtml(nota)}</small>` : '');
             }
 
+            // El admin ve "Capturar" mientras puede editar; si falta la justificación, "Justificar"
+            function botonRecibo(r) {
+                if (ES_ADMIN && puedeEditar(r)) {
+                    if (faltaJustificacion(r)) return `<button class="btn btn--primary btn--mini" type="button" data-recibo="${r.emp.id}">⚠️ Justificar</button>`;
+                    if (!estaListo(r)) return `<button class="btn btn--primary btn--mini" type="button" data-recibo="${r.emp.id}">✏️ Capturar</button>`;
+                    return `<button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">✏️ Editar</button>`;
+                }
+                return `<button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">Ver recibo</button>`;
+            }
+
             // Los ceros se ven en gris para que resalte lo que sí tiene valor
             const celdaNumero = (valor, texto, claseExtra = '') => `<td class="num${valor ? claseExtra : ' cero'}">${texto}</td>`;
 
@@ -713,7 +846,7 @@
                 recibosActuales = calcular();
                 const suma = (fn) => redondear(recibosActuales.reduce((t, r) => t + fn(r), 0));
                 const tarjeta = (valor, texto) => `<div><strong>${valor}</strong><span>${texto}</span></div>`;
-                const descuentosSemana = suma((r) => r.totalDescuentos + r.descuentoDias);
+                const descuentosSemana = suma((r) => r.totalDescuentos + r.descuentoDias + r.descuentoFalta);
                 campo('recibosResumen').innerHTML =
                     tarjeta(formatoDinero(suma((r) => r.total)), 'Total de la semana') +
                     tarjeta(formatoHoras(suma((r) => r.horas)), 'Horas trabajadas') +
@@ -722,23 +855,379 @@
 
                 campo('recibosBody').innerHTML = recibosActuales.length
                     ? recibosActuales.map((r) => {
-                        const descuentoFila = redondear(r.totalDescuentos + r.descuentoDias);
+                        const descuentoFila = redondear(r.totalDescuentos + r.descuentoDias + r.descuentoFalta);
                         const motivosFila = r.descuentos.map((d) => d.motivo)
-                            .concat(r.descuentoDias ? [`Días no pagados (${r.horasNoPagadas} h)`] : []).join(', ');
+                            .concat(r.descuentoDias ? [`Días no pagados (${r.horasNoPagadas} h)`] : [])
+                            .concat(r.ajustesFalta.map((a) => a.texto)).join(', ');
                         return `<tr>
                         <td><div class="employee-cell"><span class="employee-id">${r.emp.id}</span><strong>${escaparHtml(r.emp.nombre)}</strong></div></td>
                         ${celdaNumero(r.horas, formatoHoras(r.horas))}
-                        ${celdaNumero(r.extras, `${r.extras} h`)}
+                        ${celdaNumero(r.extras, faltaJustificacion(r)
+                        ? `<span class="falta-motivo" title="Falta justificar por qué hizo tiempo extra">⚠️ ${r.extras} h</span>`
+                        : `<span title="${escaparHtml(r.justificacion)}">${r.extras} h</span>`)}
                         <td class="num">${formatoDinero(r.sueldo)}</td>
                         ${celdaNumero(r.pagoExtras, formatoDinero(r.pagoExtras))}
                         ${celdaNumero(r.totalBonos, `<span title="${escaparHtml(r.bonos.map((b) => b.concepto).join(', '))}">${formatoDinero(r.totalBonos)}</span>`)}
                         ${celdaNumero(descuentoFila, `<span title="${escaparHtml(motivosFila)}">−${formatoDinero(descuentoFila)}</span>`, ' resta')}
                         <td class="num"><strong>${formatoDinero(r.total)}</strong></td>
                         <td>${celdaEstado(r)}</td>
-                        <td class="num"><button class="btn btn--outline btn--mini" type="button" data-recibo="${r.emp.id}">Ver recibo</button></td>
+                        <td class="num">${botonRecibo(r)}</td>
                     </tr>`;
                     }).join('')
                     : '<tr><td colspan="10" class="recibos-vacio">No se encontraron trabajadores para la semana y los filtros seleccionados.</td></tr>';
+                marcarSemanas();
+                if (ES_ADMIN) renderVista();
+                renderNominasSucursal();
+            }
+
+            // ---------- Lista del admin: sus trabajadores; cada uno se revisa en la misma ventana del recibo que usa el Super ----------
+            const quienCuando = (paso) => (paso ? `${paso.usuario} · ${fechaHora(paso.fecha)}` : '');
+            const ultimoPaso = (nomina, accion) => [...((nomina && nomina.historial) || [])].reverse().find((p) => p.accion === accion) || null;
+            const fechaLarga = (fecha) => fecha.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+            let notaEnvio = '';
+            // filtro: 'pendientes', 'revisados' o 'todos' (null = se elige solo); busqueda: lo escrito en el buscador
+            const asis = { filtro: null, busqueda: '' };
+
+            function renderVista() {
+                const vista = campo('asisVista');
+                const filas = vista.querySelector('#asisFilas');
+                const desplazamiento = filas ? filas.scrollTop : 0; // se conserva el lugar en la lista
+                const nomina = nominaDe(selSemana.value, selSucursal.value);
+                const estado = estadoNomina(nomina);
+                if (estado === 'revision' || estado === 'aprobada') vista.innerHTML = htmlEnviada(nomina, estado);
+                else if (!recibosActuales.length) vista.innerHTML = '<div class="asis-tarjeta asis-centro"><h2>No hay trabajadores en esta semana</h2><p>Elige otra semana arriba.</p></div>';
+                else if (!semanaTerminada(selSemana.value)) vista.innerHTML = htmlSemanaSinTerminar();
+                else vista.innerHTML = htmlLista(nomina, estado);
+                const nuevas = vista.querySelector('#asisFilas');
+                if (nuevas) nuevas.scrollTop = desplazamiento;
+            }
+
+            function htmlSemanaSinTerminar() {
+                const fin = sumarDias(fechaDesdeISO(selSemana.value), 6);
+                return `<div class="asis-tarjeta asis-centro">
+                    <div class="asis-icono">📅</div>
+                    <h2>Esta semana todavía no termina</h2>
+                    <p>Podrás armar la nómina a partir del <strong>${fechaLarga(fin)}</strong>.</p>
+                    <button class="btn btn--primary asis-grande" type="button" data-accion="semana-pasada">Ir a la semana pasada</button>
+                </div>`;
+            }
+
+            const fechaCorta = (fecha) => fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '');
+            const tituloSemana = () => {
+                const inicio = fechaDesdeISO(selSemana.value);
+                return `Nómina del ${fechaCorta(inicio)} al ${fechaCorta(sumarDias(inicio, 6))}`;
+            };
+            const FILTROS_LISTA = {
+                pendientes: ['Por revisar', (r) => !estaListo(r)],
+                revisados: ['Revisados', estaListo],
+                todos: ['Todos', () => true]
+            };
+
+            function htmlLista(nomina, estado) {
+                const n = recibosActuales.length;
+                const listos = recibosActuales.filter(estaListo).length;
+                const faltan = n - listos;
+                const total = redondear(recibosActuales.reduce((t, r) => t + r.total, 0));
+                const rechazo = estado === 'rechazada' ? ultimoPaso(nomina, 'Rechazó') : null;
+                if (!asis.filtro || (asis.filtro === 'pendientes' && !faltan && !asis.busqueda)) asis.filtro = faltan ? 'pendientes' : 'todos';
+                return `${rechazo ? `<div class="asis-rechazo"><strong>Te regresaron esta nómina (${escaparHtml(quienCuando(rechazo))}):</strong> “${escaparHtml(rechazo.comentario)}”. Corrige lo que te pide y vuelve a enviarla.</div>` : ''}
+                    <div class="asis-barra">
+                        <div class="asis-barra__titulo"><strong>${tituloSemana()}</strong><span>${faltan ? `Te ${faltan === 1 ? 'falta 1 trabajador' : `faltan ${faltan} trabajadores`} por revisar` : '✓ Ya revisaste a todos'}</span></div>
+                        <div class="asis-barra__avance"><span>Revisados <b>${listos} de ${n}</b></span><div class="asis-progreso__pista"><div style="width:${n ? Math.round(listos / n * 100) : 0}%"></div></div></div>
+                        <div class="asis-barra__total"><span>Total</span><b>${formatoDinero(total)}</b></div>
+                        <button class="btn btn--primary" type="button" id="enviarNominaBtn" ${faltan ? 'disabled title="Revisa a todos los trabajadores para poder enviarla"' : ''}>📤 Enviar a revisión</button>
+                    </div>
+                    <details class="asis-nota"><summary>📝 Agregar una nota para quien la revisa <em>(opcional)</em></summary>
+                        <textarea id="notaEnvio" maxlength="300" placeholder="Ej. Esta semana hubo inventario">${escaparHtml(notaEnvio)}</textarea>
+                    </details>
+                    ${htmlHerramientas(true)}
+                    <ul class="asis-filas" id="asisFilas">${htmlFilas(true)}</ul>`;
+            }
+
+            function htmlEnviada(nomina, estado) {
+                const total = redondear(recibosActuales.reduce((t, r) => t + r.total, 0));
+                const aprobada = estado === 'aprobada';
+                const texto = aprobada
+                    ? `Aprobada por ${escaparHtml(quienCuando(ultimoPaso(nomina, 'Aprobó')))}. Ya está lista para pago.`
+                    : `La enviaste el ${escaparHtml(fechaHora((ultimoPaso(nomina, 'Envió') || {}).fecha || nomina.enviadaEl))}. El Super usuario o RH la está revisando.`;
+                asis.filtro = 'todos';
+                return `<div class="asis-barra asis-barra--${aprobada ? 'aprobada' : 'enviada'}">
+                        <div class="asis-barra__titulo"><strong>${aprobada ? '✅' : '📨'} ${tituloSemana()} · ${aprobada ? 'Aprobada' : 'Enviada'}</strong><span>${texto}</span></div>
+                        <div class="asis-barra__total"><span>Total</span><b>${formatoDinero(total)}</b></div>
+                    </div>
+                    ${htmlHerramientas(false)}
+                    <ul class="asis-filas" id="asisFilas">${htmlFilas(false)}</ul>`;
+            }
+
+            // Buscador (y pestañas si todavía se puede revisar)
+            function htmlHerramientas(conPestanas) {
+                const pestanas = conPestanas ? `<div class="asis-pestanas" role="tablist">${Object.entries(FILTROS_LISTA).map(([clave, [texto, filtro]]) =>
+                    `<button type="button" role="tab" class="asis-pestana${asis.filtro === clave ? ' activa' : ''}" aria-selected="${asis.filtro === clave}" data-filtro="${clave}">${texto} <span>${recibosActuales.filter(filtro).length}</span></button>`).join('')}</div>` : '';
+                return `<div class="asis-herramientas">
+                    <input type="search" id="asisBuscar" placeholder="🔍 Buscar por nombre o número" value="${escaparHtml(asis.busqueda)}" aria-label="Buscar trabajador">
+                    ${pestanas}
+                </div>`;
+            }
+
+            // Renglones de la lista: uno delgado por trabajador
+            function htmlFilas(conBoton) {
+                const texto = asis.busqueda.trim();
+                const buscado = normalizar(texto);
+                // Al buscar se busca entre todos sus trabajadores, sin importar la pestaña
+                const filtro = buscado ? () => true : (FILTROS_LISTA[asis.filtro] || FILTROS_LISTA.todos)[1];
+                const visibles = recibosActuales
+                    .map((r, i) => [r, i])
+                    .filter(([r]) => filtro(r))
+                    .filter(([r]) => !buscado || normalizar(r.emp.nombre).includes(buscado) || String(r.emp.id).includes(buscado));
+                const quitar = '<button type="button" class="asis-enlace" data-accion="limpiar-busqueda">Quitar búsqueda</button>';
+                if (!visibles.length) {
+                    const vacio = buscado
+                        ? `🔍 No se encontró ningún trabajador con “${escaparHtml(texto)}”. Revisa cómo lo escribiste o búscalo por su número. ${quitar}`
+                        : asis.filtro === 'pendientes' ? '👍 Ya revisaste a todos. Ahora envía la nómina con el botón de arriba.'
+                            : 'No hay trabajadores aquí.';
+                    return `<li class="asis-filas__vacio">${vacio}</li>`;
+                }
+                const encabezado = buscado
+                    ? `<li class="asis-filas__buscando">${plural(visibles.length, 'resultado', 'resultados')} para “${escaparHtml(texto)}” · ${quitar}</li>`
+                    : '';
+                return encabezado + visibles.map(([r, i]) => {
+                    const listo = estaListo(r);
+                    const detalle = [];
+                    if (!listo) detalle.push(r.extrasChecadora ? `Checadora: ${r.extrasChecadora} h extra` : 'Sin tiempo extra');
+                    else detalle.push(r.extras ? `${r.extras} h extra · ${escaparHtml(r.justificacion)}` : 'Sin tiempo extra');
+                    if (r.ajustesFalta.length) detalle.push('⚠️ falta administrativa');
+                    if (r.emp.baja && r.emp.baja.acta && r.emp.baja.fecha <= aISO(r.fin)) detalle.push(`baja ${formatoFecha(r.emp.baja.fecha)}`);
+                    if (r.bonos.length) detalle.push(`bono ${formatoDinero(r.totalBonos)}`);
+                    if (r.descuentos.length) detalle.push(`descuento −${formatoDinero(r.totalDescuentos)}`);
+                    return `<li class="asis-fila${listo ? ' asis-fila--lista' : ''}">
+                        ${conBoton ? `<span class="asis-fila__marca${listo ? ' asis-fila__marca--listo' : ''}" title="${listo ? 'Revisado' : 'Por revisar'}">${listo ? '✓' : '!'}</span>` : ''}
+                        <span class="asis-fila__nombre"><b>${escaparHtml(r.emp.nombre)}</b><small>${r.emp.id}${r.emp.puesto ? ` · ${escaparHtml(r.emp.puesto)}` : ''}</small></span>
+                        <span class="asis-fila__detalle" title="${detalle.join(' · ')}">${detalle.join(' · ')}</span>
+                        <strong class="asis-fila__monto">${formatoDinero(r.total)}</strong>
+                        ${conBoton ? `<button type="button" class="btn ${listo ? 'btn--outline' : 'btn--primary'} btn--mini" data-ir="${i}">${listo ? 'Cambiar' : 'Revisar'}</button>` : ''}
+                    </li>`;
+                }).join('');
+            }
+
+            // Selector de semanas del admin: cada semana dice si ya la envió, si se la aprobaron o rechazaron
+            const ETIQUETA_SEMANA = { revision: '✓ Enviada', aprobada: '✓ Aprobada', rechazada: '✕ Rechazada: corregir', borrador: '● Por enviar' };
+            function marcarSemanas() {
+                if (!ES_ADMIN) return;
+                const ultimaTerminada = aISO(sumarDias(inicioSemanaNomina(HOY), -7));
+                [...selSemana.options].forEach((opcion) => {
+                    if (!opcion.dataset.texto) opcion.dataset.texto = opcion.textContent;
+                    const estado = estadoNomina(nominaDe(opcion.value, selSucursal.value));
+                    // "Por enviar" solo en la última semana terminada; las anteriores sin enviar no se marcan
+                    const mostrar = estado !== 'borrador' || opcion.value === ultimaTerminada;
+                    opcion.textContent = mostrar ? `${opcion.dataset.texto} · ${ETIQUETA_SEMANA[estado]}` : opcion.dataset.texto;
+                });
+            }
+
+            // Manda la nómina de su sucursal a revisión (Super usuario o RH)
+            function pedirEnvioNomina() {
+                if (!ES_ADMIN) return;
+                const semana = selSemana.value;
+                const suc = selSucursal.value;
+                if (!semanaTerminada(semana)) return mostrarToast('⚠️ Esta semana todavía no termina. Envía la nómina cuando termine el viernes.');
+                const recibos = recibosActuales.filter((r) => !estaPagado(r));
+                if (!recibos.length) return mostrarToast('No hay recibos en esta semana para enviar.');
+                const sinJustificar = recibos.filter(faltaJustificacion);
+                if (sinJustificar.length) {
+                    return mostrarToast(`⚠️ Justifica las horas extra de: ${sinJustificar.map((r) => r.emp.nombre).join(', ')}. Abre su recibo y escribe por qué hizo tiempo extra.`);
+                }
+                const suma = (fn) => redondear(recibos.reduce((t, r) => t + fn(r), 0));
+                const conExtra = recibos.filter((r) => r.extras > 0);
+                preguntar({
+                    titulo: '¿Enviar la nómina a revisión?',
+                    texto: `${nombreSucursal(suc)} · ${textoSemana()}`,
+                    filas: [
+                        ['Trabajadores', String(recibos.length)],
+                        [`Horas extra (${plural(conExtra.length, 'trabajador', 'trabajadores')})`, `${suma((r) => r.extras)} h · ${formatoDinero(suma((r) => r.pagoExtras))}`],
+                        ['Bonos', formatoDinero(suma((r) => r.totalBonos))],
+                        ['Descuentos', `−${formatoDinero(suma((r) => r.totalDescuentos))}`],
+                        ['Total de la nómina', formatoDinero(suma((r) => r.total)), true]
+                    ].concat(notaEnvio.trim() ? [['Nota para quien la revisa', notaEnvio.trim()]] : []),
+                    nota: 'Mientras la revisan (Super usuario o RH) ya no podrás modificarla. Si la rechaza, verás el motivo y podrás corregirla.',
+                    si: 'Sí, enviar',
+                    no: 'No, seguir revisando',
+                    alAceptar: () => avanzar({
+                        titulo: 'Enviando la nómina…',
+                        pasos: [
+                            // Se vuelve a revisar con lo último de la base de datos, no solo con lo que se ve en pantalla
+                            ['Verificando que la nómina se pueda enviar', () => {
+                                ALMACEN.refrescar(CLAVE_NOMINAS);
+                                if (suc !== USUARIO_ACTUAL.sucursal || recibos.some((r) => r.emp.suc !== suc)) throw new Error('Solo puedes enviar la nómina de tu sucursal.');
+                                const estado = estadoNomina(nominaDe(semana, suc));
+                                if (!['borrador', 'rechazada'].includes(estado)) throw new Error(`Esta nómina ya está "${ESTADOS_NOMINA[estado].texto}": no se puede volver a enviar. Actualiza la página.`);
+                            }],
+                            ['Guardando los recibos', () => {
+                                const ahora = new Date().toISOString();
+                                recibos.forEach((r) => marcarRecibo(r.emp, semana, {
+                                    guardadoEl: (r.guardado && r.guardado.guardadoEl) || ahora,
+                                    guardadoPor: (r.guardado && r.guardado.guardadoPor) || USUARIO_ACTUAL.usuario,
+                                    total: r.total
+                                }));
+                                if (guardarCambios() === false) throw new Error('No se guardaron los recibos. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                            }],
+                            ['Enviando a revisión', () => {
+                                const enviada = cambiarNomina(semana, suc, {
+                                    estado: 'revision', enviadaPor: USUARIO_ACTUAL.usuario, enviadaEl: new Date().toISOString(),
+                                    total: suma((r) => r.total), trabajadores: recibos.length, horasExtra: suma((r) => r.extras),
+                                    nota: notaEnvio.trim()
+                                }, 'Envió', notaEnvio.trim());
+                                if (enviada) notaEnvio = '';
+                                if (!enviada) throw new Error('No se pudo enviar la nómina. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                            }],
+                            ['Actualizando la pantalla', render],
+                            ['Anotando el envío en la bitácora', () => {
+                                registrarBitacora('Nómina enviada a revisión', `${nombreSucursal(suc)} · semana ${semana} · ${plural(recibos.length, 'recibo', 'recibos')} · ${formatoDinero(suma((r) => r.total))}`);
+                            }]
+                        ],
+                        listo: '✅ Nómina enviada',
+                        resultado: () => 'El Super usuario o RH ya la puede revisar. Verás aquí si la aprueba o la rechaza.'
+                    })
+                });
+            }
+
+            // ---------- Nóminas de las sucursales: el Super usuario y RH aprueban o rechazan lo que envió cada admin ----------
+            const sumaTotales = (recibos) => redondear(recibos.reduce((t, r) => t + r.total, 0));
+
+            // Una fila por sucursal con trabajadores en la semana (o con nómina ya enviada)
+            function renderNominasSucursal() {
+                const caja = campo('nominasSucursal');
+                if (!PUEDE_APROBAR) return;
+                const semana = selSemana.value;
+                const filas = listaSucursales()
+                    .filter(({ clave }) => selSucursal.value === 'todas' || clave === selSucursal.value)
+                    .map(({ clave }) => ({ clave, nomina: nominaDe(semana, clave), recibos: calcularSemana(semana, clave) }))
+                    .filter((f) => f.nomina || f.recibos.length);
+                caja.classList.toggle('hidden', !filas.length);
+                if (!filas.length) return;
+                const porAprobar = filas.filter((f) => estadoNomina(f.nomina) === 'revision').length;
+                caja.innerHTML = `<div class="nominas-sucursal__cabecera">
+                        <h4>Nóminas de las sucursales</h4>
+                        <span>${porAprobar ? `${plural(porAprobar, 'nómina espera', 'nóminas esperan')} tu aprobación` : 'Ninguna nómina espera aprobación en esta semana'}</span>
+                    </div>
+                    <div class="table-responsive"><table class="recibo__tabla">
+                        <thead><tr><th>Sucursal</th><th>Estado</th><th>Enviada</th><th class="num">Total</th><th></th></tr></thead>
+                        <tbody>${filas.map(htmlFilaNomina).join('')}</tbody>
+                    </table></div>`;
+            }
+
+            function htmlFilaNomina({ clave, nomina, recibos }) {
+                const estado = estadoNomina(nomina);
+                const info = ESTADOS_NOMINA[estado];
+                const totalHoy = sumaTotales(recibos);
+                const envio = ultimoPaso(nomina, 'Envió');
+                const decision = estado === 'aprobada' ? ultimoPaso(nomina, 'Aprobó') : estado === 'rechazada' ? ultimoPaso(nomina, 'Rechazó') : null;
+                // Si el total ya no es el que envió el admin (se editó un recibo o cambiaron sus checadas), se avisa
+                const cambio = nomina && ['revision', 'aprobada'].includes(estado) && redondear(Number(nomina.total)) !== totalHoy;
+                const acciones = [];
+                if (selSucursal.value === 'todas') acciones.push(`<button class="btn btn--outline btn--mini" type="button" data-nom-ver="${clave}">Ver recibos</button>`);
+                if (estado === 'revision') {
+                    acciones.push(`<button class="btn btn--primary btn--mini" type="button" data-nom-aprobar="${clave}">✓ Aprobar</button>`);
+                    acciones.push(`<button class="btn btn--outline btn--mini btn--rechazar" type="button" data-nom-rechazar="${clave}">✕ Rechazar</button>`);
+                }
+                return `<tr>
+                    <td><strong>${escaparHtml(nombreSucursal(clave))}</strong><small>${plural(recibos.length, 'trabajador', 'trabajadores')}</small></td>
+                    <td><span class="tag tag--${info.clase}">${info.texto}</span>${decision ? `<small>${escaparHtml(quienCuando(decision))}</small>` : ''}
+                        ${estado === 'rechazada' && decision && decision.comentario ? `<small class="estado-motivo" title="${escaparHtml(decision.comentario)}">${escaparHtml(decision.comentario)}</small>` : ''}</td>
+                    <td>${envio ? escaparHtml(quienCuando(envio)) : '—'}${nomina && nomina.nota ? `<small title="Nota del admin">📝 ${escaparHtml(nomina.nota)}</small>` : ''}</td>
+                    <td class="num"><strong>${formatoDinero(nomina && estado !== 'borrador' ? Number(nomina.total) || 0 : totalHoy)}</strong>
+                        ${cambio ? `<small class="falta-motivo" title="El total cambió después de que el admin la envió">⚠️ Hoy suma ${formatoDinero(totalHoy)}</small>` : ''}</td>
+                    <td class="num"><div class="pend-acciones">${acciones.join('')}</div></td>
+                </tr>`;
+            }
+
+            function pedirAprobarNomina(suc) {
+                const semana = selSemana.value;
+                const nomina = nominaDe(semana, suc);
+                if (!PUEDE_APROBAR || estadoNomina(nomina) !== 'revision') return;
+                const recibos = calcularSemana(semana, suc);
+                const suma = (fn) => redondear(recibos.reduce((t, r) => t + fn(r), 0));
+                const total = sumaTotales(recibos);
+                const cambio = redondear(Number(nomina.total)) !== total;
+                preguntar({
+                    titulo: '¿Aprobar la nómina de esta sucursal?',
+                    texto: `${nombreSucursal(suc)} · ${textoSemana()}`,
+                    filas: [
+                        ['Enviada por', quienCuando(ultimoPaso(nomina, 'Envió')) || nomina.enviadaPor || '—'],
+                        ['Trabajadores', String(recibos.length)],
+                        [`Horas extra (${plural(recibos.filter((r) => r.extras > 0).length, 'trabajador', 'trabajadores')})`, `${suma((r) => r.extras)} h · ${formatoDinero(suma((r) => r.pagoExtras))}`],
+                        ['Bonos', formatoDinero(suma((r) => r.totalBonos))],
+                        ['Descuentos', `−${formatoDinero(suma((r) => r.totalDescuentos + r.descuentoDias + r.descuentoFalta))}`],
+                        ['Total de la nómina', formatoDinero(total), true]
+                    ].concat(nomina.nota ? [['Nota del admin', nomina.nota]] : []),
+                    nota: (cambio ? `⚠️ El admin la envió por ${formatoDinero(Number(nomina.total) || 0)}; hoy suma ${formatoDinero(total)}. Se aprobará con el total de hoy. ` : '')
+                        + 'El admin ya no podrá modificarla. El pago se registra después, con los recibos aceptados.',
+                    si: 'Sí, aprobar',
+                    no: 'No, cancelar',
+                    alAceptar: () => avanzar({
+                        titulo: 'Aprobando la nómina…',
+                        pasos: [
+                            ['Guardando la aprobación', () => {
+                                const aprobada = cambiarNomina(semana, suc, {
+                                    estado: 'aprobada', aprobadaPor: USUARIO_ACTUAL.usuario, aprobadaEl: new Date().toISOString(), totalAprobado: total
+                                }, 'Aprobó', '');
+                                if (!aprobada) throw new Error('No se pudo guardar la aprobación. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                            }],
+                            ['Actualizando la pantalla', render],
+                            ['Anotando la aprobación en la bitácora', () => {
+                                registrarBitacora('Nómina de sucursal aprobada', `${nombreSucursal(suc)} · semana ${semana} · ${plural(recibos.length, 'recibo', 'recibos')} · ${formatoDinero(total)}`);
+                            }]
+                        ],
+                        listo: '✅ Nómina aprobada',
+                        resultado: () => `La nómina de ${nombreSucursal(suc)} quedó aprobada por ${formatoDinero(total)}.`
+                    })
+                });
+            }
+
+            let rechazoNomina = null; // { semana, suc } de la nómina que se está rechazando
+
+            function pedirRechazoNomina(suc) {
+                const semana = selSemana.value;
+                if (!PUEDE_APROBAR || estadoNomina(nominaDe(semana, suc)) !== 'revision') return;
+                rechazoNomina = { semana, suc };
+                campo('nominaRechazoTexto').textContent = `${nombreSucursal(suc)} · ${textoSemana()}`;
+                campo('nominaRechazoMotivo').value = '';
+                campo('nominaRechazoError').classList.add('hidden');
+                campo('nominaRechazoModal').classList.remove('hidden');
+                campo('nominaRechazoMotivo').focus();
+            }
+
+            function cerrarRechazoNomina() {
+                campo('nominaRechazoModal').classList.add('hidden');
+                rechazoNomina = null;
+            }
+
+            function rechazarNomina() {
+                if (!PUEDE_APROBAR || !rechazoNomina) return;
+                const motivo = campo('nominaRechazoMotivo').value.trim().replace(/\s+/g, ' ');
+                if (motivo.length < 5) {
+                    campo('nominaRechazoError').textContent = 'Escribe qué debe corregir el admin (mínimo 5 caracteres).';
+                    campo('nominaRechazoError').classList.remove('hidden');
+                    campo('nominaRechazoMotivo').focus();
+                    return;
+                }
+                const { semana, suc } = rechazoNomina;
+                cerrarRechazoNomina();
+                avanzar({
+                    titulo: 'Regresando la nómina al admin…',
+                    pasos: [
+                        ['Guardando el rechazo', () => {
+                            const rechazada = cambiarNomina(semana, suc, {
+                                estado: 'rechazada', rechazadaPor: USUARIO_ACTUAL.usuario, rechazadaEl: new Date().toISOString()
+                            }, 'Rechazó', motivo);
+                            if (!rechazada) throw new Error('No se pudo guardar el rechazo. Revisa la conexión (F12 → Consola) e inténtalo de nuevo.');
+                        }],
+                        ['Actualizando la pantalla', render],
+                        ['Anotando el rechazo en la bitácora', () => {
+                            registrarBitacora('Nómina de sucursal rechazada', `${nombreSucursal(suc)} · semana ${semana} · motivo: ${motivo}`);
+                        }]
+                    ],
+                    listo: '🚫 Nómina rechazada',
+                    resultado: () => `La nómina de ${nombreSucursal(suc)} regresó al admin para que la corrija. Motivo: ${motivo}`
+                });
             }
 
             // ---------- Recibo ----------
@@ -748,7 +1237,8 @@
                 const descuentos = cambios.descuentos || r.descuentos;
                 const extras = cambios.extras ?? r.extras;
                 const pagoExtras = cambios.pagoExtras ?? r.pagoExtras;
-                const total = Math.max(0, redondear(r.sueldo - r.descuentoDias + pagoExtras + sumaBonos(bonos) - sumaMontos(descuentos)));
+                const justificacion = cambios.justificacion ?? r.justificacion;
+                const total = Math.max(0, redondear(r.sueldo - r.descuentoDias - r.descuentoFalta + pagoExtras + sumaBonos(bonos) - sumaMontos(descuentos)));
                 const filas = r.dias.map((d) => `<tr class="recibo__dia recibo__dia--${d.clase}">
                         <td>${d.nombre}${d.detalle ? `<small>${escaparHtml(d.detalle)}</small>` : ''}</td>
                         <td>${d.entrada}</td>
@@ -788,7 +1278,8 @@
                             ${r.descuentoDias
                                 ? `<tr class="recibo__descuento"><td>Días no pagados: ${plural(r.diasNoPagados, 'día', 'días')} (${r.horasNoPagadas} h × ${formatoDinero(r.tarifa)} por hora)</td><td class="num">−${formatoDinero(r.descuentoDias)}</td></tr>`
                                 : ''}
-                            <tr><td>Horas extra: ${extras} h</td><td class="num">${formatoDinero(pagoExtras)}</td></tr>
+                            ${r.ajustesFalta.map((a) => `<tr class="recibo__descuento"><td>${escaparHtml(a.texto)}</td><td class="num">−${formatoDinero(a.monto)}</td></tr>`).join('')}
+                            <tr><td>Horas extra: ${extras} h${extras && justificacion ? `<small>Motivo: ${escaparHtml(justificacion)}</small>` : ''}</td><td class="num">${formatoDinero(pagoExtras)}</td></tr>
                             ${bonos.length
                                 ? bonos.map((b) => `<tr><td>Bono: ${escaparHtml(b.concepto)}</td><td class="num">${formatoDinero(b.monto)}</td></tr>`).join('')
                                 : `<tr><td>Bonos</td><td class="num">${formatoDinero(0)}</td></tr>`}
@@ -849,18 +1340,20 @@
                 lista.innerHTML = pasos.map(([texto]) => `<li>${texto}</li>`).join('');
                 campo('avanceModal').classList.remove('hidden');
                 let salioBien = true;
+                let paso = 0;
                 try {
-                    for (let i = 0; i < pasos.length; i++) {
-                        lista.children[i].className = 'en-curso';
+                    for (; paso < pasos.length; paso++) {
+                        lista.children[paso].className = 'en-curso';
                         await pausa(450);
-                        pasos[i][1]();
-                        lista.children[i].className = 'hecho';
+                        pasos[paso][1]();
+                        lista.children[paso].className = 'hecho';
                     }
                     campo('avanceTitulo').textContent = listo;
                     campo('avanceResultado').textContent = resultado();
                 } catch (error) {
                     console.error(error);
                     salioBien = false;
+                    if (lista.children[paso]) lista.children[paso].className = 'fallo';
                     campo('avanceTitulo').textContent = '⚠️ No fue posible guardar';
                     campo('avanceResultado').textContent = error.message || 'Ocurrió un error al guardar. Revise los datos e inténtelo de nuevo.';
                 }
@@ -874,19 +1367,20 @@
             }
 
             // ---------- Abrir el recibo, capturar horas extra, bonos y descuentos ----------
-            let abierto = null; // { recibo, bonos, descuentos, extras, pagoExtras, original, editable }
+            let abierto = null; // { recibo, bonos, descuentos, extras, pagoExtras, justificacion, original, editable }
 
             const estadoCaptura = () => JSON.stringify({
                 bonos: abierto.bonos,
                 descuentos: abierto.descuentos,
                 extras: abierto.extras,
-                pagoExtras: abierto.pagoExtras
+                pagoExtras: abierto.pagoExtras,
+                justificacion: abierto.justificacion
             });
             const hayCambios = () => Boolean(abierto) && estadoCaptura() !== abierto.original;
             const hayBonoSinAgregar = () => Boolean(abierto && abierto.editable) && Boolean(campo('bonoConcepto').value.trim() || campo('bonoMonto').value);
             const hayDescuentoSinAgregar = () => Boolean(abierto && abierto.editable) && Boolean(campo('descuentoMotivo').value.trim() || campo('descuentoMonto').value);
             // Lo que queda por pagar con lo capturado hasta ahora (ya con el descuento por días no pagados)
-            const totalCapturado = () => redondear(abierto.recibo.sueldo - abierto.recibo.descuentoDias + abierto.pagoExtras + sumaBonos(abierto.bonos) - sumaMontos(abierto.descuentos));
+            const totalCapturado = () => redondear(abierto.recibo.sueldo - abierto.recibo.descuentoDias - abierto.recibo.descuentoFalta + abierto.pagoExtras + sumaBonos(abierto.bonos) - sumaMontos(abierto.descuentos));
 
             // Aviso con el estatus del recibo (en proceso / aceptado / rechazado) arriba del recibo
             function pintarAprobacion(recibo) {
@@ -916,22 +1410,34 @@
                     descuentos: recibo.descuentos.map((d) => ({ ...d })),
                     extras: recibo.extras,
                     pagoExtras: recibo.pagoExtras,
-                    editable: ES_SUPER && !pagado
+                    justificacion: recibo.justificacion,
+                    editable: puedeEditar(recibo)
                 };
                 abierto.original = estadoCaptura();
 
                 const estado = campo('reciboEstado');
                 estado.className = 'recibo-estado' + (pagado ? ' recibo-estado--pagado' : '');
                 if (pagado) estado.textContent = `✓ Pagado el ${fechaHora(recibo.guardado.pagadoEl)} · registrado por ${recibo.guardado.pagadoPor}. Ya no puede modificarse.`;
+                else if (ES_ADMIN && !abierto.editable) estado.textContent = `La nómina de esta semana está ${estadoNomina(nominaDelRecibo(recibo)) === 'aprobada' ? 'aprobada' : 'en revisión'}: ya no se puede modificar.`;
                 else if (recibo.guardado) estado.textContent = `Guardado el ${fechaHora(recibo.guardado.guardadoEl)} por ${recibo.guardado.guardadoPor}. Puede modificarse mientras no se registre el pago.`;
                 else estado.classList.add('hidden');
 
                 pintarAprobacion(recibo);
+                // El admin sigue el estado de su nómina completa, no la decisión de cada recibo
+                if (ES_ADMIN) campo('reciboAprobacion').classList.add('hidden');
                 campo('decidirRecibo').classList.toggle('hidden', !ES_DIRECTOR || pagado);
                 campo('bonoEditor').classList.toggle('hidden', !abierto.editable);
-                campo('guardarRecibo').classList.toggle('hidden', !PUEDE_GUARDAR || pagado);
-                campo('extraHoras').value = recibo.extras || '';
-                campo('extraPago').value = recibo.pagoExtras || '';
+                prepararFalta(recibo);
+                campo('guardarRecibo').classList.toggle('hidden', !PUEDE_GUARDAR || pagado || (ES_ADMIN && !abierto.editable));
+                campo('extraHoras').value = abierto.extras || '';
+                campo('extraPago').value = abierto.pagoExtras || '';
+                campo('extraJustificacion').value = abierto.justificacion || '';
+                campo('extraJustificacionCaja').classList.toggle('hidden', !(abierto.extras > 0));
+                campo('extraChecadora').textContent = recibo.extrasPrecargadas
+                    ? `🕒 La checadora marcó ${recibo.extrasChecadora} h extra y ya vienen puestas abajo. Corrígelas si hace falta y escribe por qué las hizo.`
+                    : recibo.extrasChecadora
+                        ? `🕒 Según sus checadas, esta semana hizo ${recibo.extrasChecadora} h extra.`
+                        : '🕒 Según sus checadas, esta semana no hizo horas extra.';
                 campo('bonoConcepto').value = '';
                 campo('bonoMonto').value = '';
                 campo('descuentoMotivo').value = '';
@@ -950,9 +1456,86 @@
                 campo('reciboModal').classList.remove('hidden');
             }
 
+            // ---------- Falta administrativa (la decide y aplica el admin) ----------
+            function prepararFalta(recibo) {
+                const mostrar = puede('juzgarFaltas') && abierto.editable;
+                campo('faltaEditor').classList.toggle('hidden', !mostrar);
+                if (!mostrar) return;
+                const emp = recibo.emp;
+                const actas = (emp.actas || []).filter((a) => a.fecha >= recibo.semana && a.fecha <= aISO(recibo.fin));
+                const baja = emp.baja && emp.baja.fecha <= aISO(recibo.fin) ? emp.baja : null;
+                campo('faltaRegistradas').innerHTML = actas.map((a) => `<p class="falta-editor__hecha">⚠️ <strong>${formatoFecha(a.fecha)}</strong>${a.horaSalida ? ` · dejó de trabajar a las ${a.horaSalida}` : ''}
+                    · ${a.cuentaComoFalta ? 'no se paga el día' : 'se pagan solo sus horas'}${baja && baja.fecha === a.fecha ? ' · dado de baja' : ''}<br><small>${escaparHtml(a.hechos)}</small></p>`).join('');
+                campo('faltaCampos').classList.toggle('hidden', Boolean(baja));
+                if (baja) campo('faltaRegistradas').insertAdjacentHTML('beforeend', `<p class="bono-editor__ayuda">Está dado de baja desde el ${formatoFecha(baja.fecha)}.</p>`);
+                // Días de la semana en que pudo pasar (hasta hoy, desde su ingreso, sin repetir un día que ya tiene acta)
+                const dias = recibo.dias.filter((d) => d.iso <= HOY_ISO && d.iso >= emp.ingreso && d.clase !== 'descanso' && !actas.some((a) => a.fecha === d.iso));
+                const trabajados = dias.filter((d) => ['asistencia', 'retardo', 'turno'].includes(d.clase));
+                campo('faltaDia').innerHTML = dias.map((d) => `<option value="${d.iso}">${escaparHtml(d.nombre)}${d.entrada !== '—' ? ` · entró ${d.entrada}` : ''}</option>`).join('');
+                if (trabajados.length) campo('faltaDia').value = trabajados[trabajados.length - 1].iso;
+                ['faltaHora', 'faltaHechos', 'faltaTestigo1', 'faltaTestigo2'].forEach((id) => { campo(id).value = ''; });
+                document.querySelector('input[name="faltaPago"][value="horas"]').checked = true;
+                campo('faltaBaja').checked = false;
+                campo('faltaError').classList.add('hidden');
+                campo('faltaDetalles').open = actas.length > 0 || Boolean(baja); // si ya tiene, se ve lo registrado
+                campo('faltaAplicar').disabled = !dias.length;
+            }
+
+            function errorFalta(texto) {
+                campo('faltaError').textContent = texto;
+                campo('faltaError').classList.remove('hidden');
+                return false;
+            }
+
+            function pedirFalta() {
+                if (!abierto || !puede('juzgarFaltas') || !abierto.editable) return;
+                const emp = abierto.recibo.emp;
+                const limpio = (id) => campo(id).value.trim().replace(/\s+/g, ' ');
+                const pagarHoras = document.querySelector('input[name="faltaPago"]:checked').value === 'horas';
+                const datos = {
+                    fecha: campo('faltaDia').value,
+                    horaSalida: campo('faltaHora').value,
+                    hechos: limpio('faltaHechos'),
+                    testigos: [limpio('faltaTestigo1'), limpio('faltaTestigo2')].join(', '),
+                    cuentaComoFalta: !pagarHoras,
+                    baja: campo('faltaBaja').checked,
+                    directa: true
+                };
+                const dia = abierto.recibo.dias.find((d) => d.iso === datos.fecha);
+                if (!datos.fecha) return errorFalta('Elige el día en que pasó.');
+                if (pagarHoras && !datos.horaSalida) return errorFalta('Escribe a qué hora dejó de trabajar (para pagarle solo esas horas).');
+                if (datos.horaSalida && dia && dia.entrada !== '—' && datos.horaSalida <= dia.entrada) return errorFalta(`La hora debe ser después de su entrada (${dia.entrada}).`);
+                if (limpio('faltaTestigo1').length < 3 || limpio('faltaTestigo2').length < 3) return errorFalta('Escribe el nombre de los 2 testigos.');
+                const error = validarActa(emp, datos);
+                if (error) return errorFalta(error);
+                campo('faltaError').classList.add('hidden');
+                preguntar({
+                    titulo: '¿Aplicar la falta administrativa?',
+                    texto: `${emp.id} · ${emp.nombre}`,
+                    filas: [
+                        ['Día', formatoFecha(datos.fecha)],
+                        ['Dejó de trabajar', datos.horaSalida || '—'],
+                        ['Qué pasó', datos.hechos],
+                        ['Testigos', datos.testigos],
+                        ['Ese día', pagarHoras ? 'Se pagan solo las horas que trabajó' : 'No se paga (cuenta como falta)'],
+                        ['Baja', datos.baja ? `Sí, desde el ${formatoFecha(datos.fecha)}` : 'No', datos.baja]
+                    ],
+                    nota: 'Se aplica al momento y queda en su expediente con el acta (la puedes imprimir en Solicitudes). Desde aquí ya no se puede deshacer.',
+                    si: 'Sí, aplicar',
+                    no: 'No, regresar',
+                    alAceptar: () => {
+                        if (!aplicarFaltaAdministrativa(emp, datos)) return mostrarToast('⚠️ No se pudo guardar la falta. Revisa tu conexión e inténtalo de nuevo.');
+                        registrarBitacora('Falta administrativa aplicada', `${emp.id} · ${emp.nombre} · ${datos.fecha}${datos.horaSalida ? ` · salió ${datos.horaSalida}` : ''} · ${pagarHoras ? 'se pagan sus horas' : 'no se paga el día'}${datos.baja ? ' · baja' : ''} · ${datos.hechos}`);
+                        render();
+                        abrirRecibo(emp.id);
+                        mostrarToast(`⚠️ Falta administrativa aplicada a ${emp.nombre}${datos.baja ? ' y dado de baja' : ''}.`);
+                    }
+                });
+            }
+
             function pintarRecibo() {
-                const { recibo, bonos, descuentos, extras, pagoExtras, editable } = abierto;
-                campo('reciboContenido').innerHTML = htmlRecibo(recibo, { bonos, descuentos, extras, pagoExtras });
+                const { recibo, bonos, descuentos, extras, pagoExtras, justificacion, editable } = abierto;
+                campo('reciboContenido').innerHTML = htmlRecibo(recibo, { bonos, descuentos, extras, pagoExtras, justificacion });
                 if (!editable) return;
                 campo('bonoLista').innerHTML = bonos.length
                     ? bonos.map((b, i) => `<li><span>${escaparHtml(b.concepto)}</span><strong>${formatoDinero(b.monto)}</strong>
@@ -1014,6 +1597,8 @@
                 if (!Number.isFinite(pago) || pago < 0) return errorBono('El pago extra debe ser igual o mayor a $0.');
                 abierto.extras = horas;
                 abierto.pagoExtras = redondear(pago);
+                abierto.justificacion = horas > 0 ? campo('extraJustificacion').value.trim().replace(/\s+/g, ' ') : '';
+                campo('extraJustificacionCaja').classList.toggle('hidden', !(horas > 0));
                 campo('bonoError').classList.add('hidden');
                 return true;
             }
@@ -1046,8 +1631,13 @@
                     if (hayBonoSinAgregar() && !agregarBono()) return;
                     if (hayDescuentoSinAgregar() && !agregarDescuento()) return;
                     if (totalCapturado() < 0) return errorBono('Los descuentos son mayores al sueldo por cobrar. Elimine o ajuste algún descuento.');
+                    // El admin tiene que argumentar por qué su trabajador hizo tiempo extra
+                    if (ES_ADMIN && abierto.extras > 0 && abierto.justificacion.length < MIN_JUSTIFICACION) {
+                        campo('extraJustificacion').focus();
+                        return errorBono(`Escribe por qué hizo tiempo extra (al menos ${MIN_JUSTIFICACION} letras). Se revisará antes de aprobar la nómina.`);
+                    }
                 }
-                const { recibo, bonos, descuentos, extras, pagoExtras } = abierto;
+                const { recibo, bonos, descuentos, extras, pagoExtras, justificacion } = abierto;
                 const total = totalCapturado();
                 const reiniciaDecision = Boolean(recibo.aprobacion) && hayCambios();
                 preguntar({
@@ -1058,7 +1648,9 @@
                         ['Sueldo', formatoDinero(recibo.sueldo)]
                     ]
                         .concat(recibo.descuentoDias ? [[`Días no pagados (${recibo.horasNoPagadas} h)`, `−${formatoDinero(recibo.descuentoDias)}`]] : [])
+                        .concat(recibo.ajustesFalta.map((a) => [a.texto, `−${formatoDinero(a.monto)}`]))
                         .concat([[`Horas extra (${extras} h)`, formatoDinero(pagoExtras)]])
+                        .concat(extras > 0 && justificacion ? [['Motivo del tiempo extra', justificacion]] : [])
                         .concat(bonos.length ? bonos.map((b) => [`Bono: ${b.concepto}`, formatoDinero(b.monto)]) : [['Bonos', formatoDinero(0)]])
                         .concat(descuentos.length ? descuentos.map((d) => [`Descuento: ${d.motivo}`, `−${formatoDinero(d.monto)}`]) : [['Descuentos', formatoDinero(0)]])
                         .concat([['Total a pagar', formatoDinero(total), true]]),
@@ -1071,8 +1663,26 @@
                 });
             }
 
+            // Pasa lo capturado al trabajador (horas extra con su justificación, bonos y descuentos)
+            function guardarCapturaEn(emp, semana, ahora, captura = abierto) {
+                const { bonos, descuentos, extras, pagoExtras, justificacion } = captura;
+                emp.extrasNomina = (emp.extrasNomina || []).filter((a) => a.semana !== semana);
+                // El admin siempre deja su captura, aunque sea 0: así no se vuelven a proponer las de la checadora
+                if (extras || pagoExtras || ES_ADMIN) {
+                    emp.extrasNomina.push({ semana, horas: extras, pago: pagoExtras, justificacion: extras ? justificacion : '', capturadoPor: USUARIO_ACTUAL.usuario, fecha: ahora });
+                }
+                emp.bonos = (emp.bonos || []).filter((b) => b.semana !== semana).concat(bonos.map((b) => ({
+                    semana, concepto: b.concepto, monto: b.monto,
+                    otorgadoPor: b.otorgadoPor || USUARIO_ACTUAL.usuario, fecha: b.fecha || ahora
+                })));
+                emp.descuentos = (emp.descuentos || []).filter((d) => d.semana !== semana).concat(descuentos.map((d) => ({
+                    semana, motivo: d.motivo, monto: d.monto,
+                    aplicadoPor: d.aplicadoPor || USUARIO_ACTUAL.usuario, fecha: d.fecha || ahora
+                })));
+            }
+
             function aplicarGuardado() {
-                const { recibo, bonos, descuentos, extras, pagoExtras, editable } = abierto;
+                const { recibo, editable } = abierto;
                 const huboCambios = hayCambios();
                 const emp = recibo.emp;
                 const semana = recibo.semana;
@@ -1081,20 +1691,17 @@
                 avanzar({
                     titulo: 'Guardando el recibo…',
                     pasos: [
+                        // El admin: se revisa con lo último de la base de datos que el trabajador sea de su sucursal
+                        // y que su nómina no se haya enviado ni aprobado mientras tenía el recibo abierto
+                        ['Verificando que el recibo se pueda modificar', () => {
+                            if (!ES_ADMIN) return;
+                            ALMACEN.refrescar(CLAVE_NOMINAS);
+                            if (emp.suc !== USUARIO_ACTUAL.sucursal) throw new Error('Solo puedes modificar recibos de tu sucursal.');
+                            if (editable && !adminPuedeEditar(recibo)) throw new Error('La nómina de esta semana ya se envió o se aprobó: ya no se puede modificar. Actualiza la página.');
+                        }],
                         ['Guardando horas extra, bonos y descuentos', () => {
                             if (!editable) return;
-                            emp.extrasNomina = (emp.extrasNomina || []).filter((a) => a.semana !== semana);
-                            if (extras || pagoExtras) {
-                                emp.extrasNomina.push({ semana, horas: extras, pago: pagoExtras, capturadoPor: USUARIO_ACTUAL.usuario, fecha: ahora });
-                            }
-                            emp.bonos = (emp.bonos || []).filter((b) => b.semana !== semana).concat(bonos.map((b) => ({
-                                semana, concepto: b.concepto, monto: b.monto,
-                                otorgadoPor: b.otorgadoPor || USUARIO_ACTUAL.usuario, fecha: b.fecha || ahora
-                            })));
-                            emp.descuentos = (emp.descuentos || []).filter((d) => d.semana !== semana).concat(descuentos.map((d) => ({
-                                semana, motivo: d.motivo, monto: d.monto,
-                                aplicadoPor: d.aplicadoPor || USUARIO_ACTUAL.usuario, fecha: d.fecha || ahora
-                            })));
+                            guardarCapturaEn(emp, semana, ahora);
                             // Si el recibo cambió, debe decidirse de nuevo (aceptar / rechazar)
                             if (huboCambios) emp.aprobacionesNomina = (emp.aprobacionesNomina || []).filter((a) => a.semana !== semana);
                         }],
@@ -1111,7 +1718,7 @@
                             const detalleBonos = nuevo.bonos.length ? nuevo.bonos.map((b) => `${b.concepto} ${formatoDinero(b.monto)}`).join(', ') : 'sin bonos';
                             const detalleDescuentos = nuevo.descuentos.length ? nuevo.descuentos.map((d) => `${d.motivo} −${formatoDinero(d.monto)}`).join(', ') : 'sin descuentos';
                             const detalleDias = nuevo.descuentoDias ? ` · días no pagados: ${nuevo.horasNoPagadas} h −${formatoDinero(nuevo.descuentoDias)}` : '';
-                            registrarBitacora('Recibo guardado', `${emp.id} · ${emp.nombre} · semana ${semana} · horas extra: ${nuevo.extras} h (${formatoDinero(nuevo.pagoExtras)}) · bonos: ${detalleBonos} · descuentos: ${detalleDescuentos}${detalleDias} · total ${formatoDinero(nuevo.total)}`);
+                            registrarBitacora('Recibo guardado', `${emp.id} · ${emp.nombre} · semana ${semana} · horas extra: ${nuevo.extras} h (${formatoDinero(nuevo.pagoExtras)})${nuevo.justificacion ? ` por: ${nuevo.justificacion}` : ''} · bonos: ${detalleBonos} · descuentos: ${detalleDescuentos}${detalleDias} · total ${formatoDinero(nuevo.total)}`);
                         }]
                     ],
                     listo: '✅ Recibo guardado',
@@ -1292,7 +1899,7 @@
 
             // ---------- Registrar el pago de la semana ----------
             function pedirPago() {
-                if (!PUEDE_GUARDAR) return;
+                if (!PUEDE_PAGAR) return;
                 if (!recibosActuales.length) return mostrarToast('No hay recibos para la semana y los filtros seleccionados.');
                 const semana = selSemana.value;
                 if (aISO(sumarDias(fechaDesdeISO(semana), 6)) > HOY_ISO) {
@@ -1300,11 +1907,14 @@
                 }
                 const noPagados = recibosActuales.filter((r) => !estaPagado(r));
                 if (!noPagados.length) return mostrarToast('Todos los recibos de esta semana ya fueron pagados.');
-                // Solo se pagan los recibos que ya fueron aceptados
-                const porPagar = noPagados.filter((r) => estadoAprobacion(r) === 'aceptado');
-                if (!porPagar.length) return mostrarToast('⚠️ Ningún recibo ha sido aceptado. Cada recibo debe aceptarse de manera individual antes de registrar el pago.');
+                // Solo se pagan los recibos que ya fueron aceptados y cuya nómina de sucursal ya está aprobada
+                const aceptados = noPagados.filter((r) => estadoAprobacion(r) === 'aceptado');
+                if (!aceptados.length) return mostrarToast('⚠️ Ningún recibo ha sido aceptado. Cada recibo debe aceptarse de manera individual antes de registrar el pago.');
+                const porPagar = aceptados.filter(nominaAprobada);
+                if (!porPagar.length) return mostrarToast('⚠️ La nómina de la sucursal aún no está aprobada. Apruébela en "Nóminas de las sucursales" antes de registrar el pago.');
                 const yaPagados = recibosActuales.length - noPagados.length;
-                const sinAceptar = noPagados.length - porPagar.length;
+                const sinAceptar = noPagados.length - aceptados.length;
+                const sinNominaAprobada = aceptados.length - porPagar.length;
                 const sinGuardar = porPagar.filter((r) => !r.guardado).length;
                 const total = redondear(porPagar.reduce((t, r) => t + r.total, 0));
                 preguntar({
@@ -1313,6 +1923,7 @@
                     filas: [['Recibos por pagar (aceptados)', String(porPagar.length)]]
                         .concat(yaPagados ? [['Ya pagados (no cambian)', String(yaPagados)]] : [])
                         .concat(sinAceptar ? [['Sin aceptar (no se pagan)', String(sinAceptar)]] : [])
+                        .concat(sinNominaAprobada ? [['Nómina de sucursal sin aprobar (no se pagan)', String(sinNominaAprobada)]] : [])
                         .concat([['Total a pagar', formatoDinero(total), true]]),
                     nota: (sinGuardar ? `⚠️ ${plural(sinGuardar, 'recibo no ha sido revisado', 'recibos no han sido revisados')}: se pagará${sinGuardar === 1 ? '' : 'n'} sin horas extra, bonos ni descuentos (los días no pagados sí se descuentan). Para agregarlos, hágalo previamente en el recibo correspondiente. ` : '')
                         + 'Una vez registrado el pago, estos recibos ya no podrán modificarse.',
@@ -1329,6 +1940,12 @@
                 avanzar({
                     titulo: 'Registrando el pago…',
                     pasos: [
+                        // Otra persona pudo haber cambiado la nómina mientras tanto: se vuelve a leer antes de pagar
+                        ['Verificando que la nómina siga aprobada', () => {
+                            ALMACEN.refrescar(CLAVE_NOMINAS);
+                            const sinAprobar = [...new Set(porPagar.filter((r) => !nominaAprobada(r)).map((r) => nombreSucursal(r.emp.suc)))];
+                            if (sinAprobar.length) throw new Error(`La nómina de ${sinAprobar.join(', ')} ya no está aprobada. Actualice la página y revise su estado.`);
+                        }],
                         [`Marcando ${plural(porPagar.length, 'recibo como pagado', 'recibos como pagados')}`, () => {
                             porPagar.forEach((r) => marcarRecibo(r.emp, semana, {
                                 guardadoEl: (r.guardado && r.guardado.guardadoEl) || ahora,
@@ -1351,6 +1968,71 @@
             }
 
             // ---------- Eventos ----------
+            campo('asistente').addEventListener('click', (evento) => {
+                const boton = evento.target.closest('button');
+                if (!boton) return;
+                if (boton.dataset.filtro) {
+                    asis.filtro = boton.dataset.filtro;
+                    return renderVista();
+                }
+                const accion = boton.dataset.accion;
+                if (boton.id === 'enviarNominaBtn') return pedirEnvioNomina();
+                if (boton.dataset.ir !== undefined) return abrirRecibo(recibosActuales[Number(boton.dataset.ir)].emp.id);
+                if (accion === 'limpiar-busqueda') {
+                    campo('asisBuscar').value = '';
+                    campo('asisBuscar').focus();
+                    return buscarEnLista('');
+                }
+                if (accion === 'semana-pasada') {
+                    selSemana.value = aISO(sumarDias(fechaDesdeISO(selSemana.value), -7));
+                    selSemana.dispatchEvent(new Event('change'));
+                }
+            });
+            // Nota para el Super y buscador de la lista
+            campo('asistente').addEventListener('input', (evento) => {
+                const objetivo = evento.target;
+                if (objetivo.id === 'notaEnvio') {
+                    notaEnvio = objetivo.value;
+                    return;
+                }
+                if (objetivo.id === 'asisBuscar') return buscarEnLista(objetivo.value);
+            });
+            // Buscador de la lista: solo se vuelven a pintar los renglones (así no se pierde lo que va escribiendo)
+            function buscarEnLista(texto) {
+                asis.busqueda = texto;
+                const filas = campo('asisFilas');
+                if (filas) filas.innerHTML = htmlFilas(!campo('asisVista').querySelector('.asis-barra--enviada, .asis-barra--aprobada'));
+            }
+            // El admin entra directo a la semana que le rechazaron, si hay alguna
+            if (ES_ADMIN) {
+                const rechazada = [...selSemana.options].find((o) => estadoNomina(nominaDe(o.value, selSucursal.value)) === 'rechazada');
+                if (rechazada) selSemana.value = rechazada.value;
+                const pedida = new URLSearchParams(location.search).get('semana');
+                if (pedida && [...selSemana.options].some((o) => o.value === pedida)) selSemana.value = pedida;
+            }
+            // Super usuario y RH: el aviso de Inicio trae la semana y la sucursal de la nómina por aprobar
+            if (PUEDE_APROBAR) {
+                const parametros = new URLSearchParams(location.search);
+                const semana = parametros.get('semana');
+                const suc = parametros.get('suc');
+                if (semana && [...selSemana.options].some((o) => o.value === semana)) selSemana.value = semana;
+                if (suc && [...selSucursal.options].some((o) => o.value === suc)) selSucursal.value = suc;
+            }
+            campo('nominasSucursal').addEventListener('click', (evento) => {
+                const boton = evento.target.closest('button');
+                if (!boton) return;
+                if (boton.dataset.nomVer) {
+                    selSucursal.value = boton.dataset.nomVer;
+                    return render();
+                }
+                if (boton.dataset.nomAprobar) return pedirAprobarNomina(boton.dataset.nomAprobar);
+                if (boton.dataset.nomRechazar) return pedirRechazoNomina(boton.dataset.nomRechazar);
+            });
+            campo('nominaRechazoConfirmar').addEventListener('click', rechazarNomina);
+            campo('nominaRechazoCancelar').addEventListener('click', cerrarRechazoNomina);
+            campo('nominaRechazoModal').addEventListener('click', (evento) => {
+                if (evento.target === campo('nominaRechazoModal')) cerrarRechazoNomina();
+            });
             campo('recibosBody').addEventListener('click', (evento) => {
                 const verRecibo = evento.target.closest('[data-recibo]');
                 if (verRecibo) abrirRecibo(verRecibo.dataset.recibo);
@@ -1359,8 +2041,15 @@
                 if (!recibosActuales.length) return mostrarToast('No hay recibos para descargar con los filtros seleccionados.');
                 imprimir(recibosActuales);
             });
-            // Al escribir horas extra o pago extra, el recibo se actualiza en vivo
-            ['extraHoras', 'extraPago'].forEach((id) => campo(id).addEventListener('input', () => {
+            // Al escribir horas extra o pago extra, el recibo se actualiza en vivo.
+            // Al cambiar las horas, el pago se calcula solo (doble y triple); después se puede ajustar a mano.
+            campo('extraHoras').addEventListener('input', () => {
+                if (!abierto || !abierto.editable) return;
+                const horas = Number(campo('extraHoras').value);
+                if (Number.isFinite(horas) && horas >= 0) campo('extraPago').value = horas ? pagoHorasExtra(abierto.recibo.sueldo, horas) : '';
+                if (leerExtras()) pintarRecibo();
+            });
+            ['extraPago', 'extraJustificacion'].forEach((id) => campo(id).addEventListener('input', () => {
                 if (!abierto || !abierto.editable) return;
                 if (leerExtras()) pintarRecibo();
             }));
@@ -1392,6 +2081,8 @@
                 }
             });
             campo('guardarRecibo').addEventListener('click', pedirGuardarRecibo);
+            campo('faltaAplicar').addEventListener('click', pedirFalta);
+            ['input', 'change'].forEach((tipo) => campo('faltaCampos').addEventListener(tipo, () => campo('faltaError').classList.add('hidden')));
             campo('cerrarRecibo').addEventListener('click', intentarCerrarRecibo);
             campo('reciboModal').addEventListener('click', (evento) => {
                 if (evento.target === campo('reciboModal')) intentarCerrarRecibo();
@@ -1442,7 +2133,12 @@
             campo('decisionRechazar').addEventListener('click', () => decidir('rechazado'));
             campo('decisionCancelar').addEventListener('click', cerrarDecision);
 
-            selSemana.addEventListener('change', render);
+            selSemana.addEventListener('change', () => {
+                notaEnvio = '';
+                asis.filtro = null;
+                asis.busqueda = '';
+                render();
+            });
             selSucursal.addEventListener('change', render);
             render();
         })();

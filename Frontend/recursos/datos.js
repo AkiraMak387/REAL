@@ -680,6 +680,16 @@ function registroDia(emp, fecha) {
     if (checada && checada.entrada) {
         const entrada = aMinutosDelDia(checada.entrada);
 
+        // 0) Falta administrativa con la hora en que dejó de trabajar (p. ej. lo corrieron a las 11):
+        //    el día cuenta solo hasta esa hora, sin salida automática ni horas extra
+        const actaDelDia = (emp.actas || []).find((a) => a.fecha === iso && a.horaSalida);
+        if (actaDelDia) {
+            return conRetardoJustificado(emp, iso, {
+                ...registroChecada(fecha, entrada, Math.max(entrada, aMinutosDelDia(actaDelDia.horaSalida)), { checadora: true, salidaPorActa: actaDelDia.horaSalida }),
+                extras: 0
+            });
+        }
+
         // 1) Checó su salida en el escáner: se usan sus horas reales
         if (checada.salida) {
             return conRetardoJustificado(emp, iso, registroChecada(fecha, entrada, Math.max(entrada, aMinutosDelDia(checada.salida)), { checadora: true }));
@@ -936,6 +946,113 @@ function pasoHistorial(accion, datos, comentario) {
     };
 }
 
+// =====================================================================
+//  NÓMINA DE SUCURSAL: el admin la arma y la envía; el Super usuario o RH la aprueba o la rechaza
+//  Un registro por semana y sucursal: bodegas/{suc}/nominas/{semana}_{suc}
+//  Sin registro = borrador. Solo se puede registrar el pago de una nómina aprobada.
+// =====================================================================
+const CLAVE_NOMINAS = 'elnevado.nominas.v1';
+
+const ESTADOS_NOMINA = {
+    borrador: { texto: 'Sin enviar', clase: 'muted' },
+    revision: { texto: 'En revisión', clase: 'warn' },
+    aprobada: { texto: 'Aprobada', clase: 'ok' },
+    rechazada: { texto: 'Rechazada', clase: 'danger' }
+};
+
+function listaNominas() {
+    const guardadas = ALMACEN.leer(CLAVE_NOMINAS);
+    return Array.isArray(guardadas) ? guardadas : [];
+}
+
+function guardarNominas(nominas) {
+    return ALMACEN.escribir(CLAVE_NOMINAS, nominas);
+}
+
+function nominaDe(semana, suc) {
+    return listaNominas().find((n) => n.semana === semana && n.suc === suc) || null;
+}
+
+const estadoNomina = (nomina) => (nomina ? nomina.estado : 'borrador');
+
+// De qué estado se puede pasar a cuál, y quién puede hacerlo
+const PASOS_NOMINA = {
+    revision: { desde: ['borrador', 'rechazada'], permiso: 'armarNomina' },
+    aprobada: { desde: ['revision'], permiso: 'aprobarNomina' },
+    rechazada: { desde: ['revision'], permiso: 'aprobarNomina' }
+};
+
+// Crea o cambia la nómina de esa semana y sucursal, y deja el paso en su historial.
+// Antes de cambiarla se vuelve a leer de la base de datos y se revisa que el paso sea válido (otra persona
+// pudo haberla cambiado mientras tanto). Si no lo es, lanza un error con el motivo.
+// Regresa la nómina guardada o null si no se pudo guardar.
+function cambiarNomina(semana, suc, cambios, accion, comentario) {
+    const paso = PASOS_NOMINA[cambios.estado];
+    if (!paso || !puede(paso.permiso)) throw new Error('No tienes permiso para hacer este cambio en la nómina.');
+    if (paso.permiso === 'armarNomina' && suc !== USUARIO_ACTUAL.sucursal) throw new Error('Solo puedes enviar la nómina de tu sucursal.');
+    ALMACEN.refrescar(CLAVE_NOMINAS);
+    const nominas = listaNominas();
+    let nomina = nominas.find((n) => n.semana === semana && n.suc === suc);
+    const actual = estadoNomina(nomina);
+    if (!paso.desde.includes(actual)) {
+        throw new Error(`La nómina ya cambió: ahora está "${ESTADOS_NOMINA[actual].texto}". Actualiza la página para ver su estado.`);
+    }
+    if (!nomina) {
+        nomina = { id: `${semana}_${suc}`, semana, suc, historial: [] };
+        nominas.push(nomina);
+    }
+    Object.assign(nomina, cambios);
+    nomina.historial = (nomina.historial || []).concat(pasoHistorial(accion, null, comentario));
+    return guardarNominas(nominas) ? nomina : null;
+}
+
+// Admin: nóminas de su sucursal que debe enviar (la última semana terminada) o corregir (las rechazadas)
+function nominasPorEnviar() {
+    if (!puede('armarNomina')) return [];
+    const suc = USUARIO_ACTUAL.sucursal;
+    const pendientes = listaNominas().filter((n) => n.suc === suc && n.estado === 'rechazada')
+        .map((n) => ({ semana: n.semana, estado: 'rechazada' }));
+    const ultima = aISO(sumarDias(inicioSemanaNomina(HOY), -7));
+    const finUltima = aISO(sumarDias(fechaDesdeISO(ultima), 6));
+    const hayTrabajadores = EMPLEADOS.some((e) => e.ingreso <= finUltima && (!e.baja || e.baja.fecha >= ultima));
+    if (hayTrabajadores && estadoNomina(nominaDe(ultima, suc)) === 'borrador') pendientes.unshift({ semana: ultima, estado: 'borrador' });
+    return pendientes;
+}
+
+// Super usuario y RH: nóminas que enviaron los admin y esperan su decisión (las más antiguas primero)
+function nominasPorAprobar() {
+    if (!puede('aprobarNomina')) return [];
+    return listaNominas().filter((n) => n.estado === 'revision')
+        .sort((a, b) => a.semana.localeCompare(b.semana) || a.suc.localeCompare(b.suc));
+}
+
+// Aviso de Inicio: al admin, sus nóminas por enviar o corregir; al Super usuario y RH, las que debe aprobar.
+// '' si no hay nada pendiente.
+function htmlAvisoNomina() {
+    const semanaDe = (n) => {
+        const inicio = fechaDesdeISO(n.semana);
+        return etiquetaSemana({ inicio, fin: sumarDias(inicio, 6) });
+    };
+    if (puede('aprobarNomina')) {
+        const porAprobar = nominasPorAprobar();
+        if (!porAprobar.length) return '';
+        return `<strong>📄 ${porAprobar.length === 1 ? 'Hay 1 nómina de sucursal por aprobar' : `Hay ${porAprobar.length} nóminas de sucursal por aprobar`}</strong>`
+            + `<span>${porAprobar.map((n) => `<a href="nomina.html?semana=${n.semana}&suc=${encodeURIComponent(n.suc)}">${escaparHtml(nombreSucursal(n.suc))} · semana ${semanaDe(n)}</a>`).join(' · ')}</span>`;
+    }
+    const pendientes = nominasPorEnviar();
+    if (!pendientes.length) return '';
+    const texto = (n) => (n.estado === 'rechazada' ? `✕ Semana ${semanaDe(n)}: rechazada, corrígela` : `Semana ${semanaDe(n)}: por enviar`);
+    return `<strong>📄 ${pendientes.length === 1 ? 'Tienes 1 nómina pendiente' : `Tienes ${pendientes.length} nóminas pendientes`}</strong>`
+        + `<span>${pendientes.map((n) => `<a href="nomina.html?semana=${n.semana}">${texto(n)}</a>`).join(' · ')}</span>`;
+}
+
+// Pago de horas extra: las primeras 9 de la semana al doble y las siguientes al triple (LFT, art. 67 y 68)
+function pagoHorasExtra(sueldoSemanal, horas) {
+    const pagoHora = (Number(sueldoSemanal) || 0) / 7 / 8;
+    const dobles = Math.min(horas, 9);
+    return redondear(dobles * pagoHora * 2 + (horas - dobles) * pagoHora * 3);
+}
+
 function crearSolicitud(tipo, emp, datos, comentario) {
     const solicitudes = listaSolicitudes();
     const solicitud = {
@@ -1056,6 +1173,22 @@ function levantarActaDirecta(emp, datos) {
         s.estado = 'aprobada';
         s.historial.push(pasoHistorial('Levantó el acta', null, ''));
     });
+}
+
+// El admin de la sucursal decide y aplica la falta administrativa al momento (sin aprobación):
+// queda el acta en su expediente (y en Solicitudes, para imprimirla), ese día se paga como él decidió
+// y, si lo corren, queda dado de baja desde ese día. Regresa true si todo quedó guardado.
+function aplicarFaltaAdministrativa(emp, datos) {
+    const respaldo = ['actas', 'incidencias', 'baja'].map((c) => [c, emp[c] === undefined ? undefined : JSON.stringify(emp[c])]);
+    if (!levantarActaDirecta(emp, datos)) return false;
+    if (datos.baja) {
+        emp.baja = { fecha: datos.fecha, motivo: 'Despido justificado', detalle: `Falta administrativa: ${datos.hechos}`, acta: true, registradaPor: USUARIO_ACTUAL.usuario };
+    }
+    if (guardarCambios() === false) {
+        respaldo.forEach(([c, texto]) => { if (texto === undefined) delete emp[c]; else emp[c] = JSON.parse(texto); });
+        return false;
+    }
+    return true;
 }
 
 // Devuelve el error de los datos de un acta o '' si son válidos

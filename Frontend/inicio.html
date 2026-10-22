@@ -75,6 +75,9 @@
             <!-- Trabajadores que terminaron su incapacidad y no han presentado el alta del seguro -->
             <div id="avisoSinAlta" class="aviso-sin-alta hidden" role="status"></div>
 
+            <!-- Admin: nómina de su sucursal por enviar o rechazada -->
+            <div id="avisoNomina" class="aviso-sin-alta aviso-nomina hidden" role="status"></div>
+
             <div class="section-header">
                 <div>
                     <h2>Métricas en Tiempo Real</h2>
@@ -163,6 +166,8 @@
         // Aviso de quienes no pueden trabajar por falta del alta del seguro (se ve antes que todo lo demás)
         document.getElementById('avisoSinAlta').innerHTML = htmlAvisoSinAlta();
         document.getElementById('avisoSinAlta').classList.toggle('hidden', !document.getElementById('avisoSinAlta').innerHTML);
+        document.getElementById('avisoNomina').innerHTML = htmlAvisoNomina();
+        document.getElementById('avisoNomina').classList.toggle('hidden', !document.getElementById('avisoNomina').innerHTML);
         const aMinutos = (hora) => { const [h, m] = hora.split(':').map(Number); return h * 60 + m; };
         const periodo = (inicio, fin) => inicio === fin ? formatoFecha(inicio) : formatoFecha(inicio) + ' – ' + formatoFecha(fin);
 
